@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   listShifts,
+  getMyShiftsWorkspace,
   getShiftById,
   createShift,
   updateShift,
@@ -25,6 +26,8 @@ import {
 } from '@/api/care-shifts/care-shifts.api';
 import type {
   Shift,
+  MyShiftsQueryDto,
+  MyShiftsWorkspaceResponse,
   ShiftHandover,
   ListShiftsQueryDto,
   CreateShiftDto,
@@ -50,6 +53,18 @@ export function useShifts(query: ListShiftsQueryDto) {
     queryKey: tenantKey('care-shifts', 'shifts', 'list', JSON.stringify(query)),
     queryFn: () => listShifts(query),
     staleTime: 1000 * 60 * 2, // 2 minutos (dados mais frescos)
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * Hook para workspace "Meus Plantões" do usuário autenticado
+ */
+export function useMyShiftsWorkspace(query: MyShiftsQueryDto) {
+  return useQuery<MyShiftsWorkspaceResponse>({
+    queryKey: tenantKey('care-shifts', 'my-shifts', JSON.stringify(query)),
+    queryFn: () => getMyShiftsWorkspace(query),
+    staleTime: 1000 * 60,
     refetchOnWindowFocus: true,
   });
 }

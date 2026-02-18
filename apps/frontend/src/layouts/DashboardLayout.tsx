@@ -242,6 +242,12 @@ export function DashboardLayout() {
                     <User2 className="mr-2 h-4 w-4" />
                     <span>Meu Perfil</span>
                   </DropdownMenuItem>
+                  {canViewCareShifts && (
+                    <DropdownMenuItem onClick={() => navigate('/dashboard/meus-plantoes')}>
+                      <CalendarClock className="mr-2 h-4 w-4" />
+                      <span>Meus Plantões</span>
+                    </DropdownMenuItem>
+                  )}
                   {user?.role?.toUpperCase() === 'ADMIN' && (
                     <>
                       <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>
@@ -317,6 +323,12 @@ export function DashboardLayout() {
                     <User2 className="mr-2 h-4 w-4" />
                     <span>Meu Perfil</span>
                   </DropdownMenuItem>
+                  {canViewCareShifts && (
+                    <DropdownMenuItem onClick={() => navigate('/dashboard/meus-plantoes')}>
+                      <CalendarClock className="mr-2 h-4 w-4" />
+                      <span>Meus Plantões</span>
+                    </DropdownMenuItem>
+                  )}
                   {user?.role?.toUpperCase() === 'ADMIN' && (
                     <>
                       <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>

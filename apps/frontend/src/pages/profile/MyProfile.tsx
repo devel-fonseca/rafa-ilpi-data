@@ -30,6 +30,10 @@ import { useRef } from 'react'
 export default function MyProfile() {
   const { user } = useAuthStore()
   const { toast } = useToast()
+  const profileBreadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Meu Perfil' },
+  ]
 
   // React Query hooks
   const { data: profile, isLoading, isError, error, refetch } = useMyProfile()
@@ -287,6 +291,7 @@ export default function MyProfile() {
         <PageHeader
           title="Meu Perfil"
           subtitle="Carregando informações..."
+          breadcrumbs={profileBreadcrumbs}
         />
         <EmptyState
           icon={Loader2}
@@ -304,6 +309,7 @@ export default function MyProfile() {
         <PageHeader
           title="Meu Perfil"
           subtitle="Erro ao carregar dados"
+          breadcrumbs={profileBreadcrumbs}
         />
         <EmptyState
           icon={AlertCircle}
@@ -326,6 +332,7 @@ export default function MyProfile() {
         <PageHeader
           title="Meu Perfil"
           subtitle="Perfil não encontrado"
+          breadcrumbs={profileBreadcrumbs}
         />
         <EmptyState
           icon={User}
@@ -343,6 +350,7 @@ export default function MyProfile() {
       <PageHeader
         title="Meu Perfil"
         subtitle="Gerencie suas informações pessoais e dados de contato"
+        breadcrumbs={profileBreadcrumbs}
       />
 
       {/* Abas: Conta, Dados Pessoais, Alterar Senha, Autorização ILPI, Sessões Ativas e Logs de Acesso */}

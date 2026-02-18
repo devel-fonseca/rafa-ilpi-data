@@ -12,3 +12,4 @@ export { AvailableShiftTemplateDto } from './available-shift-template.dto';
 export { CreateHandoverDto } from './create-handover.dto';
 export { UpdateShiftNotesDto } from './update-shift-notes.dto';
 export { AdminCloseShiftDto } from './admin-close-shift.dto';
+export { MyShiftsQueryDto } from './my-shifts-query.dto';

@@ -101,6 +101,7 @@ import ResidentContractEdit from '@/pages/contracts/ResidentContractEdit'
 
 // Care Shifts Pages
 import CareShiftsPage from '@/pages/care-shifts/CareShiftsPage'
+import MyShiftsPage from '@/pages/care-shifts/MyShiftsPage'
 
 // Reports Pages
 
@@ -337,6 +338,18 @@ export const router = createBrowserRouter([
               requiredPermissions={[PermissionType.VIEW_CARE_SHIFTS]}
             >
               <CareShiftsPage />
+            </ProtectedRoute>
+          </FeatureGate>
+        ),
+      },
+      {
+        path: 'meus-plantoes',
+        element: (
+          <FeatureGate featureKey="escalas_plantoes">
+            <ProtectedRoute
+              requiredPermissions={[PermissionType.VIEW_CARE_SHIFTS]}
+            >
+              <MyShiftsPage />
             </ProtectedRoute>
           </FeatureGate>
         ),

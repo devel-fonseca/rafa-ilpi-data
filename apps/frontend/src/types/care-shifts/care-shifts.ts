@@ -230,6 +230,45 @@ export interface ListShiftsQueryDto {
   status?: ShiftStatus;
 }
 
+export interface MyShiftsQueryDto {
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+}
+
+export interface MyShiftRecord extends Shift {
+  myAssignment: {
+    assignedAt: string | null;
+    removedAt: string | null;
+    isFromTeam: boolean;
+    isCurrentlyAssigned: boolean;
+  };
+}
+
+export interface MyTeamMembership {
+  id: string;
+  teamId: string;
+  role: string;
+  addedAt: string;
+  removedAt: string | null;
+  isCurrent: boolean;
+  team: {
+    id: string;
+    name: string;
+    color: string | null;
+    isActive: boolean;
+    deletedAt: string | null;
+  } | null;
+}
+
+export interface MyShiftsWorkspaceResponse {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  shifts: MyShiftRecord[];
+  teamMemberships: MyTeamMembership[];
+}
+
 export interface CreateShiftDto {
   date: string; // YYYY-MM-DD
   shiftTemplateId: string;

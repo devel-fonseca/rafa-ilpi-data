@@ -8,6 +8,8 @@ import type {
   ShiftHistory,
   ShiftHandover,
   ListShiftsQueryDto,
+  MyShiftsQueryDto,
+  MyShiftsWorkspaceResponse,
   CreateShiftDto,
   UpdateShiftDto,
   AssignTeamDto,
@@ -51,6 +53,18 @@ export const listShifts = async (
 ): Promise<Shift[]> => {
   const response = await api.get<Shift[]>(BASE_URL, { params: query });
   return response.data; // API retorna array diretamente
+};
+
+/**
+ * Workspace "Meus Plantões" do usuário autenticado
+ */
+export const getMyShiftsWorkspace = async (
+  query: MyShiftsQueryDto = {},
+): Promise<MyShiftsWorkspaceResponse> => {
+  const response = await api.get<MyShiftsWorkspaceResponse>(`${BASE_URL}/my`, {
+    params: query,
+  });
+  return response.data;
 };
 
 /**

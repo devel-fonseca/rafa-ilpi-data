@@ -45,6 +45,7 @@ import {
   SubstituteMemberDto,
   AddMemberDto,
   CreateHandoverDto,
+  MyShiftsQueryDto,
 } from './dto';
 import { normalizeFeatureRecord } from '../common/utils/feature-keys.util';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -85,7 +86,7 @@ const SHIFT_REQUIRED_POSITIONS: PositionCode[] = [
   PositionCode.NURSING_ASSISTANT,
 ];
 
-const SHIFT_MANAGEMENT_ACTION_URL = '/dashboard/escala-cuidados';
+const SHIFT_MANAGEMENT_ACTION_URL = '/dashboard/meus-plantoes';
 
 type ShiftNotificationAction = 'SHIFT_ASSIGNED' | 'SHIFT_CANCELLED';
 
@@ -893,6 +894,233 @@ export class CareShiftsService {
     );
 
     return enrichedShifts;
+  }
+
+  /**
+   * Workspace de "Meus Plantões":
+   * - Plantões em que o usuário está ou esteve designado no período
+   * - Histórico de vínculo em equipes (atuais e anteriores)
+   */
+  async getMyShiftsWorkspace(userId: string, query: MyShiftsQueryDto) {
+    const tenantTimezone = await this.getTenantTimezone();
+    const todayStr = getCurrentDateInTz(tenantTimezone);
+    const todayRef = parse(`${todayStr} 12:00`, 'yyyy-MM-dd HH:mm', new Date());
+
+    const startDate = query.startDate
+      ? parseDateOnly(query.startDate)
+      : formatDateOnly(subDays(todayRef, 30));
+    const endDate = query.endDate
+      ? parseDateOnly(query.endDate)
+      : formatDateOnly(addDays(todayRef, 30));
+
+    const startDateObj = parseISO(`${startDate}T12:00:00.000`);
+    const endDateObj = parseISO(`${endDate}T12:00:00.000`);
+
+    const myAssignments = await this.tenantContext.client.shiftAssignment.findMany({
+      where: {
+        userId,
+        shift: {
+          date: {
+            gte: startDateObj,
+            lte: endDateObj,
+          },
+        },
+      },
+      select: {
+        shiftId: true,
+        assignedAt: true,
+        removedAt: true,
+        isFromTeam: true,
+      },
+      orderBy: { assignedAt: 'desc' },
+    });
+
+    const latestAssignmentByShift = new Map<
+      string,
+      { assignedAt: Date; removedAt: Date | null; isFromTeam: boolean }
+    >();
+    for (const assignment of myAssignments) {
+      if (!latestAssignmentByShift.has(assignment.shiftId)) {
+        latestAssignmentByShift.set(assignment.shiftId, {
+          assignedAt: assignment.assignedAt,
+          removedAt: assignment.removedAt,
+          isFromTeam: assignment.isFromTeam,
+        });
+      }
+    }
+
+    const shiftIds = [...latestAssignmentByShift.keys()];
+    if (shiftIds.length === 0) {
+      const teamMemberships = await this.tenantContext.client.teamMember.findMany({
+        where: { userId },
+        include: {
+          team: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+              isActive: true,
+              deletedAt: true,
+            },
+          },
+        },
+        orderBy: [{ removedAt: 'asc' }, { addedAt: 'desc' }],
+      });
+
+      return {
+        period: { startDate, endDate },
+        shifts: [],
+        teamMemberships: teamMemberships.map((membership) => ({
+          id: membership.id,
+          teamId: membership.teamId,
+          role: membership.role,
+          addedAt: membership.addedAt,
+          removedAt: membership.removedAt,
+          isCurrent: membership.removedAt === null,
+          team: membership.team,
+        })),
+      };
+    }
+
+    const shifts = await this.tenantContext.client.shift.findMany({
+      where: {
+        id: { in: shiftIds },
+      },
+      orderBy: [{ date: 'desc' }, { shiftTemplateId: 'asc' }],
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            isActive: true,
+          },
+        },
+        members: {
+          where: { removedAt: null },
+          orderBy: { assignedAt: 'asc' },
+        },
+        substitutions: {
+          include: {
+            originalTeam: {
+              select: { id: true, name: true },
+            },
+            newTeam: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: { substitutedAt: 'desc' },
+        },
+        handover: true,
+      },
+    });
+
+    const shiftTemplateIds = [...new Set(shifts.map((s) => s.shiftTemplateId))];
+    const [shiftTemplates, tenantConfigs] = await Promise.all([
+      this.tenantContext.publicClient.shiftTemplate.findMany({
+        where: { id: { in: shiftTemplateIds } },
+      }),
+      this.tenantContext.client.tenantShiftConfig.findMany({
+        where: {
+          shiftTemplateId: { in: shiftTemplateIds },
+          deletedAt: null,
+        },
+      }),
+    ]);
+    const templateMap = new Map(shiftTemplates.map((t) => [t.id, t]));
+    const configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
+
+    const handoverUserIds = Array.from(
+      new Set(
+        shifts.flatMap((shift) =>
+          shift.handover
+            ? [shift.handover.handedOverBy, shift.handover.receivedBy].filter(
+                (id): id is string => !!id,
+              )
+            : [],
+        ),
+      ),
+    );
+    const handoverUsers =
+      handoverUserIds.length > 0
+        ? await this.tenantContext.client.user.findMany({
+            where: { id: { in: handoverUserIds } },
+            select: { id: true, name: true, email: true },
+          })
+        : [];
+    const handoverUserMap = new Map(handoverUsers.map((u) => [u.id, u]));
+
+    const enrichedShifts = await Promise.all(
+      shifts.map(async (shift) => {
+        const template = templateMap.get(shift.shiftTemplateId);
+        const config = configMap.get(shift.shiftTemplateId);
+        const myAssignment = latestAssignmentByShift.get(shift.id);
+
+        return {
+          ...shift,
+          status: shift.deletedAt ? ShiftStatus.CANCELLED : shift.status,
+          shiftTemplate: template
+            ? {
+                id: template.id,
+                type: template.type,
+                name: config?.customName || template.name,
+                startTime: config?.customStartTime || template.startTime,
+                endTime: config?.customEndTime || template.endTime,
+                duration: config?.customDuration || template.duration,
+                description: template.description,
+                isActive: template.isActive,
+                displayOrder: template.displayOrder,
+              }
+            : null,
+          handover: shift.handover
+            ? {
+                ...shift.handover,
+                handedOverByUser: handoverUserMap.get(shift.handover.handedOverBy) || null,
+                receivedByUser: shift.handover.receivedBy
+                  ? handoverUserMap.get(shift.handover.receivedBy) || null
+                  : null,
+              }
+            : null,
+          members: await this.enrichMembersWithUserData(shift.members),
+          myAssignment: {
+            assignedAt: myAssignment?.assignedAt || null,
+            removedAt: myAssignment?.removedAt || null,
+            isFromTeam: myAssignment?.isFromTeam || false,
+            isCurrentlyAssigned: !myAssignment?.removedAt && !shift.deletedAt,
+          },
+        };
+      }),
+    );
+
+    const teamMemberships = await this.tenantContext.client.teamMember.findMany({
+      where: { userId },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            isActive: true,
+            deletedAt: true,
+          },
+        },
+      },
+      orderBy: [{ removedAt: 'asc' }, { addedAt: 'desc' }],
+    });
+
+    return {
+      period: { startDate, endDate },
+      shifts: enrichedShifts,
+      teamMemberships: teamMemberships.map((membership) => ({
+        id: membership.id,
+        teamId: membership.teamId,
+        role: membership.role,
+        addedAt: membership.addedAt,
+        removedAt: membership.removedAt,
+        isCurrent: membership.removedAt === null,
+        team: membership.team,
+      })),
+    };
   }
 
   /**

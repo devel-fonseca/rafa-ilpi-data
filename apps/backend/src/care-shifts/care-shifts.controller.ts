@@ -46,6 +46,7 @@ import {
   CreateHandoverDto,
   UpdateShiftNotesDto,
   AdminCloseShiftDto,
+  MyShiftsQueryDto,
 } from './dto';
 
 const HANDOVER_EASTER_EGG_REPORT = `O plantão transcorreu dentro da normalidade operacional da instituição, sem registro de intercorrências clínicas ou assistenciais relevantes.
@@ -123,6 +124,21 @@ export class CareShiftsController {
   })
   findAllShifts(@Query() query: ListShiftsQueryDto) {
     return this.careShiftsService.findAll(query);
+  }
+
+  @Get('my')
+  @RequireAnyPermission(PermissionType.VIEW_CARE_SHIFTS)
+  @ApiOperation({
+    summary: 'Meus plantões e equipes',
+    description:
+      'Retorna os plantões em que o usuário atual está ou esteve designado, além do histórico de vínculo em equipes.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dados de meus plantões retornados com sucesso',
+  })
+  getMyShifts(@Query() query: MyShiftsQueryDto, @Req() req: RequestWithUser) {
+    return this.careShiftsService.getMyShiftsWorkspace(req.user.id, query);
   }
 
   // ========== Utilitários para Relatórios ==========
