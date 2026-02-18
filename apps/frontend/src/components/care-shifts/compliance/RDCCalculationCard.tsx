@@ -30,6 +30,8 @@ export function RDCCalculationCard({
 
   if (!calculation) return null;
 
+  const getGrauIRequiredPerShift = (residentsGrauI: number) => Math.ceil(residentsGrauI / 20);
+
   return (
     <Card>
       <CardHeader>
@@ -51,9 +53,19 @@ export function RDCCalculationCard({
             <div className="space-y-2 text-sm">
               <p className="font-medium text-muted-foreground">Residentes:</p>
               <ul className="space-y-1 pl-4">
-                <li>Grau I: {calc.residents.grauI} residentes → {Math.ceil(calc.residents.grauI / (calc.shiftTemplate.duration === 8 ? 20 : 10))} cuidador(es)</li>
-                <li>Grau II: {calc.residents.grauII} residentes → {Math.ceil(calc.residents.grauII / 10)} cuidador(es)</li>
-                <li>Grau III: {calc.residents.grauIII} residentes → {Math.ceil(calc.residents.grauIII / 6)} cuidador(es)</li>
+                <li>
+                  Grau I: {calc.residents.grauI} residentes → {calc.breakdown?.grauIRequiredPerShift ??
+                    getGrauIRequiredPerShift(calc.residents.grauI)} cuidador(es){' '}
+                  <span className="text-muted-foreground">
+                    (base legal por turno: {calc.breakdown?.grauIBaseDaily ?? Math.ceil(calc.residents.grauI / 20)})
+                  </span>
+                </li>
+                <li>
+                  Grau II: {calc.residents.grauII} residentes → {calc.breakdown?.grauIIRequiredPerShift ?? Math.ceil(calc.residents.grauII / 10)} cuidador(es)
+                </li>
+                <li>
+                  Grau III: {calc.residents.grauIII} residentes → {calc.breakdown?.grauIIIRequiredPerShift ?? Math.ceil(calc.residents.grauIII / 6)} cuidador(es)
+                </li>
               </ul>
             </div>
           </div>

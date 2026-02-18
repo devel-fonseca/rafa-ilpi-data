@@ -70,6 +70,9 @@ export function CoverageReportTab() {
   );
 
   const sortedDates = Object.keys(shiftsByDate).sort();
+  const dailySummaryByDate = new Map(
+    (report?.dailySummaries || []).map((daily) => [daily.date, daily]),
+  );
 
   // Helper: Formatar horário do turno
   const formatTimeRange = (startTime: string, endTime: string) => {
@@ -99,6 +102,26 @@ export function CoverageReportTab() {
     }
     const deficit = shift.minimumRequired - shift.assignedCount;
     return `Déficit de ${deficit} cuidador${deficit > 1 ? 'es' : ''} (${shift.assignedCount}/${shift.minimumRequired})`;
+  };
+
+  const getDailyStatusBadgeClass = (
+    status: 'compliant' | 'attention' | 'non_compliant',
+  ) => {
+    if (status === 'compliant') {
+      return 'bg-success text-success-foreground';
+    }
+    if (status === 'non_compliant') {
+      return 'bg-destructive text-destructive-foreground';
+    }
+    return 'bg-warning text-warning-foreground';
+  };
+
+  const getDailyStatusLabel = (
+    status: 'compliant' | 'attention' | 'non_compliant',
+  ) => {
+    if (status === 'compliant') return 'Conforme';
+    if (status === 'non_compliant') return 'Não conforme';
+    return 'Atenção';
   };
 
   return (
@@ -217,6 +240,27 @@ export function CoverageReportTab() {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Dias Avaliados</p>
+                <p className="text-2xl font-bold">{report.summary.totalDays}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Dias Conformes</p>
+                <p className="text-2xl font-bold text-success">{report.summary.compliantDays}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Cobertura Horária</p>
+                <p className="text-2xl font-bold">
+                  {report.summary.totalCoveredHours}/{report.summary.expectedHours}h
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Taxa Horária</p>
+                <p className="text-2xl font-bold">{report.summary.hourlyCoverageRate}%</p>
+              </div>
+            </div>
+
             {/* Barra de Progresso Visual */}
             <div className="mt-6 space-y-2">
               <div className="flex items-center justify-between text-sm">
@@ -299,6 +343,7 @@ export function CoverageReportTab() {
               <TableBody>
                 {sortedDates.map((dateKey) => {
                   const dateShifts = shiftsByDate[dateKey];
+                  const dailySummary = dailySummaryByDate.get(dateKey);
                   const formattedDate = format(
                     parseISO(dateKey),
                     "dd/MM/yy (EEE)",
@@ -313,7 +358,32 @@ export function CoverageReportTab() {
                           rowSpan={dateShifts.length}
                           className="font-medium align-top capitalize"
                         >
-                          {formattedDate}
+                          <div className="space-y-2">
+                            <p>{formattedDate}</p>
+                            {dailySummary && (
+                              <>
+                                <Badge className={getDailyStatusBadgeClass(dailySummary.complianceStatus)}>
+                                  {getDailyStatusLabel(dailySummary.complianceStatus)}
+                                </Badge>
+                                <p className="text-xs text-muted-foreground normal-case">
+                                  Cobertura: {dailySummary.coveredHours}/{dailySummary.expectedHours}h
+                                </p>
+                                {dailySummary.nonCompliantPeriods.length > 0 && (
+                                  <div className="space-y-1">
+                                    {dailySummary.nonCompliantPeriods.map((period) => (
+                                      <p
+                                        key={`${dateKey}-${period.shiftTemplateName}-${period.startTime}`}
+                                        className="text-xs text-muted-foreground normal-case"
+                                      >
+                                        {period.startTime}-{period.endTime}: {period.shiftTemplateName}{' '}
+                                        ({period.assignedCount}/{period.minimumRequired})
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       )}
 

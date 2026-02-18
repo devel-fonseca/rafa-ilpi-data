@@ -1,6 +1,6 @@
 import { Injectable, Scope, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { parseISO, startOfDay } from 'date-fns';
+import { addDays, format, parseISO, startOfDay } from 'date-fns';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContextService } from '../../prisma/tenant-context.service';
 import {
@@ -9,16 +9,28 @@ import {
   ResidentsByDependencyLevel,
   CoverageReportResult,
   ShiftCoverageReport,
+  DailyCoverageSummary,
 } from '../interfaces';
+
+interface EnabledShiftTemplate {
+  id: string;
+  type: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  displayOrder: number;
+}
 
 /**
  * Service para cálculo RDC 502/2021 - Dimensionamento de Cuidadores
  *
  * Regras (Art. 16, II - RDC 502/2021):
- * - Grau I (8h): 1 cuidador para cada 20 residentes (carga diária)
- * - Grau I (12h): 1 cuidador para cada 10 residentes (por turno)
- * - Grau II (8h/12h): 1 cuidador para cada 10 residentes (por turno)
- * - Grau III (8h/12h): 1 cuidador para cada 6 residentes (por turno)
+ * - Grau I: base de 1 cuidador para cada 20 residentes com carga de 8h/dia.
+ *   Em operação com turnos sequenciais (8h ou 12h por CCT), aplica-se o mesmo
+ *   mínimo por turno para garantir continuidade sem lacunas.
+ * - Grau II: 1 cuidador para cada 10 residentes (por turno)
+ * - Grau III: 1 cuidador para cada 6 residentes (por turno)
  *
  * IMPORTANTE: Residentes sem grau de dependência NÃO entram no cálculo (apenas alerta)
  */
@@ -234,68 +246,101 @@ export class RDCCalculationService {
       return (a.shiftTemplate?.displayOrder || 0) - (b.shiftTemplate?.displayOrder || 0);
     });
 
-    // 2. Para cada dia do período, calcular mínimo RDC
+    // 2. Para cada dia do período, calcular mínimo RDC e incluir turnos ausentes
     const shiftReports: ShiftCoverageReport[] = [];
     const dateMap = new Map<string, RDCCalculationResult>();
+    const enabledTemplates = await this.getEnabledShiftTemplates();
+    const dateKeys = this.getDateKeysInRange(cleanStartDate, cleanEndDate);
 
-    for (const shift of enrichedShifts) {
-      // Normalizar data: pode vir como Date object ou string
-      const dateStr = shift.date instanceof Date
-        ? shift.date.toISOString().split('T')[0]
-        : (shift.date as string).split('T')[0];
+    const actualShiftMap = new Map(
+      enrichedShifts.map((shift) => {
+        const dateStr = shift.date instanceof Date
+          ? shift.date.toISOString().split('T')[0]
+          : (shift.date as string).split('T')[0];
+        return [`${dateStr}|${shift.shiftTemplateId}`, shift] as const;
+      }),
+    );
 
-      // Calcular RDC para esta data (cache para evitar recalcular)
+    for (const dateStr of dateKeys) {
       if (!dateMap.has(dateStr)) {
         const rdcResult = await this.calculateMinimumCaregiversRDC(dateStr);
         dateMap.set(dateStr, rdcResult);
       }
 
       const rdcResult = dateMap.get(dateStr)!;
-      const rdcCalc = rdcResult.calculations.find(
-        (c) => c.shiftTemplate.id === shift.shiftTemplateId,
-      );
 
-      if (!rdcCalc) continue; // Turno desabilitado, ignorar
+      for (const template of enabledTemplates) {
+        const shift = actualShiftMap.get(`${dateStr}|${template.id}`);
+        const rdcCalc = rdcResult.calculations.find(
+          (c) => c.shiftTemplate.id === template.id,
+        );
 
-      const assignedCount = shift.members.length;
-      const complianceStatus = this.getComplianceStatus(
-        assignedCount,
-        rdcCalc.minimumRequired,
-      );
+        if (!rdcCalc) continue;
 
-      // Mapear membros com suas funções na equipe
-      const teamMembersMap = new Map(
-        enrichedShifts
-          .find((s) => s.date === shift.date && s.shiftTemplateId === shift.shiftTemplateId)
-          ?.team?.members?.map((tm: { userId: string; role: string | null }) => [
+        const assignedCount = shift?.members.length || 0;
+        const complianceStatus = this.getComplianceStatus(
+          assignedCount,
+          rdcCalc.minimumRequired,
+        );
+
+        const teamMembersMap = new Map(
+          shift?.team?.members?.map((tm: { userId: string; role: string | null }) => [
             tm.userId,
             tm.role,
           ]) || [],
-      );
+        );
 
-      shiftReports.push({
-        date: dateStr,
-        shiftTemplate: {
-          id: shift.shiftTemplate?.id || shift.shiftTemplateId,
-          name: shift.shiftTemplate?.name || 'Turno desconhecido',
-          startTime: shift.shiftTemplate?.startTime || '00:00',
-          endTime: shift.shiftTemplate?.endTime || '00:00',
-        },
-        minimumRequired: rdcCalc.minimumRequired,
-        assignedCount,
-        complianceStatus,
-        team: shift.team
-          ? { id: shift.team.id, name: shift.team.name }
-          : undefined,
-        members: shift.members.map((m) => ({
-          userId: m.userId,
-          userName: userMap.get(m.userId) || 'Nome não disponível',
-          teamFunction: teamMembersMap.get(m.userId) || null,
-        })),
-      });
+        shiftReports.push({
+          date: dateStr,
+          shiftTemplate: {
+            id: template.id,
+            name: shift?.shiftTemplate?.name || template.name,
+            startTime: shift?.shiftTemplate?.startTime || template.startTime,
+            endTime: shift?.shiftTemplate?.endTime || template.endTime,
+          },
+          durationHours: shift?.shiftTemplate?.duration || template.duration,
+          minimumRequired: rdcCalc.minimumRequired,
+          assignedCount,
+          complianceStatus,
+          team: shift?.team
+            ? { id: shift.team.id, name: shift.team.name }
+            : undefined,
+          members: (shift?.members || []).map((m) => ({
+            userId: m.userId,
+            userName: userMap.get(m.userId) || 'Nome não disponível',
+            teamFunction: teamMembersMap.get(m.userId) || null,
+          })),
+        });
+      }
     }
 
-    // 3. Calcular summary
+    // 3. Ordenar por data e turno
+    const templateOrderMap = new Map(
+      enabledTemplates.map((template, index) => [template.id, template.displayOrder ?? index]),
+    );
+    shiftReports.sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      return (templateOrderMap.get(a.shiftTemplate.id) || 0) -
+        (templateOrderMap.get(b.shiftTemplate.id) || 0);
+    });
+
+    // 4. Consolidado diário por horas de cobertura
+    const dailySummaries = this.buildDailyCoverageSummaries(
+      shiftReports,
+      cleanStartDate,
+      cleanEndDate,
+    );
+    const totalCoveredHours = dailySummaries.reduce(
+      (sum, day) => sum + day.coveredHours,
+      0,
+    );
+    const expectedHours = dailySummaries.reduce(
+      (sum, day) => sum + day.expectedHours,
+      0,
+    );
+
+    // 5. Calcular summary geral
     const summary = {
       totalShifts: shiftReports.length,
       compliant: shiftReports.filter((s) => s.complianceStatus === 'compliant')
@@ -305,14 +350,91 @@ export class RDCCalculationService {
       nonCompliant: shiftReports.filter(
         (s) => s.complianceStatus === 'non_compliant',
       ).length,
+      totalDays: dailySummaries.length,
+      compliantDays: dailySummaries.filter((d) => d.complianceStatus === 'compliant').length,
+      attentionDays: dailySummaries.filter((d) => d.complianceStatus === 'attention').length,
+      nonCompliantDays: dailySummaries.filter((d) => d.complianceStatus === 'non_compliant').length,
+      totalCoveredHours: Number(totalCoveredHours.toFixed(2)),
+      expectedHours,
+      hourlyCoverageRate: expectedHours > 0
+        ? Number(((totalCoveredHours / expectedHours) * 100).toFixed(1))
+        : 0,
     };
 
     return {
       startDate,
       endDate,
       shifts: shiftReports,
+      dailySummaries,
       summary,
     };
+  }
+
+  private getDateKeysInRange(startDate: string, endDate: string): string[] {
+    const keys: string[] = [];
+    let cursor = parseISO(`${startDate}T00:00:00.000`);
+    const end = parseISO(`${endDate}T00:00:00.000`);
+
+    while (cursor <= end) {
+      keys.push(format(cursor, 'yyyy-MM-dd'));
+      cursor = addDays(cursor, 1);
+    }
+
+    return keys;
+  }
+
+  private buildDailyCoverageSummaries(
+    shiftReports: ShiftCoverageReport[],
+    startDate: string,
+    endDate: string,
+  ): DailyCoverageSummary[] {
+    const shiftsByDate = shiftReports.reduce(
+      (acc, shift) => {
+        if (!acc[shift.date]) {
+          acc[shift.date] = [];
+        }
+        acc[shift.date].push(shift);
+        return acc;
+      },
+      {} as Record<string, ShiftCoverageReport[]>,
+    );
+
+    return this.getDateKeysInRange(startDate, endDate).map((date) => {
+      const shifts = shiftsByDate[date] || [];
+      const expectedHours = 24;
+      const coveredHoursRaw = shifts
+        .filter((shift) => shift.complianceStatus === 'compliant')
+        .reduce((sum, shift) => sum + shift.durationHours, 0);
+      const coveredHours = Number(Math.min(expectedHours, coveredHoursRaw).toFixed(2));
+      const uncoveredHours = Number(Math.max(0, expectedHours - coveredHours).toFixed(2));
+
+      const nonCompliantPeriods = shifts
+        .filter((shift) => shift.complianceStatus !== 'compliant')
+        .map((shift) => ({
+          shiftTemplateName: shift.shiftTemplate.name,
+          startTime: shift.shiftTemplate.startTime,
+          endTime: shift.shiftTemplate.endTime,
+          complianceStatus: shift.complianceStatus,
+          assignedCount: shift.assignedCount,
+          minimumRequired: shift.minimumRequired,
+        })) as DailyCoverageSummary['nonCompliantPeriods'];
+
+      let complianceStatus: DailyCoverageSummary['complianceStatus'] = 'compliant';
+      if (coveredHours <= 0) {
+        complianceStatus = 'non_compliant';
+      } else if (uncoveredHours > 0 || nonCompliantPeriods.length > 0) {
+        complianceStatus = 'attention';
+      }
+
+      return {
+        date,
+        expectedHours,
+        coveredHours,
+        uncoveredHours,
+        complianceStatus,
+        nonCompliantPeriods,
+      };
+    });
   }
 
   /**
@@ -362,7 +484,7 @@ export class RDCCalculationService {
   /**
    * Buscar turnos habilitados para o tenant
    */
-  private async getEnabledShiftTemplates(shiftTemplateId?: string) {
+  private async getEnabledShiftTemplates(shiftTemplateId?: string): Promise<EnabledShiftTemplate[]> {
     const where: Prisma.ShiftTemplateWhereInput = { isActive: true };
     if (shiftTemplateId) {
       where.id = shiftTemplateId;
@@ -385,39 +507,41 @@ export class RDCCalculationService {
     const configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
 
     // Filtrar apenas habilitados no tenant
-    return templates.filter((template) => {
-      const tenantConfig = configMap.get(template.id);
-      if (!tenantConfig) return true; // Sem config = habilitado por padrão
-      return tenantConfig.isEnabled;
-    });
+    return templates
+      .filter((template) => {
+        const tenantConfig = configMap.get(template.id);
+        if (!tenantConfig) return true; // Sem config = habilitado por padrão
+        return tenantConfig.isEnabled;
+      })
+      .map((template) => {
+        const tenantConfig = configMap.get(template.id);
+        return {
+          id: template.id,
+          type: template.type,
+          name: tenantConfig?.customName || template.name,
+          startTime: tenantConfig?.customStartTime || template.startTime,
+          endTime: tenantConfig?.customEndTime || template.endTime,
+          duration: tenantConfig?.customDuration || template.duration,
+          displayOrder: template.displayOrder,
+        };
+      });
   }
 
   /**
    * Calcular mínimo exigido para um turno específico
    */
   private calculateForShiftTemplate(
-    template: Prisma.ShiftTemplateGetPayload<Record<string, never>>,
+    template: EnabledShiftTemplate,
     residents: ResidentsByDependencyLevel,
   ): ShiftRDCCalculation {
     const { grauI, grauII, grauIII } = residents;
-    let minimumRequired = 0;
-
-    if (template.duration === 8) {
-      // Turnos de 8h:
-      // - Grau I: carga diária (÷20)
-      // - Grau II/III: por turno (÷10, ÷6)
-      minimumRequired =
-        Math.ceil(grauI / 20) +
-        Math.ceil(grauII / 10) +
-        Math.ceil(grauIII / 6);
-    } else {
-      // Turnos de 12h:
-      // - Todos por turno
-      minimumRequired =
-        Math.ceil(grauI / 10) +
-        Math.ceil(grauII / 10) +
-        Math.ceil(grauIII / 6);
-    }
+    const grauIBaseDaily = Math.ceil(grauI / 20); // Base legal: 8h/dia
+    const grauIWorkloadFactor = 1;
+    const grauIRequiredPerShift = grauIBaseDaily;
+    const grauIIRequiredPerShift = Math.ceil(grauII / 10);
+    const grauIIIRequiredPerShift = Math.ceil(grauIII / 6);
+    const minimumRequired =
+      grauIRequiredPerShift + grauIIRequiredPerShift + grauIIIRequiredPerShift;
 
     return {
       shiftTemplate: {
@@ -429,6 +553,14 @@ export class RDCCalculationService {
         duration: template.duration,
       },
       minimumRequired,
+      breakdown: {
+        grauIBaseDaily,
+        grauIWorkloadFactor,
+        grauIRequiredPerShift,
+        grauIIRequiredPerShift,
+        grauIIIRequiredPerShift,
+        appliesGrauIComponent: grauIRequiredPerShift > 0,
+      },
       residents: {
         grauI,
         grauII,
@@ -445,6 +577,7 @@ export class RDCCalculationService {
     assignedCount: number,
     minimumRequired: number,
   ): 'compliant' | 'attention' | 'non_compliant' {
+    if (minimumRequired <= 0) return 'compliant'; // Sem exigência para o turno
     if (assignedCount === 0) return 'non_compliant'; // 🔴 Vermelho
     if (assignedCount < minimumRequired) return 'attention'; // 🟡 Amarelo
     return 'compliant'; // 🟢 Verde
