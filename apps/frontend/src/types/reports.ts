@@ -56,6 +56,32 @@ export interface ShiftReport {
   status: string
 }
 
+export interface ScheduledEventReport {
+  residentName: string
+  residentCpf: string
+  residentCns?: string
+  bedCode: string
+  eventType: string
+  title: string
+  date: string
+  time: string
+  status: 'COMPLETED' | 'MISSED'
+  notes?: string
+}
+
+export interface ImmunizationReport {
+  residentName: string
+  residentCpf: string
+  residentCns?: string
+  bedCode: string
+  vaccineOrProphylaxis: string
+  dose: string
+  batch: string
+  manufacturer: string
+  healthEstablishmentWithCnes: string
+  municipalityState: string
+}
+
 export interface DailyReportSummary {
   date: string
   totalResidents: number
@@ -83,6 +109,8 @@ export interface DailyReport {
   medicationAdministrations: MedicationAdministrationReport[]
   vitalSigns: VitalSignsReport[]
   shifts: ShiftReport[]
+  scheduledEvents: ScheduledEventReport[]
+  immunizations: ImmunizationReport[]
 }
 
 export interface MultiDayReport {

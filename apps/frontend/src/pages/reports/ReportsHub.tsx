@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select'
 import { getDailyReport } from '@/services/reportsApi'
 import { downloadDailyReportPDF } from '@/services/dailyReportPdf'
+import { applyOperationalReportFilter } from '@/services/operationalReports'
 import { useAuthStore } from '@/stores/auth.store'
 import { useQuery } from '@tanstack/react-query'
 import { getAvailableShiftTemplates } from '@/api/care-shifts/shift-templates.api'
@@ -58,8 +59,23 @@ export default function ReportsHub() {
   const handleGenerateReport = async (filters: ReportFilters) => {
     setIsGenerating(true)
     try {
-      // Navegar para o relatório diário se o tipo for DAILY e formato for HTML
-      if (filters.reportType === 'DAILY' && filters.format === 'HTML') {
+      const isOperationalReport =
+        filters.reportType === 'DAILY' ||
+        filters.reportType === 'BY_SHIFT' ||
+        filters.reportType === 'BY_RECORD_TYPE'
+
+      if (
+        isOperationalReport &&
+        filters.format &&
+        filters.format !== 'HTML' &&
+        filters.format !== 'PDF'
+      ) {
+        console.error(`Formato ${filters.format} ainda não suportado para este relatório.`)
+        return
+      }
+
+      // Navegar para o relatório operacional em tela
+      if (isOperationalReport && filters.format === 'HTML') {
         // Passar startDate e endDate como query params
         const params = new URLSearchParams()
         if (filters.startDate) {
@@ -68,22 +84,47 @@ export default function ReportsHub() {
         if (filters.endDate && filters.endDate !== filters.startDate) {
           params.set('endDate', filters.endDate)
         }
+        if (filters.periodType) {
+          params.set('periodType', filters.periodType)
+        }
+        if (filters.yearMonth) {
+          params.set('yearMonth', filters.yearMonth)
+        }
         if (filters.shift && filters.shift !== 'ALL') {
           params.set('shiftTemplateId', filters.shift)
+        }
+        if (filters.reportType && filters.reportType !== 'DAILY') {
+          params.set('reportType', filters.reportType)
+        }
+        if (filters.reportType === 'BY_RECORD_TYPE' && filters.recordType) {
+          params.set('recordType', filters.recordType)
         }
         navigate(`/dashboard/relatorios/diario?${params.toString()}`)
         return
       }
 
-      // Gerar PDF se o tipo for DAILY e formato for PDF
-      if (filters.reportType === 'DAILY' && filters.format === 'PDF') {
+      // Gerar PDF dos relatórios operacionais
+      if (isOperationalReport && filters.format === 'PDF') {
         if (!filters.startDate) {
           console.error('Data inicial é obrigatória')
           return
         }
 
         // Buscar dados do relatório
-        const multiDayReport = await getDailyReport(filters.startDate, filters.endDate, filters.shift)
+        const multiDayReport = await getDailyReport(
+          filters.startDate,
+          filters.endDate,
+          filters.shift,
+          {
+            periodType: filters.periodType,
+            yearMonth: filters.yearMonth,
+            reportType: filters.reportType,
+          },
+        )
+        const filteredReport = applyOperationalReportFilter(multiDayReport, {
+          reportType: filters.reportType,
+          recordType: filters.recordType,
+        })
 
         // Gerar e baixar PDF
         const ilpiName = user?.tenant?.profile?.tradeName || user?.tenant?.name || 'ILPI'
@@ -97,11 +138,14 @@ export default function ReportsHub() {
           minute: '2-digit',
         })
 
-        downloadDailyReportPDF(multiDayReport, {
+        downloadDailyReportPDF(filteredReport, {
           ilpiName,
           cnpj,
           userName,
           printDate,
+          reportType: filters.reportType,
+          periodType: filters.periodType,
+          recordType: filters.recordType,
         })
 
         // Adicionar aos recentes
@@ -126,24 +170,7 @@ export default function ReportsHub() {
         return
       }
 
-      // TODO: Implementar chamada à API para outros tipos de relatórios
-      console.log('Generating report with filters:', filters)
-
-      // Simular processamento
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Adicionar aos recentes
-      const newReport: RecentReport = {
-        id: `report-${Date.now()}`,
-        label: `Relatório ${filters.reportType}`,
-        category: filters.reportType,
-        timestamp: new Date(),
-        filters,
-      }
-
-      setRecentReports((prev) => [newReport, ...prev.slice(0, 4)])
-
-      // TODO: Abrir relatório gerado
+      console.error('Tipo de relatório ainda não suportado:', filters.reportType)
     } catch (error) {
       console.error('Error generating report:', error)
     } finally {
@@ -183,9 +210,22 @@ export default function ReportsHub() {
       return
     }
 
-    // Para outros tipos, pré-preencher o gerador e scroll até ele
-    // TODO: Implementar scroll e pré-preenchimento do gerador
-    console.log('Selected report type:', reportType)
+    if (itemId === 'record-type-report' || reportType === 'BY_RECORD_TYPE') {
+      const params = new URLSearchParams()
+      params.set('startDate', getCurrentDate())
+      params.set('reportType', 'BY_RECORD_TYPE')
+      if (itemId === 'incidents') {
+        params.set('recordType', 'INTERCORRENCIA')
+      } else if (itemId === 'medication-errors') {
+        params.set('recordType', 'MEDICACAO')
+      } else if (itemId === 'falls') {
+        params.set('recordType', 'INTERCORRENCIA')
+      } else {
+        params.set('recordType', 'ALL')
+      }
+      navigate(`/dashboard/relatorios/diario?${params.toString()}`)
+      return
+    }
   }
 
   const handleConfirmShiftReport = () => {
@@ -193,6 +233,7 @@ export default function ReportsHub() {
     const params = new URLSearchParams()
     params.set('startDate', getCurrentDate())
     params.set('shiftTemplateId', selectedShiftTemplateId)
+    params.set('reportType', 'BY_SHIFT')
     setIsShiftDialogOpen(false)
     navigate(`/dashboard/relatorios/diario?${params.toString()}`)
   }
@@ -320,7 +361,38 @@ export default function ReportsHub() {
               {recentReports.map((report) => (
                 <button
                   key={report.id}
-                  onClick={() => console.log('Reopen report:', report.id)}
+                      onClick={() => {
+                        if (
+                          report.filters.reportType === 'DAILY' ||
+                          report.filters.reportType === 'BY_SHIFT' ||
+                          report.filters.reportType === 'BY_RECORD_TYPE'
+                        ) {
+                          const params = new URLSearchParams()
+                          params.set('startDate', report.filters.startDate)
+                          if (report.filters.endDate && report.filters.endDate !== report.filters.startDate) {
+                            params.set('endDate', report.filters.endDate)
+                          }
+                          if (report.filters.periodType) {
+                            params.set('periodType', report.filters.periodType)
+                          }
+                          if (report.filters.yearMonth) {
+                            params.set('yearMonth', report.filters.yearMonth)
+                          }
+                          if (report.filters.shift && report.filters.shift !== 'ALL') {
+                            params.set('shiftTemplateId', report.filters.shift)
+                          }
+                          if (report.filters.reportType !== 'DAILY') {
+                            params.set('reportType', report.filters.reportType)
+                          }
+                          if (
+                            report.filters.reportType === 'BY_RECORD_TYPE' &&
+                            report.filters.recordType
+                          ) {
+                            params.set('recordType', report.filters.recordType)
+                          }
+                          navigate(`/dashboard/relatorios/diario?${params.toString()}`)
+                        }
+                      }}
                   className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-all hover:bg-accent hover:shadow-sm"
                 >
                   <FileText className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />

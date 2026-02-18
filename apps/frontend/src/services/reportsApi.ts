@@ -223,6 +223,11 @@ export async function getDailyReport(
   startDate: string,
   endDate?: string,
   shiftTemplateId?: string,
+  options?: {
+    periodType?: 'DAY' | 'MONTH'
+    yearMonth?: string
+    reportType?: 'DAILY' | 'BY_SHIFT' | 'BY_RECORD_TYPE'
+  },
 ): Promise<MultiDayReport> {
   const params = new URLSearchParams({ startDate })
   if (endDate) {
@@ -230,6 +235,15 @@ export async function getDailyReport(
   }
   if (shiftTemplateId && shiftTemplateId !== 'ALL') {
     params.set('shiftTemplateId', shiftTemplateId)
+  }
+  if (options?.periodType) {
+    params.set('periodType', options.periodType)
+  }
+  if (options?.yearMonth) {
+    params.set('yearMonth', options.yearMonth)
+  }
+  if (options?.reportType) {
+    params.set('reportType', options.reportType)
   }
   const response = await api.get(`/reports/daily?${params.toString()}`)
   return response.data

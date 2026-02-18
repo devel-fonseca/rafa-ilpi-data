@@ -28,6 +28,9 @@ export class ReportsController {
   @ApiQuery({ name: 'startDate', required: true, type: String, description: 'Data inicial (YYYY-MM-DD)' })
   @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Data final (YYYY-MM-DD). Se não fornecida, retorna apenas startDate' })
   @ApiQuery({ name: 'shiftTemplateId', required: false, type: String, description: 'Filtrar por template de turno específico (UUID)' })
+  @ApiQuery({ name: 'periodType', required: false, type: String, description: 'Tipo do período: DAY | MONTH (uso no relatório por tipo de registro)' })
+  @ApiQuery({ name: 'yearMonth', required: false, type: String, description: 'Mês de referência no formato YYYY-MM quando periodType=MONTH' })
+  @ApiQuery({ name: 'reportType', required: false, type: String, description: 'Tipo do relatório: DAILY | BY_SHIFT | BY_RECORD_TYPE' })
   @ApiResponse({
     status: 200,
     description: 'Relatório gerado com sucesso',
@@ -38,11 +41,40 @@ export class ReportsController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate?: string,
     @Query('shiftTemplateId') shiftTemplateId?: string,
+    @Query('periodType') periodType?: string,
+    @Query('yearMonth') yearMonth?: string,
+    @Query('reportType') reportType?: string,
   ): Promise<MultiDayReportDto> {
     if (!user.tenantId) {
       throw new Error('TenantId não encontrado no token JWT');
     }
-    return this.reportsService.generateMultiDayReport(user.tenantId, startDate, endDate, shiftTemplateId);
+
+    let finalStartDate = startDate;
+    let finalEndDate = endDate;
+    let allowExtendedRange = false;
+
+    if (periodType === 'MONTH') {
+      if (!yearMonth || !/^\d{4}-\d{2}$/.test(yearMonth)) {
+        throw new Error('yearMonth inválido. Use o formato YYYY-MM');
+      }
+      if (reportType !== 'BY_RECORD_TYPE') {
+        throw new Error('Período mensal é permitido apenas para relatório por tipo de registro');
+      }
+
+      const [year, month] = yearMonth.split('-').map(Number);
+      const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      finalStartDate = `${yearMonth}-01`;
+      finalEndDate = `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
+      allowExtendedRange = true;
+    }
+
+    return this.reportsService.generateMultiDayReport(
+      user.tenantId,
+      finalStartDate,
+      finalEndDate,
+      shiftTemplateId,
+      { allowExtendedRange },
+    );
   }
 
   @Get('residents')

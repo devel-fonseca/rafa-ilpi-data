@@ -8,8 +8,11 @@ import { useQuery } from '@tanstack/react-query'
 import { getDailyReport } from '@/services/reportsApi'
 import { DailyReportView } from '@/components/reports/DailyReportView'
 import { downloadDailyReportPDF } from '@/services/dailyReportPdf'
+import { applyOperationalReportFilter } from '@/services/operationalReports'
 import { useAuthStore } from '@/stores/auth.store'
 import { useEffect, useState } from 'react'
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels'
+import type { ReportType, RecordTypeFilter } from '@/types/reportsHub'
 import {
   Dialog,
   DialogContent,
@@ -25,13 +28,22 @@ export default function DailyReportPage() {
   const startDate = searchParams.get('startDate') || searchParams.get('date') || getCurrentDate()
   const endDate = searchParams.get('endDate') || undefined
   const shiftTemplateId = searchParams.get('shiftTemplateId') || undefined
+  const reportType = (searchParams.get('reportType') as ReportType | null) || 'DAILY'
+  const recordType = (searchParams.get('recordType') as RecordTypeFilter | null) || undefined
+  const periodType = (searchParams.get('periodType') as 'DAY' | 'MONTH' | null) || 'DAY'
+  const yearMonth = searchParams.get('yearMonth') || undefined
   const { user } = useAuthStore()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [noShiftDialogOpen, setNoShiftDialogOpen] = useState(false)
 
   const { data: multiDayReport, isLoading, error } = useQuery({
-    queryKey: ['daily-report', startDate, endDate, shiftTemplateId],
-    queryFn: () => getDailyReport(startDate, endDate, shiftTemplateId),
+    queryKey: ['daily-report', startDate, endDate, shiftTemplateId, periodType, yearMonth, reportType],
+    queryFn: () =>
+      getDailyReport(startDate, endDate, shiftTemplateId, {
+        periodType,
+        yearMonth,
+        reportType,
+      }),
     enabled: !!startDate,
     staleTime: 1000 * 60 * 5, // 5 minutos
   })
@@ -44,8 +56,36 @@ export default function DailyReportPage() {
     setNoShiftDialogOpen(!hasAnyShift)
   }, [shiftTemplateId, multiDayReport, isLoading, error])
 
+  const filteredReport = multiDayReport
+    ? applyOperationalReportFilter(multiDayReport, { reportType, recordType })
+    : undefined
+
+  const pageTitle =
+    reportType === 'BY_SHIFT'
+      ? 'Relatório por Plantão'
+      : reportType === 'BY_RECORD_TYPE'
+        ? 'Relatório por Tipo de Registro'
+        : 'Relatório Diário'
+
+  const getRecordTypeDisplayName = (type: RecordTypeFilter | undefined) => {
+    if (!type || type === 'ALL') return 'todos os tipos'
+    if (type === 'MEDICACAO') return 'Medicação'
+    if (type === 'IMUNIZACOES') return 'Imunizações'
+    if (type === 'AGENDAMENTOS_PONTUAIS') return 'Agendamentos Pontuais'
+    return getRecordTypeLabel(type).label
+  }
+
+  const pageSubtitle =
+    reportType === 'BY_RECORD_TYPE' && recordType && recordType !== 'ALL'
+      ? periodType === 'MONTH' && yearMonth
+        ? `Visualize registros filtrados por ${getRecordTypeDisplayName(recordType)} no mês ${yearMonth}`
+        : `Visualize registros filtrados por ${getRecordTypeDisplayName(recordType)}`
+      : reportType === 'BY_SHIFT'
+        ? 'Visualize os registros assistenciais dentro do turno selecionado'
+        : 'Visualize todos os registros, medicações e sinais vitais de um ou mais dias'
+
   const handleGeneratePDF = () => {
-    if (!multiDayReport || !user) return
+    if (!filteredReport || !user) return
 
     setIsGeneratingPdf(true)
     try {
@@ -60,11 +100,14 @@ export default function DailyReportPage() {
         minute: '2-digit',
       })
 
-      downloadDailyReportPDF(multiDayReport, {
+      downloadDailyReportPDF(filteredReport, {
         ilpiName,
         cnpj,
         userName,
         printDate,
+        reportType,
+        periodType,
+        recordType,
       })
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
@@ -76,14 +119,14 @@ export default function DailyReportPage() {
   return (
     <Page>
       <PageHeader
-        title="Relatório Diário"
-        subtitle="Visualize todos os registros, medicações e sinais vitais de um ou mais dias"
+        title={pageTitle}
+        subtitle={pageSubtitle}
         breadcrumbs={[
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
-          { label: 'Relatório Diário' },
+          { label: pageTitle },
         ]}
         actions={
-          multiDayReport && !isLoading && !error && !noShiftDialogOpen ? (
+          filteredReport && !isLoading && !error && !noShiftDialogOpen ? (
             <Button
               onClick={handleGeneratePDF}
               disabled={isGeneratingPdf}
@@ -130,12 +173,17 @@ export default function DailyReportPage() {
       )}
 
       {/* Report View */}
-      {multiDayReport && !noShiftDialogOpen && (
-        <DailyReportView multiDayReport={multiDayReport} />
+      {filteredReport && !noShiftDialogOpen && (
+        <DailyReportView
+          multiDayReport={filteredReport}
+          reportType={reportType}
+          periodType={periodType}
+          recordType={recordType}
+        />
       )}
 
       {/* Empty State */}
-      {!multiDayReport && !isLoading && !error && (
+      {!filteredReport && !isLoading && !error && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground text-center">

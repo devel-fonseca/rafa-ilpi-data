@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
-import { parseDateOnly, formatDateOnly, getDayRangeInTz } from '../utils/date.helpers';
+import { parseDateOnly, formatDateOnly, getCurrentDateInTz, getDayRangeInTz } from '../utils/date.helpers';
 import { FieldEncryption } from '../prisma/middleware/field-encryption.class';
 import type { Prisma } from '@prisma/client';
 import type {
@@ -15,6 +15,8 @@ import type {
   DailyReportSummaryDto,
   ShiftReportDto,
   DailyComplianceMetricDto,
+  ScheduledEventReportDto,
+  ImmunizationReportDto,
   MultiDayReportDto,
 } from './dto/daily-report.dto';
 import type { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
@@ -132,13 +134,23 @@ export class ReportsService {
     const timezone = tenant?.timezone || 'America/Sao_Paulo'
     const { start: dayStart, end: dayEnd } = getDayRangeInTz(dateOnly, timezone)
 
-    const [dailyRecords, medicationAdministrations, activeResidents, shifts, medicationScheduled] =
+    const [
+      dailyRecords,
+      medicationAdministrations,
+      activeResidents,
+      shifts,
+      medicationScheduled,
+      scheduledEvents,
+      immunizations,
+    ] =
       await Promise.all([
         this.getDailyRecords(dateOnly, dateUtc, shiftWindow),
         this.getMedicationAdministrations(dateOnly, dateUtc, shiftWindow),
         this.getActiveResidentsOnDate(dateUtc),
         this.getShiftsOnDate(dateUtc, shiftTemplateId, sharedCache),
         this.getMedicationScheduleCount(dayStart, dayEnd, shiftWindow),
+        this.getScheduledEventsOnDate(dateOnly, dateUtc, timezone, shiftWindow),
+        this.getImmunizationsOnDate(dateUtc, shiftWindow),
       ]);
 
     const compliance = await this.calculateScheduleCompliance(
@@ -167,6 +179,8 @@ export class ReportsService {
       medicationAdministrations,
       vitalSigns,
       shifts,
+      scheduledEvents,
+      immunizations,
     };
   }
 
@@ -175,6 +189,7 @@ export class ReportsService {
     startDate: string,
     endDate?: string,
     shiftTemplateId?: string,
+    options?: { allowExtendedRange?: boolean },
   ): Promise<MultiDayReportDto> {
     const start = parseDateOnly(startDate);
     const end = endDate ? parseDateOnly(endDate) : start;
@@ -186,7 +201,7 @@ export class ReportsService {
       (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24),
     );
 
-    if (daysDiff > 7) {
+    if (daysDiff > 7 && !options?.allowExtendedRange) {
       throw new Error(
         'O intervalo máximo permitido é de 7 dias. Por favor, selecione um período menor.',
       );
@@ -841,6 +856,144 @@ export class ReportsService {
         status: shift.status,
       };
     });
+  }
+
+  private async getScheduledEventsOnDate(
+    date: string,
+    dateUtc: Date,
+    timezone: string,
+    shiftWindow?: { startTime: string; endTime: string; crossesMidnight: boolean } | null,
+  ): Promise<ScheduledEventReportDto[]> {
+    const nextDateUtc = new Date(dateUtc);
+    nextDateUtc.setDate(nextDateUtc.getDate() + 1);
+
+    const events = await this.tenantContext.client.residentScheduledEvent.findMany({
+      where: {
+        deletedAt: null,
+        ...(shiftWindow
+          ? shiftWindow.crossesMidnight
+            ? {
+                OR: [
+                  { scheduledDate: dateUtc },
+                  { scheduledDate: nextDateUtc },
+                ],
+              }
+            : { scheduledDate: dateUtc }
+          : { scheduledDate: dateUtc }),
+      },
+      include: {
+        resident: {
+          select: {
+            fullName: true,
+            cpf: true,
+            cns: true,
+            bed: {
+              select: { code: true },
+            },
+          },
+        },
+      },
+      orderBy: [{ scheduledTime: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const currentDate = getCurrentDateInTz(timezone);
+    const currentTime = new Intl.DateTimeFormat('pt-BR', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date());
+
+    return events
+      .filter((event) =>
+        shiftWindow ? this.isTimeInWindow(event.scheduledTime, shiftWindow) : true,
+      )
+      .map((event) => {
+        const eventDate = formatDateOnly(event.scheduledDate);
+        let effectiveStatus = event.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'MISSED';
+
+        if (effectiveStatus === 'SCHEDULED') {
+          const isPastDate = eventDate < currentDate;
+          const isPastTimeToday = eventDate === currentDate && event.scheduledTime <= currentTime;
+          if (isPastDate || isPastTimeToday) {
+            effectiveStatus = 'MISSED';
+          }
+        }
+
+        const normalizedStatus: 'COMPLETED' | 'MISSED' =
+          effectiveStatus === 'COMPLETED' ? 'COMPLETED' : 'MISSED';
+
+        return {
+          residentName: event.resident.fullName,
+          residentCpf: event.resident.cpf || '',
+          residentCns: event.resident.cns || undefined,
+          bedCode: event.resident.bed?.code || 'N/A',
+          eventType: event.eventType,
+          title: event.title,
+          date: eventDate,
+          time: event.scheduledTime,
+          status: normalizedStatus,
+          notes: event.notes || undefined,
+        };
+      })
+      .filter((event) => event.status === 'COMPLETED' || event.status === 'MISSED');
+  }
+
+  private async getImmunizationsOnDate(
+    dateUtc: Date,
+    shiftWindow?: { startTime: string; endTime: string; crossesMidnight: boolean } | null,
+  ): Promise<ImmunizationReportDto[]> {
+    const nextDateUtc = new Date(dateUtc);
+    nextDateUtc.setDate(nextDateUtc.getDate() + 1);
+
+    const immunizations = await this.tenantContext.client.vaccination.findMany({
+      where: {
+        deletedAt: null,
+        ...(shiftWindow
+          ? shiftWindow.crossesMidnight
+            ? {
+                OR: [{ date: dateUtc }, { date: nextDateUtc }],
+              }
+            : { date: dateUtc }
+          : { date: dateUtc }),
+      },
+      include: {
+        resident: {
+          select: {
+            fullName: true,
+            cpf: true,
+            cns: true,
+            bed: {
+              select: { code: true },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+
+    return immunizations.map((item) => ({
+      residentName: item.resident.fullName,
+      residentCpf: item.resident.cpf || '',
+      residentCns: item.resident.cns || undefined,
+      bedCode: item.resident.bed?.code || 'N/A',
+      vaccineOrProphylaxis: item.vaccine || 'Não informado',
+      dose: item.dose || 'Não informado',
+      batch: item.batch || 'Não informado',
+      manufacturer: item.manufacturer || 'Não informado',
+      healthEstablishmentWithCnes:
+        item.healthUnit && item.cnes
+          ? `${item.healthUnit} (${item.cnes})`
+          : item.healthUnit
+            ? item.healthUnit
+            : item.cnes
+              ? item.cnes
+              : 'Não informado',
+      municipalityState:
+        item.municipality && item.state
+          ? `${item.municipality}/${item.state}`
+          : item.municipality || item.state || 'Não informado',
+    }));
   }
 
   // ============================================================================

@@ -144,6 +144,70 @@ export class ShiftReportDto {
   status: string;
 }
 
+export class ScheduledEventReportDto {
+  @ApiProperty()
+  residentName: string;
+
+  @ApiProperty()
+  residentCpf: string;
+
+  @ApiProperty({ required: false })
+  residentCns?: string;
+
+  @ApiProperty()
+  bedCode: string;
+
+  @ApiProperty()
+  eventType: string;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiProperty()
+  date: string;
+
+  @ApiProperty()
+  time: string;
+
+  @ApiProperty({ enum: ['COMPLETED', 'MISSED'] })
+  status: 'COMPLETED' | 'MISSED';
+
+  @ApiProperty({ required: false })
+  notes?: string;
+}
+
+export class ImmunizationReportDto {
+  @ApiProperty()
+  residentName: string;
+
+  @ApiProperty()
+  residentCpf: string;
+
+  @ApiProperty({ required: false })
+  residentCns?: string;
+
+  @ApiProperty()
+  bedCode: string;
+
+  @ApiProperty()
+  vaccineOrProphylaxis: string;
+
+  @ApiProperty()
+  dose: string;
+
+  @ApiProperty()
+  batch: string;
+
+  @ApiProperty()
+  manufacturer: string;
+
+  @ApiProperty()
+  healthEstablishmentWithCnes: string;
+
+  @ApiProperty()
+  municipalityState: string;
+}
+
 export class DailyComplianceMetricDto {
   @ApiProperty()
   recordType: string;
@@ -208,6 +272,12 @@ export class DailyReportDto {
 
   @ApiProperty({ type: [ShiftReportDto] })
   shifts: ShiftReportDto[];
+
+  @ApiProperty({ type: [ScheduledEventReportDto] })
+  scheduledEvents: ScheduledEventReportDto[];
+
+  @ApiProperty({ type: [ImmunizationReportDto] })
+  immunizations: ImmunizationReportDto[];
 }
 
 export class MultiDayReportDto {

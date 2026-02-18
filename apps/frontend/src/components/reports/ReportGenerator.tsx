@@ -30,11 +30,20 @@ const reportGeneratorSchema = z.object({
   reportType: z.string().min(1, 'Tipo de relatório é obrigatório'),
   startDate: z.string().min(1, 'Data inicial é obrigatória'),
   endDate: z.string().min(1, 'Data final é obrigatória'),
+  periodType: z.string().optional(),
+  yearMonth: z.string().optional(),
   residentId: z.string().optional(),
   shift: z.string().optional(),
   recordType: z.string().optional(),
   format: z.string().optional(),
 }).refine((data) => {
+  const isMonthlyByRecordType =
+    data.reportType === 'BY_RECORD_TYPE' && data.periodType === 'MONTH'
+
+  if (isMonthlyByRecordType) {
+    return !!data.yearMonth && /^\d{4}-\d{2}$/.test(data.yearMonth)
+  }
+
   // Validar apenas se ambas as datas estiverem preenchidas
   if (!data.startDate || !data.endDate) return true
 
@@ -50,6 +59,14 @@ const reportGeneratorSchema = z.object({
 }, {
   message: 'O intervalo máximo permitido é de 7 dias',
   path: ['endDate'],
+}).refine((data) => {
+  const isMonthlyByRecordType =
+    data.reportType === 'BY_RECORD_TYPE' && data.periodType === 'MONTH'
+  if (!isMonthlyByRecordType) return true
+  return !!data.yearMonth && /^\d{4}-\d{2}$/.test(data.yearMonth)
+}, {
+  message: 'Selecione o mês/ano no formato YYYY-MM',
+  path: ['yearMonth'],
 })
 
 type ReportGeneratorFormData = z.infer<typeof reportGeneratorSchema>
@@ -98,6 +115,8 @@ export function ReportGenerator({
       reportType: defaultReportType || '',
       startDate: defaultFilters?.startDate || getCurrentDate(),
       endDate: defaultFilters?.endDate || getCurrentDate(),
+      periodType: defaultFilters?.periodType || 'DAY',
+      yearMonth: defaultFilters?.yearMonth || getCurrentDate().slice(0, 7),
       residentId: defaultFilters?.residentId || '',
       shift: defaultFilters?.shift || 'ALL',
       recordType: defaultFilters?.recordType || 'ALL',
@@ -107,8 +126,12 @@ export function ReportGenerator({
 
   const selectedReportType = watch('reportType')
   const selectedResidentId = watch('residentId')
+  const selectedPeriodType = watch('periodType')
+  const selectedYearMonth = watch('yearMonth')
   const startDate = watch('startDate')
   const endDate = watch('endDate')
+  const isMonthlyRecordTypeMode =
+    selectedReportType === 'BY_RECORD_TYPE' && selectedPeriodType === 'MONTH'
 
   // ========== HELPERS ==========
 
@@ -131,7 +154,7 @@ export function ReportGenerator({
     }
   }
 
-  const dateRange = calculateDateRange()
+  const dateRange = isMonthlyRecordTypeMode ? null : calculateDateRange()
 
   const needsResidentFilter = () => {
     return selectedReportType === 'BY_RESIDENT'
@@ -180,10 +203,25 @@ export function ReportGenerator({
   // ========== HANDLERS ==========
 
   const onSubmit = (data: ReportGeneratorFormData) => {
+    const isMonthlyByRecordType =
+      data.reportType === 'BY_RECORD_TYPE' && data.periodType === 'MONTH'
+
+    let effectiveStartDate = data.startDate
+    let effectiveEndDate = data.endDate
+
+    if (isMonthlyByRecordType && data.yearMonth) {
+      const [year, month] = data.yearMonth.split('-').map(Number)
+      const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+      effectiveStartDate = `${data.yearMonth}-01`
+      effectiveEndDate = `${data.yearMonth}-${String(lastDay).padStart(2, '0')}`
+    }
+
     const filters: ReportFilters = {
       reportType: data.reportType as ReportType,
-      startDate: data.startDate,
-      endDate: data.endDate,
+      startDate: effectiveStartDate,
+      endDate: effectiveEndDate,
+      periodType: (data.periodType as 'DAY' | 'MONTH' | undefined) || 'DAY',
+      yearMonth: data.yearMonth || undefined,
       residentId: data.residentId || undefined,
       shift: data.shift as ShiftType | undefined,
       recordType: data.recordType as RecordTypeFilter | undefined,
@@ -199,6 +237,8 @@ export function ReportGenerator({
       reportType: '',
       startDate: today,
       endDate: today,
+      periodType: 'DAY',
+      yearMonth: today.slice(0, 7),
       residentId: '',
       shift: 'ALL',
       recordType: 'ALL',
@@ -251,39 +291,110 @@ export function ReportGenerator({
             )}
           </div>
 
-          {/* Período (Data Inicial + Botão + Data Final) */}
+          {/* Período (Dia/Mês para BY_RECORD_TYPE) */}
           <div className="space-y-2">
             <Label>
               Período <span className="text-danger">*</span>
             </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="startDate"
-                type="date"
-                {...register('startDate')}
-                className={errors.startDate ? 'border-danger' : ''}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setValue('endDate', startDate)}
-                title="Copiar data inicial para data final"
-                className="h-9 w-9 shrink-0"
-              >
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Input
-                id="endDate"
-                type="date"
-                {...register('endDate')}
-                className={errors.endDate ? 'border-danger' : ''}
-              />
-            </div>
-            {(errors.startDate || errors.endDate) && (
-              <p className="text-sm text-danger">
-                {errors.startDate?.message || errors.endDate?.message}
-              </p>
+            {selectedReportType === 'BY_RECORD_TYPE' ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <Select
+                    value={selectedPeriodType || 'DAY'}
+                    onValueChange={(value) => setValue('periodType', value)}
+                  >
+                    <SelectTrigger id="periodType">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DAY">Dia</SelectItem>
+                      <SelectItem value="MONTH">Mês</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {selectedPeriodType === 'MONTH' ? (
+                    <Input
+                      id="yearMonth"
+                      type="month"
+                      value={selectedYearMonth || ''}
+                      onChange={(event) => setValue('yearMonth', event.target.value)}
+                      className={errors.yearMonth ? 'border-danger' : ''}
+                    />
+                  ) : (
+                    <Input
+                      id="startDate"
+                      type="date"
+                      {...register('startDate')}
+                      className={errors.startDate ? 'border-danger' : ''}
+                    />
+                  )}
+                </div>
+                {selectedPeriodType === 'MONTH' ? (
+                  errors.yearMonth ? (
+                    <p className="text-sm text-danger">{errors.yearMonth.message}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Consolidado mensal por tipo de registro.
+                    </p>
+                  )
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setValue('endDate', startDate)}
+                      title="Copiar data inicial para data final"
+                      className="h-9 w-9 shrink-0"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      {...register('endDate')}
+                      className={errors.endDate ? 'border-danger' : ''}
+                    />
+                    {(errors.startDate || errors.endDate) && (
+                      <p className="text-sm text-danger">
+                        {errors.startDate?.message || errors.endDate?.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="startDate"
+                    type="date"
+                    {...register('startDate')}
+                    className={errors.startDate ? 'border-danger' : ''}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setValue('endDate', startDate)}
+                    title="Copiar data inicial para data final"
+                    className="h-9 w-9 shrink-0"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    {...register('endDate')}
+                    className={errors.endDate ? 'border-danger' : ''}
+                  />
+                </div>
+                {(errors.startDate || errors.endDate) && (
+                  <p className="text-sm text-danger">
+                    {errors.startDate?.message || errors.endDate?.message}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -374,6 +485,8 @@ export function ReportGenerator({
                   <SelectItem value="ALL">Todos os tipos</SelectItem>
                   <SelectItem value="MONITORAMENTO">Monitoramento</SelectItem>
                   <SelectItem value="MEDICACAO">Medicação</SelectItem>
+                  <SelectItem value="IMUNIZACOES">Imunizações</SelectItem>
+                  <SelectItem value="AGENDAMENTOS_PONTUAIS">Agendamentos Pontuais</SelectItem>
                   <SelectItem value="INTERCORRENCIA">Intercorrência</SelectItem>
                   <SelectItem value="ALIMENTACAO">Alimentação</SelectItem>
                   <SelectItem value="HIGIENE">Higiene</SelectItem>

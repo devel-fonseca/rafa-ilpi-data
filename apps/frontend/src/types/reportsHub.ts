@@ -11,6 +11,7 @@ export type ReportType =
   | 'SENTINEL_EVENTS'
 
 export type ReportFormat = 'PDF' | 'HTML' | 'CSV' | 'EXCEL'
+export type ReportPeriodType = 'DAY' | 'MONTH'
 
 // ShiftType agora aceita 'ALL' ou UUID de template específico
 export type ShiftType = string // 'ALL' ou UUID do ShiftTemplate
@@ -19,6 +20,8 @@ export type RecordTypeFilter =
   | 'ALL'
   | 'MONITORAMENTO'
   | 'MEDICACAO'
+  | 'IMUNIZACOES'
+  | 'AGENDAMENTOS_PONTUAIS'
   | 'INTERCORRENCIA'
   | 'ALIMENTACAO'
   | 'HIGIENE'
@@ -29,6 +32,8 @@ export interface ReportFilters {
   reportType: ReportType
   startDate: string
   endDate: string
+  periodType?: ReportPeriodType
+  yearMonth?: string
   residentId?: string
   shift?: ShiftType
   recordType?: RecordTypeFilter
