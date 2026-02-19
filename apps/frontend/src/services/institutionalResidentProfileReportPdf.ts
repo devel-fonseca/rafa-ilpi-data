@@ -32,6 +32,13 @@ const COLORS = {
   textSecondary: [100, 100, 110] as [number, number, number],
 }
 
+const TABLE_MARGIN = {
+  left: PAGE_MARGIN,
+  right: PAGE_MARGIN,
+  top: HEADER_HEIGHT + 5,
+  bottom: FOOTER_HEIGHT + 5,
+}
+
 function formatDate(dateString: string): string {
   const date = new Date(`${dateString}T12:00:00.000Z`)
   return date.toLocaleDateString('pt-BR', {
@@ -58,6 +65,15 @@ function formatMonthLabel(value: string): string {
   return `${month}/${year}`
 }
 
+function formatShortDate(dateString: string): string {
+  const date = new Date(`${dateString}T12:00:00.000Z`)
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  })
+}
+
 class InstitutionalResidentProfileReportPDFGenerator {
   private doc: jsPDF
   private options: PDFGenerationOptions
@@ -65,11 +81,15 @@ class InstitutionalResidentProfileReportPDFGenerator {
 
   constructor(options: PDFGenerationOptions) {
     this.doc = new jsPDF({
-      orientation: 'portrait',
+      orientation: 'landscape',
       unit: 'mm',
       format: 'a4',
     })
     this.options = options
+  }
+
+  private getContentWidth(): number {
+    return this.doc.internal.pageSize.getWidth() - PAGE_MARGIN * 2
   }
 
   private addHeader() {
@@ -126,6 +146,9 @@ class InstitutionalResidentProfileReportPDFGenerator {
 
   private addSummary(report: InstitutionalResidentProfileReport, startY: number): number {
     const { summary } = report
+    const contentWidth = this.getContentWidth()
+    const summaryWidth = contentWidth * 0.5
+    const summaryFill = [247, 247, 250] as [number, number, number]
     autoTable(this.doc, {
       startY,
       head: [],
@@ -134,8 +157,12 @@ class InstitutionalResidentProfileReportPDFGenerator {
         ['Residentes ativos', String(summary.totalResidents)],
         ['Média de idade', `${summary.averageAge} anos (${summary.minAge}-${summary.maxAge})`],
         ['Permanência média', `${summary.averageStayDays} dias`],
+        ['Cuidadores mínimos por turno', String(report.complexityIndicators.requiredCaregiversPerShift)],
         ['Com responsável legal', String(summary.residentsWithLegalGuardian)],
+        ['Sem responsável legal', String(report.governanceQualityIndicators.residentsWithoutLegalGuardian)],
+        ['Sem contato de emergência', String(report.governanceQualityIndicators.residentsWithoutEmergencyContact)],
         ['Sem leito atribuído', String(summary.residentsWithoutBed)],
+        ['Sem contrato vigente', String(report.governanceQualityIndicators.residentsWithoutActiveContract)],
       ],
       theme: 'grid',
       styles: {
@@ -143,40 +170,57 @@ class InstitutionalResidentProfileReportPDFGenerator {
         cellPadding: 2,
         lineColor: COLORS.border,
         lineWidth: 0.1,
-        fillColor: COLORS.headerBg,
+        fillColor: summaryFill,
       },
       columnStyles: {
-        0: { cellWidth: 80, fontStyle: 'bold' },
-        1: { cellWidth: 80 },
+        0: { cellWidth: summaryWidth * 0.62, fontStyle: 'bold' },
+        1: { cellWidth: summaryWidth * 0.38 },
       },
-      tableWidth: 160,
-      margin: { left: (this.doc.internal.pageSize.getWidth() - 160) / 2, right: PAGE_MARGIN },
+      tableWidth: summaryWidth,
+      margin: {
+        ...TABLE_MARGIN,
+        left: PAGE_MARGIN + (contentWidth - summaryWidth) / 2,
+      },
     })
 
     return (this.doc as any).lastAutoTable.finalY
   }
 
   private addDependencySection(report: InstitutionalResidentProfileReport, startY: number): number {
+    const contentWidth = this.getContentWidth()
+    const sectionStartY = startY + 4
+    const tableGap = 6
+    const genderTableWidth = contentWidth * 0.35
+    const dependencyTableWidth = contentWidth - genderTableWidth - tableGap
+    const genderTableLeft = PAGE_MARGIN
+    const dependencyTableLeft = genderTableLeft + genderTableWidth + tableGap
+
     this.doc.setFontSize(FONTS.bodyLarge)
     this.doc.setFont('helvetica', 'bold')
     this.doc.setTextColor(...COLORS.textPrimary)
-    this.doc.text('1-2. PERFIL DEMOGRAFICO E DEPENDENCIA', PAGE_MARGIN, startY)
+    this.doc.text('1. PERFIL DEMOGRAFICO E DEPENDENCIA', PAGE_MARGIN, startY)
 
     autoTable(this.doc, {
-      startY: startY + 4,
+      startY: sectionStartY,
       head: [['Sexo', 'Quantidade', '%']],
       body: report.genderDistribution.map((item) => [item.label, String(item.count), `${item.percentage}%`]),
       theme: 'grid',
       styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
       headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
-      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 35, halign: 'center' }, 2: { cellWidth: 35, halign: 'center' } },
-      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+      columnStyles: {
+        0: { cellWidth: genderTableWidth * 0.52 },
+        1: { cellWidth: genderTableWidth * 0.24, halign: 'center' },
+        2: { cellWidth: genderTableWidth * 0.24, halign: 'center' },
+      },
+      tableWidth: genderTableWidth,
+      margin: { ...TABLE_MARGIN, left: genderTableLeft },
       alternateRowStyles: { fillColor: COLORS.zebraEven },
     })
 
-    const afterGender = (this.doc as any).lastAutoTable.finalY + 4
+    const genderTableFinalY = (this.doc as any).lastAutoTable.finalY
+
     autoTable(this.doc, {
-      startY: afterGender,
+      startY: sectionStartY,
       head: [['Grau de Dependência', 'Residentes', '%', 'Cuidadores (teórico)']],
       body: report.dependencyDistribution.map((item) => [
         item.level,
@@ -188,23 +232,28 @@ class InstitutionalResidentProfileReportPDFGenerator {
       styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
       headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
       columnStyles: {
-        0: { cellWidth: 75 },
-        1: { cellWidth: 30, halign: 'center' },
-        2: { cellWidth: 25, halign: 'center' },
-        3: { cellWidth: 50, halign: 'center' },
+        0: { cellWidth: dependencyTableWidth * 0.46 },
+        1: { cellWidth: dependencyTableWidth * 0.18, halign: 'center' },
+        2: { cellWidth: dependencyTableWidth * 0.14, halign: 'center' },
+        3: { cellWidth: dependencyTableWidth * 0.22, halign: 'center' },
       },
-      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+      tableWidth: dependencyTableWidth,
+      margin: { ...TABLE_MARGIN, left: dependencyTableLeft },
       alternateRowStyles: { fillColor: COLORS.zebraEven },
     })
 
-    return (this.doc as any).lastAutoTable.finalY
+    const dependencyTableFinalY = (this.doc as any).lastAutoTable.finalY
+    return Math.max(genderTableFinalY, dependencyTableFinalY)
   }
 
   private addClinicalSection(report: InstitutionalResidentProfileReport, startY: number): number {
+    const contentWidth = this.getContentWidth()
+    const summaryWidth = contentWidth * 0.5
+    const summaryFill = [247, 247, 250] as [number, number, number]
     this.doc.setFontSize(FONTS.bodyLarge)
     this.doc.setFont('helvetica', 'bold')
     this.doc.setTextColor(...COLORS.textPrimary)
-    this.doc.text('3. PERFIL CLINICO ASSISTENCIAL', PAGE_MARGIN, startY)
+    this.doc.text('2. PERFIL CLINICO ASSISTENCIAL', PAGE_MARGIN, startY)
 
     const clinical = report.clinicalIndicators
     autoTable(this.doc, {
@@ -216,12 +265,16 @@ class InstitutionalResidentProfileReportPDFGenerator {
         ['Alergias graves', String(clinical.severeAllergies)],
         ['Restrições alimentares', `${clinical.totalDietaryRestrictions} (${clinical.residentsWithDietaryRestrictions} residentes)`],
         ['Com contraindicações assistenciais', String(clinical.residentsWithContraindications)],
+        ['Total de contraindicações registradas', String(clinical.contraindicationsTotal)],
       ],
       theme: 'grid',
-      styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1, fillColor: COLORS.headerBg },
-      columnStyles: { 0: { cellWidth: 95, fontStyle: 'bold' }, 1: { cellWidth: 75 } },
-      tableWidth: 170,
-      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+      styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1, fillColor: summaryFill },
+      columnStyles: { 0: { cellWidth: summaryWidth * 0.68, fontStyle: 'bold' }, 1: { cellWidth: summaryWidth * 0.32 } },
+      tableWidth: summaryWidth,
+      margin: {
+        ...TABLE_MARGIN,
+        left: PAGE_MARGIN + (contentWidth - summaryWidth) / 2,
+      },
     })
 
     let currentY = (this.doc as any).lastAutoTable.finalY
@@ -234,8 +287,44 @@ class InstitutionalResidentProfileReportPDFGenerator {
         theme: 'grid',
         styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
         headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
-        columnStyles: { 0: { cellWidth: 115 }, 1: { cellWidth: 28, halign: 'center' }, 2: { cellWidth: 27, halign: 'center' } },
-        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+        columnStyles: {
+          0: { cellWidth: contentWidth * 0.7 },
+          1: { cellWidth: contentWidth * 0.15, halign: 'center' },
+          2: { cellWidth: contentWidth * 0.15, halign: 'center' },
+        },
+        margin: TABLE_MARGIN,
+        alternateRowStyles: { fillColor: COLORS.zebraEven },
+      })
+      currentY = (this.doc as any).lastAutoTable.finalY
+    }
+
+    if (report.allergiesBySeverity.length > 0) {
+      autoTable(this.doc, {
+        startY: currentY + 4,
+        head: [['Severidade de alergia', 'Quantidade']],
+        body: report.allergiesBySeverity.map((item) => [item.severity, String(item.count)]),
+        theme: 'grid',
+        styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
+        headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: contentWidth * 0.78 }, 1: { cellWidth: contentWidth * 0.22, halign: 'center' } },
+        tableWidth: contentWidth,
+        margin: TABLE_MARGIN,
+        alternateRowStyles: { fillColor: COLORS.zebraEven },
+      })
+      currentY = (this.doc as any).lastAutoTable.finalY
+    }
+
+    if (report.dietaryRestrictionsByType.length > 0) {
+      autoTable(this.doc, {
+        startY: currentY + 4,
+        head: [['Tipo de restrição alimentar', 'Quantidade']],
+        body: report.dietaryRestrictionsByType.map((item) => [item.type, String(item.count)]),
+        theme: 'grid',
+        styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
+        headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: contentWidth * 0.78 }, 1: { cellWidth: contentWidth * 0.22, halign: 'center' } },
+        tableWidth: contentWidth,
+        margin: TABLE_MARGIN,
         alternateRowStyles: { fillColor: COLORS.zebraEven },
       })
       currentY = (this.doc as any).lastAutoTable.finalY
@@ -244,41 +333,196 @@ class InstitutionalResidentProfileReportPDFGenerator {
     return currentY
   }
 
-  private addCareLoadSection(report: InstitutionalResidentProfileReport, startY: number): number {
+  private addNutritionalFunctionalSection(report: InstitutionalResidentProfileReport, startY: number): number {
+    const contentWidth = this.getContentWidth()
+    const summaryWidth = contentWidth * 0.5
+    const summaryFill = [247, 247, 250] as [number, number, number]
     this.doc.setFontSize(FONTS.bodyLarge)
     this.doc.setFont('helvetica', 'bold')
     this.doc.setTextColor(...COLORS.textPrimary)
-    this.doc.text('6. CARGA ASSISTENCIAL ATUAL', PAGE_MARGIN, startY)
+    this.doc.text('3. ESTADO NUTRICIONAL E FUNCIONAL', PAGE_MARGIN, startY)
 
     autoTable(this.doc, {
       startY: startY + 4,
       head: [],
       body: [
-        ['Medicações ativas', String(report.careLoadSummary.totalActiveMedications)],
-        ['Residentes com polifarmácia (>=5)', String(report.careLoadSummary.residentsWithPolypharmacy)],
-        ['Rotinas assistenciais ativas', String(report.careLoadSummary.totalRoutineSchedules)],
+        [
+          `Sem antropometria recente (${report.nutritionalFunctionalIndicators.anthropometryRecencyDays} dias)`,
+          `${report.nutritionalFunctionalIndicators.percentWithoutRecentAnthropometry}%`,
+        ],
+        [
+          'Sem avaliação de dependência vigente',
+          `${report.nutritionalFunctionalIndicators.percentWithoutDependencyAssessment}%`,
+        ],
+        [
+          'Sem perfil clínico preenchido',
+          `${report.nutritionalFunctionalIndicators.percentWithoutClinicalProfile}%`,
+        ],
       ],
       theme: 'grid',
-      styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1, fillColor: COLORS.headerBg },
-      columnStyles: { 0: { cellWidth: 100, fontStyle: 'bold' }, 1: { cellWidth: 70 } },
-      tableWidth: 170,
-      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+      styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1, fillColor: summaryFill },
+      columnStyles: { 0: { cellWidth: summaryWidth * 0.82, fontStyle: 'bold' }, 1: { cellWidth: summaryWidth * 0.18, halign: 'center' } },
+      tableWidth: summaryWidth,
+      margin: {
+        ...TABLE_MARGIN,
+        left: PAGE_MARGIN + (contentWidth - summaryWidth) / 2,
+      },
+    })
+
+    autoTable(this.doc, {
+      startY: (this.doc as any).lastAutoTable.finalY + 4,
+      head: [['Categoria IMC', 'Quantidade', '%']],
+      body: report.nutritionalFunctionalIndicators.bmiDistribution.map((item) => [
+        item.category,
+        String(item.count),
+        `${item.percentage}%`,
+      ]),
+      theme: 'grid',
+      styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
+      headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: contentWidth * 0.68 },
+        1: { cellWidth: contentWidth * 0.16, halign: 'center' },
+        2: { cellWidth: contentWidth * 0.16, halign: 'center' },
+      },
+      tableWidth: contentWidth,
+      margin: TABLE_MARGIN,
+      alternateRowStyles: { fillColor: COLORS.zebraEven },
+    })
+
+    const afterBmiTable = (this.doc as any).lastAutoTable.finalY
+    const bmiLegend =
+      'Referência IMC utilizada no cálculo: Baixo peso < 18,5; Adequado 18,5 a < 25,0; Sobrepeso maior ou igual a 25,0.'
+    const legendLines = this.doc.splitTextToSize(bmiLegend, contentWidth)
+    const pageHeight = this.doc.internal.pageSize.getHeight()
+    const maxContentY = pageHeight - FOOTER_HEIGHT - 6
+    let legendY = afterBmiTable + 3
+
+    if (legendY + legendLines.length * 3 > maxContentY) {
+      this.doc.addPage()
+      legendY = HEADER_HEIGHT + 8
+    }
+
+    this.doc.setFont('times', 'italic')
+    this.doc.setFontSize(7)
+    this.doc.setTextColor(...COLORS.textSecondary)
+    legendLines.forEach((line, index) => {
+      this.doc.text(line, PAGE_MARGIN, legendY + index * 3)
+    })
+    this.doc.setFont('helvetica', 'normal')
+    this.doc.setFontSize(FONTS.body)
+    this.doc.setTextColor(...COLORS.textPrimary)
+
+    return legendY + legendLines.length * 3
+  }
+
+  private addTreatmentRoutineSection(report: InstitutionalResidentProfileReport, startY: number): number {
+    const contentWidth = this.getContentWidth()
+    const summaryWidth = contentWidth * 0.5
+    const summaryFill = [247, 247, 250] as [number, number, number]
+    this.doc.setFontSize(FONTS.bodyLarge)
+    this.doc.setFont('helvetica', 'bold')
+    this.doc.setTextColor(...COLORS.textPrimary)
+    this.doc.text('4. TRATAMENTO E ROTINA ASSISTENCIAL', PAGE_MARGIN, startY)
+
+    autoTable(this.doc, {
+      startY: startY + 4,
+      head: [],
+      body: [
+        ['Residentes com prescrição ativa', String(report.treatmentRoutineIndicators.residentsWithActivePrescription)],
+        ['Residentes com polifarmácia (>=5)', String(report.treatmentRoutineIndicators.residentsWithPolypharmacy)],
+        ['Medicações ativas', String(report.treatmentRoutineIndicators.totalActiveMedications)],
+        ['Rotinas assistenciais ativas', String(report.treatmentRoutineIndicators.totalRoutineSchedules)],
+      ],
+      theme: 'grid',
+      styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1, fillColor: summaryFill },
+      columnStyles: { 0: { cellWidth: summaryWidth * 0.82, fontStyle: 'bold' }, 1: { cellWidth: summaryWidth * 0.18, halign: 'center' } },
+      tableWidth: summaryWidth,
+      margin: {
+        ...TABLE_MARGIN,
+        left: PAGE_MARGIN + (contentWidth - summaryWidth) / 2,
+      },
     })
 
     let currentY = (this.doc as any).lastAutoTable.finalY
-    if (report.routineLoadByType.length > 0) {
+    if (report.treatmentRoutineIndicators.routineCoverageByType.length > 0) {
       autoTable(this.doc, {
         startY: currentY + 4,
-        head: [['Tipo de rotina', 'Configurações ativas']],
-        body: report.routineLoadByType.map((item) => [
+        head: [['Cobertura de rotina', 'Devido', 'Realizado', '%']],
+        body: report.treatmentRoutineIndicators.routineCoverageByType.map((item) => [
           formatRoutineType(item.recordType),
-          String(item.count),
+          String(item.due),
+          String(item.done),
+          `${item.compliance}%`,
         ]),
         theme: 'grid',
         styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
         headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
-        columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 40, halign: 'center' } },
-        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+        columnStyles: {
+          0: { cellWidth: contentWidth * 0.55 },
+          1: { cellWidth: contentWidth * 0.15, halign: 'center' },
+          2: { cellWidth: contentWidth * 0.15, halign: 'center' },
+          3: { cellWidth: contentWidth * 0.15, halign: 'center' },
+        },
+        margin: TABLE_MARGIN,
+        alternateRowStyles: { fillColor: COLORS.zebraEven },
+      })
+      currentY = (this.doc as any).lastAutoTable.finalY
+    }
+
+    return currentY
+  }
+
+  private addGovernanceSection(report: InstitutionalResidentProfileReport, startY: number): number {
+    const contentWidth = this.getContentWidth()
+    const summaryWidth = contentWidth * 0.5
+    const summaryFill = [247, 247, 250] as [number, number, number]
+    this.doc.setFontSize(FONTS.bodyLarge)
+    this.doc.setFont('helvetica', 'bold')
+    this.doc.setTextColor(...COLORS.textPrimary)
+    this.doc.text('5. GOVERNANCA E QUALIDADE DE CADASTRO', PAGE_MARGIN, startY)
+
+    autoTable(this.doc, {
+      startY: startY + 4,
+      head: [],
+      body: [
+        ['Sem responsável legal', String(report.governanceQualityIndicators.residentsWithoutLegalGuardian)],
+        ['Sem contato de emergência', String(report.governanceQualityIndicators.residentsWithoutEmergencyContact)],
+        ['Sem leito definido', String(report.governanceQualityIndicators.residentsWithoutBed)],
+        ['Sem contrato vigente', String(report.governanceQualityIndicators.residentsWithoutActiveContract)],
+        ['Com campos críticos incompletos', String(report.governanceQualityIndicators.residentsWithCriticalIncompleteFields)],
+      ],
+      theme: 'grid',
+      styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1, fillColor: summaryFill },
+      columnStyles: { 0: { cellWidth: summaryWidth * 0.82, fontStyle: 'bold' }, 1: { cellWidth: summaryWidth * 0.18, halign: 'center' } },
+      tableWidth: summaryWidth,
+      margin: {
+        ...TABLE_MARGIN,
+        left: PAGE_MARGIN + (contentWidth - summaryWidth) / 2,
+      },
+    })
+
+    let currentY = (this.doc as any).lastAutoTable.finalY
+    if (report.criticalIncompleteResidents.length > 0) {
+      autoTable(this.doc, {
+        startY: currentY + 4,
+        head: [['Residente', 'Leito', 'Qtd', 'Campos incompletos']],
+        body: report.criticalIncompleteResidents.map((item) => [
+          item.residentName,
+          item.bedCode || '-',
+          String(item.missingFieldsCount),
+          item.missingFields.join(' • '),
+        ]),
+        theme: 'grid',
+        styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: contentWidth * 0.24 },
+          1: { cellWidth: contentWidth * 0.1, halign: 'center' },
+          2: { cellWidth: contentWidth * 0.08, halign: 'center' },
+          3: { cellWidth: contentWidth * 0.58 },
+        },
+        margin: TABLE_MARGIN,
         alternateRowStyles: { fillColor: COLORS.zebraEven },
       })
       currentY = (this.doc as any).lastAutoTable.finalY
@@ -288,10 +532,11 @@ class InstitutionalResidentProfileReportPDFGenerator {
   }
 
   private addTrendSection(report: InstitutionalResidentProfileReport, startY: number): number {
+    const contentWidth = this.getContentWidth()
     this.doc.setFontSize(FONTS.bodyLarge)
     this.doc.setFont('helvetica', 'bold')
     this.doc.setTextColor(...COLORS.textPrimary)
-    this.doc.text(`FASE 2. TENDENCIAS (${report.trendMonths} MESES)`, PAGE_MARGIN, startY)
+    this.doc.text(`6. TENDENCIAS (${report.trendMonths} MESES)`, PAGE_MARGIN, startY)
 
     autoTable(this.doc, {
       startY: startY + 4,
@@ -309,15 +554,15 @@ class InstitutionalResidentProfileReportPDFGenerator {
       styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
       headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
       columnStyles: {
-        0: { cellWidth: 26 },
-        1: { cellWidth: 20, halign: 'center' },
-        2: { cellWidth: 18, halign: 'center' },
-        3: { cellWidth: 18, halign: 'center' },
-        4: { cellWidth: 18, halign: 'center' },
-        5: { cellWidth: 18, halign: 'center' },
-        6: { cellWidth: 35, halign: 'center' },
+        0: { cellWidth: contentWidth * 0.2 },
+        1: { cellWidth: contentWidth * 0.12, halign: 'center' },
+        2: { cellWidth: contentWidth * 0.12, halign: 'center' },
+        3: { cellWidth: contentWidth * 0.12, halign: 'center' },
+        4: { cellWidth: contentWidth * 0.12, halign: 'center' },
+        5: { cellWidth: contentWidth * 0.12, halign: 'center' },
+        6: { cellWidth: contentWidth * 0.2, halign: 'center' },
       },
-      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+      margin: TABLE_MARGIN,
       alternateRowStyles: { fillColor: COLORS.zebraEven },
     })
 
@@ -334,12 +579,12 @@ class InstitutionalResidentProfileReportPDFGenerator {
       styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1 },
       headStyles: { fillColor: COLORS.headerBg, textColor: COLORS.textPrimary, fontStyle: 'bold' },
       columnStyles: {
-        0: { cellWidth: 28 },
-        1: { cellWidth: 45, halign: 'center' },
-        2: { cellWidth: 50, halign: 'center' },
-        3: { cellWidth: 47, halign: 'center' },
+        0: { cellWidth: contentWidth * 0.18 },
+        1: { cellWidth: contentWidth * 0.28, halign: 'center' },
+        2: { cellWidth: contentWidth * 0.28, halign: 'center' },
+        3: { cellWidth: contentWidth * 0.26, halign: 'center' },
       },
-      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+      margin: TABLE_MARGIN,
       alternateRowStyles: { fillColor: COLORS.zebraEven },
     })
 
@@ -347,10 +592,11 @@ class InstitutionalResidentProfileReportPDFGenerator {
   }
 
   private addResidentsTable(report: InstitutionalResidentProfileReport, startY: number): number {
+    const contentWidth = this.getContentWidth()
     this.doc.setFontSize(FONTS.bodyLarge)
     this.doc.setFont('helvetica', 'bold')
     this.doc.setTextColor(...COLORS.textPrimary)
-    this.doc.text('RESIDENTES (VISAO ATUAL)', PAGE_MARGIN, startY)
+    this.doc.text('7. RESIDENTES (VISAO ATUAL)', PAGE_MARGIN, startY)
 
     autoTable(this.doc, {
       startY: startY + 4,
@@ -363,7 +609,7 @@ class InstitutionalResidentProfileReportPDFGenerator {
         String(resident.activeMedicationsCount),
         String(resident.routineSchedulesCount),
         resident.hasContraindications ? 'Sim' : 'Nao',
-        resident.dependencyAssessmentDate ? formatDate(resident.dependencyAssessmentDate) : '-',
+        resident.dependencyAssessmentDate ? formatShortDate(resident.dependencyAssessmentDate) : '-',
       ]),
       theme: 'grid',
       styles: {
@@ -380,16 +626,16 @@ class InstitutionalResidentProfileReportPDFGenerator {
         fontSize: FONTS.bodyLarge,
       },
       columnStyles: {
-        0: { cellWidth: 42 },
-        1: { cellWidth: 16 },
-        2: { cellWidth: 18 },
-        3: { cellWidth: 18, halign: 'center' },
-        4: { cellWidth: 12, halign: 'center' },
-        5: { cellWidth: 16, halign: 'center' },
-        6: { cellWidth: 20, halign: 'center' },
-        7: { cellWidth: 18, halign: 'center' },
+        0: { cellWidth: contentWidth * 0.32 },
+        1: { cellWidth: contentWidth * 0.09 },
+        2: { cellWidth: contentWidth * 0.09 },
+        3: { cellWidth: contentWidth * 0.08, halign: 'center' },
+        4: { cellWidth: contentWidth * 0.06, halign: 'center' },
+        5: { cellWidth: contentWidth * 0.08, halign: 'center' },
+        6: { cellWidth: contentWidth * 0.1, halign: 'center' },
+        7: { cellWidth: contentWidth * 0.18, halign: 'center' },
       },
-      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: HEADER_HEIGHT + 5, bottom: FOOTER_HEIGHT + 5 },
+      margin: TABLE_MARGIN,
       alternateRowStyles: { fillColor: COLORS.zebraEven },
       rowPageBreak: 'avoid',
     })
@@ -409,7 +655,9 @@ class InstitutionalResidentProfileReportPDFGenerator {
     currentY = this.addSummary(report, currentY) + 8
     currentY = this.addDependencySection(report, currentY) + 8
     currentY = this.addClinicalSection(report, currentY) + 8
-    currentY = this.addCareLoadSection(report, currentY) + 8
+    currentY = this.addNutritionalFunctionalSection(report, currentY) + 8
+    currentY = this.addTreatmentRoutineSection(report, currentY) + 8
+    currentY = this.addGovernanceSection(report, currentY) + 8
     currentY = this.addTrendSection(report, currentY) + 8
     this.addResidentsTable(report, currentY)
 

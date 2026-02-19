@@ -54,6 +54,12 @@ export interface InstitutionalResidentProfileSummary {
   residentsWithoutBed: number
 }
 
+export interface InstitutionalResidentAgeRangeDistribution {
+  range: string
+  count: number
+  percentage: number
+}
+
 export interface InstitutionalResidentGenderDistribution {
   label: string
   count: number
@@ -76,6 +82,7 @@ export interface InstitutionalResidentClinicalIndicators {
   residentsWithDietaryRestrictions: number
   totalDietaryRestrictions: number
   residentsWithContraindications: number
+  contraindicationsTotal: number
 }
 
 export interface InstitutionalResidentTopCondition {
@@ -88,6 +95,69 @@ export interface InstitutionalResidentCareLoadSummary {
   totalActiveMedications: number
   residentsWithPolypharmacy: number
   totalRoutineSchedules: number
+}
+
+export interface InstitutionalResidentComplexityIndicators {
+  complexityIndex: number
+  weightedScore: number
+  residentsWithMobilityAid: number
+  mobilityAidPercentage: number
+  requiredCaregiversPerShift: number
+}
+
+export interface InstitutionalResidentAllergySeverityDistribution {
+  severity: string
+  count: number
+}
+
+export interface InstitutionalResidentDietaryRestrictionTypeDistribution {
+  type: string
+  count: number
+}
+
+export interface InstitutionalResidentBmiDistribution {
+  category: string
+  count: number
+  percentage: number
+}
+
+export interface InstitutionalResidentNutritionalFunctionalIndicators {
+  anthropometryRecencyDays: number
+  bmiDistribution: InstitutionalResidentBmiDistribution[]
+  percentWithoutRecentAnthropometry: number
+  percentWithoutDependencyAssessment: number
+  percentWithoutClinicalProfile: number
+}
+
+export interface InstitutionalResidentRoutineCoverageByType {
+  recordType: string
+  due: number
+  done: number
+  compliance: number
+}
+
+export interface InstitutionalResidentTreatmentRoutineIndicators {
+  residentsWithActivePrescription: number
+  residentsWithPolypharmacy: number
+  totalActiveMedications: number
+  totalRoutineSchedules: number
+  routineCoverageByType: InstitutionalResidentRoutineCoverageByType[]
+}
+
+export interface InstitutionalResidentGovernanceQualityIndicators {
+  residentsWithoutLegalGuardian: number
+  residentsWithoutEmergencyContact: number
+  residentsWithoutBed: number
+  residentsWithoutActiveContract: number
+  residentsWithCriticalIncompleteFields: number
+}
+
+export interface InstitutionalResidentCriticalIncompleteResident {
+  residentId: string
+  residentName: string
+  bedCode: string | null
+  missingFieldsCount: number
+  missingFields: string[]
 }
 
 export interface InstitutionalResidentRoutineLoadByType {
@@ -114,11 +184,19 @@ export interface InstitutionalResidentProfileRow {
 export interface InstitutionalResidentProfileReport {
   summary: InstitutionalResidentProfileSummary
   genderDistribution: InstitutionalResidentGenderDistribution[]
+  ageRangeDistribution: InstitutionalResidentAgeRangeDistribution[]
   dependencyDistribution: InstitutionalResidentDependencyDistribution[]
+  complexityIndicators: InstitutionalResidentComplexityIndicators
   clinicalIndicators: InstitutionalResidentClinicalIndicators
+  allergiesBySeverity: InstitutionalResidentAllergySeverityDistribution[]
+  dietaryRestrictionsByType: InstitutionalResidentDietaryRestrictionTypeDistribution[]
   topConditions: InstitutionalResidentTopCondition[]
+  nutritionalFunctionalIndicators: InstitutionalResidentNutritionalFunctionalIndicators
   careLoadSummary: InstitutionalResidentCareLoadSummary
   routineLoadByType: InstitutionalResidentRoutineLoadByType[]
+  treatmentRoutineIndicators: InstitutionalResidentTreatmentRoutineIndicators
+  governanceQualityIndicators: InstitutionalResidentGovernanceQualityIndicators
+  criticalIncompleteResidents: InstitutionalResidentCriticalIncompleteResident[]
   trendMonths: number
   dependencyTrend: Array<{
     month: string

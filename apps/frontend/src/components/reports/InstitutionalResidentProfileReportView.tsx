@@ -77,6 +77,13 @@ export function InstitutionalResidentProfileReportView({
           <p className="mt-3 text-xs text-muted-foreground">
             Referência: {formatDate(summary.referenceDate)}
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {report.ageRangeDistribution.map((range) => (
+              <Badge key={range.range} variant="outline">
+                {range.range}: {range.count} ({range.percentage}%)
+              </Badge>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -85,7 +92,7 @@ export function InstitutionalResidentProfileReportView({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Activity className="h-5 w-5" />
-              1-2. Perfil Demográfico e Dependência
+              1. Perfil Demográfico e Dependência
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -121,6 +128,23 @@ export function InstitutionalResidentProfileReportView({
                 </TableBody>
               </Table>
             </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Índice de complexidade</p>
+                <p className="text-xl font-semibold">{report.complexityIndicators.complexityIndex}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Com auxílio de mobilidade</p>
+                <p className="text-xl font-semibold">
+                  {report.complexityIndicators.residentsWithMobilityAid} ({report.complexityIndicators.mobilityAidPercentage}%)
+                </p>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Cuidadores mínimos por turno</p>
+                <p className="text-xl font-semibold">{report.complexityIndicators.requiredCaregiversPerShift}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -128,7 +152,7 @@ export function InstitutionalResidentProfileReportView({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Stethoscope className="h-5 w-5" />
-              3. Perfil Clínico Assistencial
+              2. Perfil Clínico Assistencial
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -161,6 +185,9 @@ export function InstitutionalResidentProfileReportView({
                 <p className="text-xl font-semibold">
                   {report.clinicalIndicators.residentsWithContraindications}
                 </p>
+                <p className="text-xs text-muted-foreground">
+                  Total: {report.clinicalIndicators.contraindicationsTotal}
+                </p>
               </div>
             </div>
 
@@ -186,6 +213,45 @@ export function InstitutionalResidentProfileReportView({
                 </Table>
               </div>
             )}
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Severidade de alergias</TableHead>
+                      <TableHead className="text-center">Qtd.</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {report.allergiesBySeverity.map((item) => (
+                      <TableRow key={item.severity}>
+                        <TableCell>{item.severity}</TableCell>
+                        <TableCell className="text-center">{item.count}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo de restrição alimentar</TableHead>
+                      <TableHead className="text-center">Qtd.</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {report.dietaryRestrictionsByType.map((item) => (
+                      <TableRow key={item.type}>
+                        <TableCell>{item.type}</TableCell>
+                        <TableCell className="text-center">{item.count}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -194,7 +260,61 @@ export function InstitutionalResidentProfileReportView({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <ClipboardList className="h-5 w-5" />
-            6. Carga Assistencial Atual
+            3. Estado Nutricional e Funcional
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>IMC</TableHead>
+                  <TableHead className="text-center">Qtd.</TableHead>
+                  <TableHead className="text-center">%</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {report.nutritionalFunctionalIndicators.bmiDistribution.map((item) => (
+                  <TableRow key={item.category}>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell className="text-center">{item.count}</TableCell>
+                    <TableCell className="text-center">{item.percentage}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">
+                Sem antropometria recente ({report.nutritionalFunctionalIndicators.anthropometryRecencyDays} dias)
+              </p>
+              <p className="text-2xl font-semibold">
+                {report.nutritionalFunctionalIndicators.percentWithoutRecentAnthropometry}%
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Sem avaliação de dependência vigente</p>
+              <p className="text-2xl font-semibold">
+                {report.nutritionalFunctionalIndicators.percentWithoutDependencyAssessment}%
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Sem perfil clínico preenchido</p>
+              <p className="text-2xl font-semibold">
+                {report.nutritionalFunctionalIndicators.percentWithoutClinicalProfile}%
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ClipboardList className="h-5 w-5" />
+            4. Tratamento e Rotina Assistencial
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -202,6 +322,12 @@ export function InstitutionalResidentProfileReportView({
             <div className="rounded-lg border bg-muted/20 p-3">
               <p className="text-xs text-muted-foreground">Medicações ativas</p>
               <p className="text-2xl font-semibold">{report.careLoadSummary.totalActiveMedications}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Com prescrição ativa</p>
+              <p className="text-2xl font-semibold">
+                {report.treatmentRoutineIndicators.residentsWithActivePrescription}
+              </p>
             </div>
             <div className="rounded-lg border bg-muted/20 p-3">
               <p className="text-xs text-muted-foreground">Residentes com polifarmácia (&gt;=5)</p>
@@ -233,6 +359,99 @@ export function InstitutionalResidentProfileReportView({
               </Table>
             </div>
           )}
+
+          {report.treatmentRoutineIndicators.routineCoverageByType.length > 0 && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cobertura de rotina (tipo)</TableHead>
+                    <TableHead className="text-center">Devido</TableHead>
+                    <TableHead className="text-center">Realizado</TableHead>
+                    <TableHead className="text-center">%</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {report.treatmentRoutineIndicators.routineCoverageByType.map((item) => (
+                    <TableRow key={item.recordType}>
+                      <TableCell>{formatRoutineType(item.recordType)}</TableCell>
+                      <TableCell className="text-center">{item.due}</TableCell>
+                      <TableCell className="text-center">{item.done}</TableCell>
+                      <TableCell className="text-center">{item.compliance}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ClipboardList className="h-5 w-5" />
+            5. Governança e Qualidade de Cadastro
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Sem responsável legal</p>
+              <p className="text-2xl font-semibold">
+                {report.governanceQualityIndicators.residentsWithoutLegalGuardian}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Sem contato de emergência</p>
+              <p className="text-2xl font-semibold">
+                {report.governanceQualityIndicators.residentsWithoutEmergencyContact}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Sem leito definido</p>
+              <p className="text-2xl font-semibold">
+                {report.governanceQualityIndicators.residentsWithoutBed}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Sem contrato vigente</p>
+              <p className="text-2xl font-semibold">
+                {report.governanceQualityIndicators.residentsWithoutActiveContract}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground">Com campos críticos incompletos</p>
+              <p className="text-2xl font-semibold">
+                {report.governanceQualityIndicators.residentsWithCriticalIncompleteFields}
+              </p>
+            </div>
+          </div>
+
+          {report.criticalIncompleteResidents.length > 0 && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Residente</TableHead>
+                    <TableHead>Leito</TableHead>
+                    <TableHead className="text-center">Campos faltantes</TableHead>
+                    <TableHead>Itens críticos incompletos</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {report.criticalIncompleteResidents.map((item) => (
+                    <TableRow key={item.residentId}>
+                      <TableCell className="font-medium">{item.residentName}</TableCell>
+                      <TableCell>{item.bedCode || '-'}</TableCell>
+                      <TableCell className="text-center">{item.missingFieldsCount}</TableCell>
+                      <TableCell>{item.missingFields.join(' • ')}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -240,7 +459,7 @@ export function InstitutionalResidentProfileReportView({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <TrendingUp className="h-5 w-5" />
-            Fase 2. Tendências ({report.trendMonths} meses)
+            6. Tendências ({report.trendMonths} meses)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -300,7 +519,7 @@ export function InstitutionalResidentProfileReportView({
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Residentes (visão atual)</CardTitle>
+          <CardTitle className="text-lg">7. Residentes (visão atual)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
