@@ -612,6 +612,8 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       // Plantões - Ver seu plantão e fazer check-in (se líder/suplente)
       PermissionType.VIEW_CARE_SHIFTS, // Ver plantão em que está escalado
       PermissionType.CHECKIN_CARE_SHIFTS, // Check-in/passagem (validação adicional no service)
+      // Eventos institucionais (somente leitura)
+      PermissionType.VIEW_INSTITUTIONAL_EVENTS,
     ],
   },
 
