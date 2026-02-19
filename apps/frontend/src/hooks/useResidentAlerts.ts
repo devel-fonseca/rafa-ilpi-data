@@ -60,8 +60,20 @@ export function useResidentAlerts() {
     const residentsWithoutLegalGuardian = activeResidents.filter(
       (r) => !r.legalGuardianName || r.legalGuardianName.trim() === ''
     )
+    const hasValidEmergencyContact = (resident: Resident) => {
+      if (!Array.isArray(resident.emergencyContacts) || resident.emergencyContacts.length === 0) {
+        return false
+      }
+
+      return resident.emergencyContacts.some((contact) => {
+        const name = contact?.name?.trim() || ''
+        const phone = contact?.phone?.trim() || ''
+        return name.length > 0 && phone.length > 0
+      })
+    }
+
     const residentsWithoutEmergencyContact = activeResidents.filter(
-      (r) => !r.legalGuardianPhone || r.legalGuardianPhone.trim() === ''
+      (r) => !hasValidEmergencyContact(r)
     )
     const residentsWithIncompleteData = activeResidents.filter((r) => {
       const requiredFields = ['cpf', 'admissionDate', 'birthDate']
@@ -74,10 +86,19 @@ export function useResidentAlerts() {
     // 🟡 AVISOS
     const residentsWithoutPhoto = activeResidents.filter((r) => !r.fotoUrl)
 
-    // NOTA: Alerta de dados antropométricos incompletos foi removido pois
-    // bloodType, height, weight e dependencyLevel agora estão em tabelas separadas
-    // (resident_blood_types, resident_anthropometry, resident_dependency_assessments)
-    // e são gerenciados no prontuário individual do residente via ClinicalProfileView.
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const ninetyDaysAgo = subDays(today, 90)
+    const residentsWithoutRecentAnthropometry = activeResidents.filter((r) => {
+      const latestMeasurementDate =
+        r.latestAnthropometry?.measurementDate || r.latestAnthropometry?.createdAt
+
+      if (!latestMeasurementDate) return true
+
+      const dayKey = extractDateOnly(latestMeasurementDate)
+      const measurementDate = new Date(`${dayKey}T00:00:00`)
+      return measurementDate < ninetyDaysAgo
+    })
 
     // 🔵 INFORMATIVOS
     const currentMonth = new Date().getMonth()
@@ -85,6 +106,24 @@ export function useResidentAlerts() {
       if (!r.birthDate) return false
       const birthMonth = new Date(r.birthDate).getMonth()
       return birthMonth === currentMonth
+    }).sort((a, b) => {
+      const daysInCurrentMonth = new Date(today.getFullYear(), currentMonth + 1, 0).getDate()
+      const todayDay = today.getDate()
+
+      const getBirthDay = (birthDate?: string) => {
+        if (!birthDate) return Number.MAX_SAFE_INTEGER
+        const dayKey = extractDateOnly(birthDate)
+        const [, , day] = dayKey.split('-').map(Number)
+        return Number.isFinite(day) ? day : Number.MAX_SAFE_INTEGER
+      }
+
+      const dayA = getBirthDay(a.birthDate)
+      const dayB = getBirthDay(b.birthDate)
+
+      const distanceA = dayA >= todayDay ? dayA - todayDay : dayA + daysInCurrentMonth - todayDay
+      const distanceB = dayB >= todayDay ? dayB - todayDay : dayB + daysInCurrentMonth - todayDay
+
+      return distanceA - distanceB
     })
 
     // 📅 ADMISSÕES RECENTES
@@ -95,8 +134,6 @@ export function useResidentAlerts() {
 
     // Normalizar thirtyDaysAgo para meia-noite (remover horas/minutos/segundos)
     // Isso garante comparação justa: "2025-11-10 00:00" vs "2025-12-20 00:00" (sem considerar horas)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
     const thirtyDaysAgo = subDays(today, 30)
 
     const recentAdmissions = residents.filter((r) => {
@@ -143,10 +180,10 @@ export function useResidentAlerts() {
         type: 'critical',
         title: 'Sem contato de emergência',
         count: residentsWithoutEmergencyContact.length,
-        description: 'Residentes sem telefone do responsável',
+        description: 'Residentes sem contato de emergência válido ou com dados incompletos',
         residents: residentsWithoutEmergencyContact,
         action: {
-          label: 'Adicionar contato',
+          label: 'Adicionar/completar contato',
           filter: 'without-emergency-contact',
         },
       })
@@ -181,6 +218,20 @@ export function useResidentAlerts() {
     }
 
     // Adicionar avisos
+    if (residentsWithoutRecentAnthropometry.length > 0) {
+      alertsList.push({
+        type: 'warning',
+        title: 'Sem antropometria recente (90 dias)',
+        count: residentsWithoutRecentAnthropometry.length,
+        description: 'Residentes sem medição de peso/altura nos últimos 90 dias',
+        residents: residentsWithoutRecentAnthropometry,
+        action: {
+          label: 'Nova medição antropométrica',
+          filter: 'without-recent-anthropometry',
+        },
+      })
+    }
+
     if (residentsWithoutPhoto.length > 0) {
       alertsList.push({
         type: 'warning',
@@ -202,7 +253,7 @@ export function useResidentAlerts() {
         type: 'info',
         title: 'Aniversariantes do mês',
         count: birthdaysThisMonth.length,
-        description: 'Residentes que fazem aniversário este mês',
+        description: 'Lista com data de aniversário e idade dos residentes neste mês',
         residents: birthdaysThisMonth,
         action: {
           label: 'Ver aniversariantes',

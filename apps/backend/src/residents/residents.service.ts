@@ -646,6 +646,7 @@ export class ResidentsService {
             admissionDate: true,
             legalGuardianName: true,
             legalGuardianPhone: true,
+            emergencyContacts: true,
             fotoUrl: true,
             roomId: true,
             bedId: true,
@@ -760,6 +761,10 @@ export class ResidentsService {
       // Buscar dados da última avaliação de dependência de cada residente
       const residentIds = residents.map(r => r.id);
       const dependencyDataMap = new Map<string, { mobilityAid: boolean; dependencyLevel: string | null }>();
+      const latestAnthropometryMap = new Map<
+        string,
+        { measurementDate: Date; createdAt: Date }
+      >();
 
       if (residentIds.length > 0) {
         // Buscar a última avaliação de dependência de cada residente
@@ -783,6 +788,32 @@ export class ResidentsService {
             dependencyLevel: assessment.dependencyLevel,
           });
         });
+
+        // Buscar última antropometria de cada residente
+        const latestAnthropometries =
+          await this.tenantContext.client.residentAnthropometry.findMany({
+            where: {
+              residentId: { in: residentIds },
+              deletedAt: null,
+            },
+            orderBy: [
+              { measurementDate: 'desc' },
+              { createdAt: 'desc' },
+            ],
+            distinct: ['residentId'],
+            select: {
+              residentId: true,
+              measurementDate: true,
+              createdAt: true,
+            },
+          });
+
+        latestAnthropometries.forEach((anthropometry) => {
+          latestAnthropometryMap.set(anthropometry.residentId, {
+            measurementDate: anthropometry.measurementDate,
+            createdAt: anthropometry.createdAt,
+          });
+        });
       }
 
       // Adicionar dados de acomodação e dependência aos residentes e formatar datas
@@ -802,7 +833,18 @@ export class ResidentsService {
           dependencyLevel: dependencyData?.dependencyLevel ?? null,
         };
 
-        return this.formatDateOnlyFields(residentWithDependency);
+        const latestAnthropometry = latestAnthropometryMap.get(resident.id);
+        const residentWithHealthData = {
+          ...residentWithDependency,
+          latestAnthropometry: latestAnthropometry
+            ? {
+                measurementDate: latestAnthropometry.measurementDate,
+                createdAt: latestAnthropometry.createdAt,
+              }
+            : null,
+        };
+
+        return this.formatDateOnlyFields(residentWithHealthData);
       });
 
       return {

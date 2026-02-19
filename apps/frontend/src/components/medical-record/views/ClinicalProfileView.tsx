@@ -2,7 +2,7 @@
 //  VIEW - ClinicalProfileView (Perfil Clínico com dropdown de seções)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -127,7 +127,16 @@ const PROFILE_SECTION_CONTENT = [
 
 // ========== COMPONENT ==========
 
-export function ClinicalProfileView({ residentId }: MedicalViewProps) {
+interface ClinicalProfileViewProps extends MedicalViewProps {
+  autoOpenAnthropometry?: boolean
+  onAutoOpenAnthropometryHandled?: () => void
+}
+
+export function ClinicalProfileView({
+  residentId,
+  autoOpenAnthropometry = false,
+  onAutoOpenAnthropometryHandled,
+}: ClinicalProfileViewProps) {
   // Estado da seção ativa
   const [activeSection, setActiveSection] = useState<SectionType>('perfil')
   const isPerfilSection = activeSection === 'perfil'
@@ -333,6 +342,19 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
     setDeletingAnthropometry(record)
     setDeleteAnthropometryModalOpen(true)
   }
+
+  useEffect(() => {
+    if (!autoOpenAnthropometry || !canEditProfile) return
+
+    setActiveSection('parametros')
+    setEditingAnthropometry(null)
+    setAnthropometryModalOpen(true)
+    onAutoOpenAnthropometryHandled?.()
+  }, [
+    autoOpenAnthropometry,
+    canEditProfile,
+    onAutoOpenAnthropometryHandled,
+  ])
 
   const formatHistoryFieldLabel = (field: string) => {
     const labels: Record<string, string> = {

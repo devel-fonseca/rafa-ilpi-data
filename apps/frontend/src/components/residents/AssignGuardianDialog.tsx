@@ -2,8 +2,8 @@
 //  COMPONENT - AssignGuardianDialog (Cadastro de responsável legal via alertas)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useState, useCallback, useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import { api } from '@/services/api'
 import { buscarCEP } from '@/services/viacep'
+import { residentsAPI } from '@/api/residents.api'
 import { tenantKey } from '@/lib/query-keys'
 import { toast } from 'sonner'
 
@@ -83,8 +84,44 @@ export function AssignGuardianDialog({
 }: AssignGuardianDialogProps) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<GuardianFormData>(EMPTY_FORM)
+  const [initialForm, setInitialForm] = useState<GuardianFormData>(EMPTY_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  const {
+    data: residentData,
+    isLoading: isLoadingResidentData,
+    isError: isResidentDataError,
+  } = useQuery({
+    queryKey: tenantKey('residents', residentId),
+    queryFn: () => residentsAPI.getById(residentId),
+    enabled: open && !!residentId,
+    staleTime: 1000 * 60 * 2,
+  })
+
+  useEffect(() => {
+    if (!open || !residentData) return
+
+    const loadedForm: GuardianFormData = {
+      nome: residentData.legalGuardianName || '',
+      cpf: residentData.legalGuardianCpf || '',
+      rg: residentData.legalGuardianRg || '',
+      tipo: residentData.legalGuardianType || '',
+      email: residentData.legalGuardianEmail || '',
+      telefone: residentData.legalGuardianPhone || '',
+      cep: residentData.legalGuardianCep || '',
+      uf: residentData.legalGuardianState || '',
+      cidade: residentData.legalGuardianCity || '',
+      logradouro: residentData.legalGuardianStreet || '',
+      numero: residentData.legalGuardianNumber || '',
+      complemento: residentData.legalGuardianComplement || '',
+      bairro: residentData.legalGuardianDistrict || '',
+    }
+
+    setForm(loadedForm)
+    setInitialForm(loadedForm)
+    setError('')
+  }, [open, residentData])
 
   const updateField = (field: keyof GuardianFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -122,21 +159,54 @@ export function AssignGuardianDialog({
     setError('')
 
     try {
+      const normalizeDigits = (value: string) => value.replace(/\D/g, '')
+      const normalizeByField = (field: keyof GuardianFormData, value: string) => {
+        const trimmed = value.trim()
+        if (field === 'cpf' || field === 'telefone' || field === 'cep') return normalizeDigits(trimmed)
+        if (field === 'uf') return trimmed.toUpperCase()
+        return trimmed
+      }
+
+      const fieldMap: Record<keyof GuardianFormData, string> = {
+        nome: 'legalGuardianName',
+        cpf: 'legalGuardianCpf',
+        rg: 'legalGuardianRg',
+        tipo: 'legalGuardianType',
+        email: 'legalGuardianEmail',
+        telefone: 'legalGuardianPhone',
+        cep: 'legalGuardianCep',
+        uf: 'legalGuardianState',
+        cidade: 'legalGuardianCity',
+        logradouro: 'legalGuardianStreet',
+        numero: 'legalGuardianNumber',
+        complemento: 'legalGuardianComplement',
+        bairro: 'legalGuardianDistrict',
+      }
+
+      const payload: Record<string, string | null> = {}
+      const changedFields: string[] = []
+
+      ;(Object.keys(fieldMap) as Array<keyof GuardianFormData>).forEach((field) => {
+        const currentValue = normalizeByField(field, form[field])
+        const previousValue = normalizeByField(field, initialForm[field])
+
+        if (currentValue !== previousValue) {
+          payload[fieldMap[field]] = currentValue === '' ? null : currentValue
+          changedFields.push(field)
+        }
+      })
+
+      if (changedFields.length === 0) {
+        toast.info('Nenhuma alteração detectada', {
+          description: 'Os dados do responsável legal já estão atualizados.',
+        })
+        setIsSubmitting(false)
+        return
+      }
+
       await api.patch(`/residents/${residentId}`, {
-        legalGuardianName: form.nome || null,
-        legalGuardianCpf: form.cpf || null,
-        legalGuardianRg: form.rg || null,
-        legalGuardianType: form.tipo || null,
-        legalGuardianEmail: form.email || null,
-        legalGuardianPhone: form.telefone || null,
-        legalGuardianCep: form.cep || null,
-        legalGuardianState: form.uf || null,
-        legalGuardianCity: form.cidade || null,
-        legalGuardianStreet: form.logradouro || null,
-        legalGuardianNumber: form.numero || null,
-        legalGuardianComplement: form.complemento || null,
-        legalGuardianDistrict: form.bairro || null,
-        changeReason: 'Cadastro de responsável legal via painel de alertas',
+        ...payload,
+        changeReason: 'Atualização de responsável legal via painel de alertas',
       })
 
       toast.success('Responsável legal cadastrado!', {
@@ -159,6 +229,7 @@ export function AssignGuardianDialog({
 
   const handleCancel = () => {
     setForm(EMPTY_FORM)
+    setInitialForm(EMPTY_FORM)
     setError('')
     onOpenChange(false)
   }
@@ -174,6 +245,22 @@ export function AssignGuardianDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
+          {isLoadingResidentData && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando dados atuais do responsável...
+            </div>
+          )}
+
+          {isResidentDataError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Não foi possível carregar os dados atuais do residente.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Nome */}
           <div>
             <Label>Nome do Responsável <span className="text-danger">*</span></Label>
@@ -181,6 +268,7 @@ export function AssignGuardianDialog({
               value={form.nome}
               onChange={(e) => updateField('nome', e.target.value)}
               className="mt-1.5"
+              disabled={isLoadingResidentData}
             />
           </div>
 
@@ -193,6 +281,7 @@ export function AssignGuardianDialog({
                 value={form.cpf}
                 onChange={(e) => updateField('cpf', e.target.value)}
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-4">
@@ -202,12 +291,13 @@ export function AssignGuardianDialog({
                 value={form.rg}
                 onChange={(e) => updateField('rg', e.target.value)}
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-4">
               <Label>Tipo</Label>
               <Select onValueChange={(v) => updateField('tipo', v)} value={form.tipo}>
-                <SelectTrigger className="mt-1.5">
+                <SelectTrigger className="mt-1.5" disabled={isLoadingResidentData}>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -230,6 +320,7 @@ export function AssignGuardianDialog({
                 type="email"
                 placeholder="email@exemplo.com"
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-6">
@@ -239,6 +330,7 @@ export function AssignGuardianDialog({
                 value={form.telefone}
                 onChange={(e) => updateField('telefone', e.target.value)}
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
           </div>
@@ -255,6 +347,7 @@ export function AssignGuardianDialog({
                   handleBuscarCep(e.target.value)
                 }}
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-2">
@@ -264,6 +357,7 @@ export function AssignGuardianDialog({
                 onChange={(e) => updateField('uf', e.target.value.toUpperCase())}
                 maxLength={2}
                 className="mt-1.5 uppercase"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-7">
@@ -272,6 +366,7 @@ export function AssignGuardianDialog({
                 value={form.cidade}
                 onChange={(e) => updateField('cidade', e.target.value)}
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-6">
@@ -280,6 +375,7 @@ export function AssignGuardianDialog({
                 value={form.logradouro}
                 onChange={(e) => updateField('logradouro', e.target.value)}
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-2">
@@ -289,6 +385,7 @@ export function AssignGuardianDialog({
                 onChange={(e) => updateField('numero', e.target.value)}
                 placeholder="S/N"
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-4">
@@ -297,6 +394,7 @@ export function AssignGuardianDialog({
                 value={form.complemento}
                 onChange={(e) => updateField('complemento', e.target.value)}
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
             <div className="col-span-12 md:col-span-5">
@@ -305,6 +403,7 @@ export function AssignGuardianDialog({
                 value={form.bairro}
                 onChange={(e) => updateField('bairro', e.target.value)}
                 className="mt-1.5"
+                disabled={isLoadingResidentData}
               />
             </div>
           </div>
@@ -329,7 +428,7 @@ export function AssignGuardianDialog({
           <Button
             type="button"
             onClick={handleConfirm}
-            disabled={isSubmitting || !form.nome.trim() || !form.telefone.trim()}
+            disabled={isSubmitting || isLoadingResidentData || !form.nome.trim() || !form.telefone.trim()}
           >
             {isSubmitting ? (
               <>

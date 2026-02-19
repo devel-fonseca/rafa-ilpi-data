@@ -143,6 +143,10 @@ export interface Resident {
   // Dados calculados vindos da nova tabela resident_dependency_assessments
   mobilityAid?: boolean
   dependencyLevel?: 'GRAU_I' | 'GRAU_II' | 'GRAU_III' | null
+  latestAnthropometry?: {
+    measurementDate?: string | null
+    createdAt?: string | null
+  } | null
 }
 
 export interface ResidentsResponse {

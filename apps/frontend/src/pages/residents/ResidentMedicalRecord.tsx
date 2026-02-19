@@ -2,8 +2,8 @@
 //  PAGE - ResidentMedicalRecord (Prontuário do Residente)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useResident } from '@/hooks/useResidents'
 import { Button } from '@/components/ui/button'
 import {
@@ -145,7 +145,14 @@ const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'info' |
 export default function ResidentProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [activeSection, setActiveSection] = useState<MedicalSection>('personal')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialSectionParam = searchParams.get('section')
+  const initialSection =
+    initialSectionParam && initialSectionParam in SECTION_CONFIG
+      ? (initialSectionParam as MedicalSection)
+      : 'personal'
+
+  const [activeSection, setActiveSection] = useState<MedicalSection>(initialSection)
   const [viewDate, setViewDate] = useState<string>(getCurrentDate())
 
   // View modal states
@@ -178,6 +185,7 @@ export default function ResidentProfile() {
   const [deletingAdministration, setDeletingAdministration] = useState<MedicationAdministration | null>(null)
 
   const queryClient = useQueryClient()
+  const shouldAutoOpenAnthropometry = searchParams.get('openModal') === 'anthropometry-create'
 
   const { data: resident, isLoading, error } = useResident(id || '')
   const { hasPermission } = usePermissions()
@@ -326,6 +334,23 @@ export default function ResidentProfile() {
     }
   }
 
+  useEffect(() => {
+    const sectionParam = searchParams.get('section')
+    if (!sectionParam || !(sectionParam in SECTION_CONFIG)) return
+
+    const targetSection = sectionParam as MedicalSection
+    if (targetSection !== activeSection) {
+      setActiveSection(targetSection)
+    }
+  }, [searchParams, activeSection])
+
+  const handleAnthropometryAutoOpenHandled = () => {
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('openModal')
+    nextParams.delete('section')
+    setSearchParams(nextParams, { replace: true })
+  }
+
   if (isLoading) {
     return (
       <Page maxWidth="wide">
@@ -397,7 +422,13 @@ export default function ResidentProfile() {
           />
         )
       case 'clinical-profile':
-        return <ClinicalProfileView {...commonProps} />
+        return (
+          <ClinicalProfileView
+            {...commonProps}
+            autoOpenAnthropometry={shouldAutoOpenAnthropometry}
+            onAutoOpenAnthropometryHandled={handleAnthropometryAutoOpenHandled}
+          />
+        )
       case 'vaccinations':
         return <VaccinationsView {...commonProps} />
       case 'health-documents':

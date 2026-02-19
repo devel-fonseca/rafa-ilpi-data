@@ -10,9 +10,11 @@ import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { AssignBedDialog } from '@/components/beds/AssignBedDialog'
 import { AssignGuardianDialog } from '@/components/residents/AssignGuardianDialog'
 import { AssignEmergencyContactDialog } from '@/components/residents/AssignEmergencyContactDialog'
+import { AnthropometryModal } from '@/components/clinical-data/AnthropometryModal'
 import { tenantKey } from '@/lib/query-keys'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { toast } from 'sonner'
+import { extractDateOnly } from '@/utils/dateHelpers'
 
 interface ResidentAlertModalProps {
   isOpen: boolean
@@ -21,7 +23,8 @@ interface ResidentAlertModalProps {
   description: string
   type: 'critical' | 'warning' | 'info'
   residents: Resident[]
-  actionType?: 'assign-bed' | 'assign-guardian' | 'assign-emergency-contact'
+  alertFilter?: string
+  actionType?: 'assign-bed' | 'assign-guardian' | 'assign-emergency-contact' | 'register-anthropometry'
 }
 
 export function ResidentAlertModal({
@@ -31,20 +34,39 @@ export function ResidentAlertModal({
   description,
   type,
   residents,
+  alertFilter,
   actionType,
 }: ResidentAlertModalProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { hasPermission } = usePermissions()
   const canUpdateResidents = hasPermission(PermissionType.UPDATE_RESIDENTS)
+  const canViewClinicalProfile = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
+  const canUpdateClinicalProfile = hasPermission(PermissionType.UPDATE_CLINICAL_PROFILE)
+  const canCreateClinicalProfile = hasPermission(PermissionType.CREATE_CLINICAL_PROFILE)
+  const canRegisterAnthropometry =
+    canViewClinicalProfile && (canUpdateClinicalProfile || canCreateClinicalProfile)
   const [assignBedResident, setAssignBedResident] = useState<Resident | null>(null)
   const [assignGuardianResident, setAssignGuardianResident] = useState<Resident | null>(null)
   const [assignContactResident, setAssignContactResident] = useState<Resident | null>(null)
+  const [anthropometryResident, setAnthropometryResident] = useState<Resident | null>(null)
 
   const handleResidentClick = (resident: Resident) => {
-    if (actionType && !canUpdateResidents) {
+    const needsResidentUpdatePermission =
+      actionType === 'assign-bed' ||
+      actionType === 'assign-guardian' ||
+      actionType === 'assign-emergency-contact'
+
+    if (needsResidentUpdatePermission && !canUpdateResidents) {
       toast.error('Sem permissão', {
         description: 'Você não tem permissão para editar cadastros de residentes.',
+      })
+      return
+    }
+
+    if (actionType === 'register-anthropometry' && !canRegisterAnthropometry) {
+      toast.error('Sem permissão', {
+        description: 'Você não tem permissão para registrar antropometria no prontuário.',
       })
       return
     }
@@ -55,6 +77,8 @@ export function ResidentAlertModal({
       setAssignGuardianResident(resident)
     } else if (actionType === 'assign-emergency-contact') {
       setAssignContactResident(resident)
+    } else if (actionType === 'register-anthropometry') {
+      setAnthropometryResident(resident)
     } else {
       navigate(`/dashboard/residentes/${resident.id}/view`)
       onClose()
@@ -75,6 +99,12 @@ export function ResidentAlertModal({
   }
 
   const handleAssignContactSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: tenantKey('residents', 'list') })
+    queryClient.invalidateQueries({ queryKey: tenantKey('residents', 'stats') })
+    onClose()
+  }
+
+  const handleAnthropometrySuccess = () => {
     queryClient.invalidateQueries({ queryKey: tenantKey('residents', 'list') })
     queryClient.invalidateQueries({ queryKey: tenantKey('residents', 'stats') })
     onClose()
@@ -102,19 +132,56 @@ export function ResidentAlertModal({
     }
   }
 
+  const isBirthdayAlert = alertFilter === 'birthdays-month'
+
+  const getBirthdayDetails = (resident: Resident) => {
+    if (!resident.birthDate) return null
+
+    const dayKey = extractDateOnly(resident.birthDate)
+    const [year, month, day] = dayKey.split('-').map(Number)
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null
+
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0)
+    const birthdayThisYear = new Date(today.getFullYear(), month - 1, day, 12, 0, 0, 0)
+
+    const hasBirthdayPassed = birthdayThisYear < today
+    const isBirthdayToday = birthdayThisYear.getTime() === today.getTime()
+    const currentAge =
+      today.getFullYear() -
+      year -
+      (today.getMonth() < month - 1 || (today.getMonth() === month - 1 && today.getDate() < day) ? 1 : 0)
+
+    const dateLabel = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}`
+
+    if (isBirthdayToday) {
+      return `Aniversário: ${dateLabel} • Idade: ${currentAge} anos • Completa hoje`
+    }
+
+    if (!hasBirthdayPassed) {
+      return `Aniversário: ${dateLabel} • Idade atual: ${currentAge} anos • Completa ${currentAge + 1}`
+    }
+
+    return `Aniversário: ${dateLabel} • Idade: ${currentAge} anos • Completou neste mês`
+  }
+
   const modalTitle = actionType === 'assign-bed'
     ? 'Atribuir leito'
     : actionType === 'assign-guardian'
-      ? 'Cadastrar responsável legal'
+        ? 'Cadastrar responsável legal'
       : actionType === 'assign-emergency-contact'
         ? 'Cadastrar contato de emergência'
+        : actionType === 'register-anthropometry'
+          ? 'Registrar antropometria'
         : title
   const modalDescription = actionType === 'assign-bed'
     ? 'Selecione um residente para atribuir um leito disponível.'
     : actionType === 'assign-guardian'
       ? 'Selecione um residente para cadastrar o responsável legal.'
       : actionType === 'assign-emergency-contact'
-        ? 'Selecione um residente para cadastrar o contato de emergência.'
+        ? 'Selecione um residente para adicionar ou completar o contato de emergência.'
+        : actionType === 'register-anthropometry'
+          ? 'Selecione um residente para registrar peso e altura.'
         : description
 
   return (
@@ -127,9 +194,17 @@ export function ResidentAlertModal({
               <DialogTitle className={getTypeColor()}>{modalTitle}</DialogTitle>
             </div>
             <p className="text-sm text-muted-foreground">{modalDescription}</p>
-            {actionType && !canUpdateResidents && (
+            {(actionType === 'assign-bed' ||
+              actionType === 'assign-guardian' ||
+              actionType === 'assign-emergency-contact') &&
+              !canUpdateResidents && (
               <p className="text-xs text-danger mt-1">
                 Você não tem permissão para editar cadastros de residentes.
+              </p>
+            )}
+            {actionType === 'register-anthropometry' && !canRegisterAnthropometry && (
+              <p className="text-xs text-danger mt-1">
+                Você não tem permissão para registrar antropometria no prontuário.
               </p>
             )}
           </DialogHeader>
@@ -160,6 +235,11 @@ export function ResidentAlertModal({
                       {resident.bedId && resident.cpf && <span>•</span>}
                       {resident.cpf && <span>CPF: {resident.cpf}</span>}
                     </div>
+                    {isBirthdayAlert && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {getBirthdayDetails(resident) || 'Data de aniversário não informada'}
+                      </p>
+                    )}
                   </div>
 
                   <Badge variant={resident.status === 'Ativo' ? 'default' : 'secondary'}>
@@ -210,6 +290,17 @@ export function ResidentAlertModal({
           residentId={assignContactResident.id}
           residentName={assignContactResident.fullName}
           onSuccess={handleAssignContactSuccess}
+        />
+      )}
+
+      {anthropometryResident && (
+        <AnthropometryModal
+          open={!!anthropometryResident}
+          onOpenChange={(open) => {
+            if (!open) setAnthropometryResident(null)
+          }}
+          residentId={anthropometryResident.id}
+          onSuccess={handleAnthropometrySuccess}
         />
       )}
     </>
