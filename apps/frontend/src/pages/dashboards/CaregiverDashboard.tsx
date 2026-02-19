@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import type {
   Medication,
   MedicationPresentation,
   AdministrationRoute,
 } from '@/api/prescriptions.api'
+import { residentsAPI } from '@/api/residents.api'
 import { Button } from '@/components/ui/button'
 import {
   AlertTriangle,
@@ -18,6 +19,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { CaregiverStatsCards } from '@/components/caregiver/CaregiverStatsCards'
+import { BirthdaysSection } from '@/components/caregiver/BirthdaysSection'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { DashboardQuickActions } from '@/components/dashboard/DashboardQuickActions'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
@@ -31,6 +33,7 @@ import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
+import { tenantKey } from '@/lib/query-keys'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 import type { CreateDailyRecordInput, DailyRecordData } from '@/types/daily-records'
 import { useCanRegister } from '@/hooks/useCanRegister'
@@ -75,9 +78,23 @@ export function CaregiverDashboard() {
   const today = getCurrentDate()
   const { hasPermission } = usePermissions()
   const canViewDashboardOverview = hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
+  const canViewResidents = hasPermission(PermissionType.VIEW_RESIDENTS)
   useAdminDashboardRealtime({ enabled: canViewDashboardOverview })
   const { data: overview, isLoading: isLoadingOverview } = useAdminDashboardOverview({
     enabled: canViewDashboardOverview,
+  })
+  const { data: birthdaysResidentsResponse, isLoading: isLoadingBirthdaysResidents } = useQuery({
+    queryKey: tenantKey('residents', 'list', 'caregiver-birthdays'),
+    queryFn: () =>
+      residentsAPI.getAll({
+        page: 1,
+        limit: 1000,
+        status: 'Ativo',
+        sortBy: 'fullName',
+        sortOrder: 'asc',
+      }),
+    enabled: canViewResidents,
+    staleTime: 1000 * 60 * 5,
   })
 
   // Hook para verificar se pode fazer registros (baseado no plantão)
@@ -515,6 +532,16 @@ export function CaregiverDashboard() {
             title="Eventos"
             events={data.scheduledEvents}
             isLoading={isLoading}
+          />
+        </Section>
+      )}
+
+      {canViewResidents && (
+        <Section title="">
+          <BirthdaysSection
+            residents={birthdaysResidentsResponse?.data || []}
+            isLoading={isLoadingBirthdaysResidents}
+            onViewResident={(residentId) => setSelectedResidentId(residentId)}
           />
         </Section>
       )}
