@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Activity, AlertCircle, Calendar, FileText, Bell } from 'lucide-react'
+import { Activity, AlertCircle, Calendar, FileText, Bell, TriangleAlert } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useNavigate } from 'react-router-dom'
 import {
   Tooltip,
   TooltipContent,
@@ -9,7 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-interface PendingItem {
+export interface PendingItem {
   id: string
   type:
     | 'PRESCRIPTION_EXPIRING'
@@ -18,10 +19,13 @@ interface PendingItem {
     | 'VITAL_SIGNS_DUE'
     | 'MEDICATION_PENDING'
     | 'SCHEDULED_EVENT_PENDING'
+    | 'RESIDENT_ALERT_CRITICAL'
+    | 'RESIDENT_ALERT_WARNING'
   title: string
   description: string
   priority: 'HIGH' | 'MEDIUM' | 'LOW'
   dueDate?: string
+  navigateTo?: string
   relatedEntity?: {
     id: string
     name: string
@@ -46,6 +50,8 @@ const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   VITAL_SIGNS_DUE: Activity,
   MEDICATION_PENDING: Activity,
   SCHEDULED_EVENT_PENDING: Calendar,
+  RESIDENT_ALERT_CRITICAL: TriangleAlert,
+  RESIDENT_ALERT_WARNING: AlertCircle,
 }
 
 function getPendingIcon(type: string) {
@@ -54,6 +60,7 @@ function getPendingIcon(type: string) {
 }
 
 export function PendingActivities({ items = [], isLoading = false }: PendingActivitiesProps) {
+  const navigate = useNavigate()
   const pendingItems = items
 
   if (isLoading) {
@@ -113,8 +120,11 @@ export function PendingActivities({ items = [], isLoading = false }: PendingActi
             return (
               <div
                 key={item.id}
-                className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                className={`flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors ${
+                  item.navigateTo ? 'cursor-pointer' : ''
+                }`}
                 data-pending-id={item.id}
+                onClick={item.navigateTo ? () => navigate(item.navigateTo as string) : undefined}
               >
                 <div
                   className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${priorityColors[item.priority]}`}

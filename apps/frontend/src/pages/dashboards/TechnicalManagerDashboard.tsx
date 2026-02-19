@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/stores/auth.store'
 import { Calendar } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import type { Medication, MedicationPresentation, AdministrationRoute, MedicationFrequency } from '@/api/medications.api'
@@ -15,7 +15,7 @@ import { useResidentStats } from '@/hooks/useResidents'
 import { useDailyRecordsCountByDate } from '@/hooks/useDailyRecords'
 import { usersApi } from '@/api/users.api'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
-import { PendingActivities } from '@/components/dashboard/PendingActivities'
+import { PendingActivities, type PendingItem } from '@/components/dashboard/PendingActivities'
 import { TodayShiftsInfo } from '@/components/dashboard/TodayShiftsInfo'
 import { DashboardQuickActions } from '@/components/dashboard/DashboardQuickActions'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
@@ -23,6 +23,7 @@ import { OperationalComplianceSection } from '@/components/admin/OperationalComp
 import { EventsSection } from '@/components/caregiver/EventsSection'
 import { useTechnicalManagerTasks } from '@/hooks/useTechnicalManagerTasks'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
+import { useResidentAlerts } from '@/hooks/useResidentAlerts'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { useAdminDashboardOverview } from '@/hooks/useAdminDashboard'
 import { useAdminDashboardRealtime } from '@/hooks/useAdminDashboardRealtime'
@@ -87,8 +88,41 @@ export function TechnicalManagerDashboard() {
   const totalResidents = residentsStats?.total || 0
   const totalPrescriptions = prescriptionsStats?.totalActive || 0
   const totalUsers = usersCount || 0
-  const pendingActivities = overview?.pendingActivities || []
+  const pendingActivities = useMemo(
+    () => overview?.pendingActivities ?? [],
+    [overview?.pendingActivities],
+  )
   const recentActivities = overview?.recentActivities || []
+  const { alerts, isLoading: isLoadingResidentAlerts } = useResidentAlerts()
+
+  const integratedPendingActivities = useMemo<PendingItem[]>(() => {
+    const residentAlertPendingItems: PendingItem[] = alerts
+      .filter((alert) => alert.type !== 'info')
+      .map((alert) => ({
+        id: `resident-alert-${alert.action.filter}`,
+        type: alert.type === 'critical' ? 'RESIDENT_ALERT_CRITICAL' : 'RESIDENT_ALERT_WARNING',
+        title: alert.title,
+        description: `${alert.count} ${alert.count === 1 ? 'residente' : 'residentes'} • ${alert.description}`,
+        priority: alert.type === 'critical' ? 'HIGH' : 'MEDIUM',
+        navigateTo: `/dashboard/residentes-hub?alert=${encodeURIComponent(alert.action.filter)}`,
+      }))
+
+    const merged: PendingItem[] = []
+    const seenIds = new Set<string>()
+    for (const item of [...residentAlertPendingItems, ...pendingActivities]) {
+      if (!item?.id || seenIds.has(item.id)) continue
+      seenIds.add(item.id)
+      merged.push(item as PendingItem)
+    }
+
+    const priorityOrder: Record<PendingItem['priority'], number> = {
+      HIGH: 0,
+      MEDIUM: 1,
+      LOW: 2,
+    }
+
+    return merged.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+  }, [alerts, pendingActivities])
 
   // Handler para administrar medicação
   const handleAdministerMedication = (
@@ -196,8 +230,8 @@ export function TechnicalManagerDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Pending Activities */}
           <PendingActivities
-            items={pendingActivities}
-            isLoading={isLoadingOverview}
+            items={integratedPendingActivities}
+            isLoading={isLoadingOverview || isLoadingResidentAlerts}
           />
 
           {/* Recent Activity */}

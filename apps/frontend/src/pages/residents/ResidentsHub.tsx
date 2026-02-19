@@ -6,11 +6,14 @@ import { CompactResidentsList } from '@/components/residents/CompactResidentsLis
 import { useResidentAlerts } from '@/hooks/useResidentAlerts'
 import { useResidents, useResidentStats } from '@/hooks/useResidents'
 import { Users, TrendingUp, Clock, Percent } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 
 export default function ResidentsHub() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const { alerts, metrics, isLoading: alertsLoading, totalResidents } = useResidentAlerts()
   const { data: stats, isLoading: statsLoading } = useResidentStats()
   const { residents } = useResidents({ page: 1, limit: 1000 })
+  const initialAlertFilter = searchParams.get('alert')
 
   const isLoading = alertsLoading || statsLoading
   const occupancyRate = stats?.occupancyRate ?? metrics.occupancyRate
@@ -87,7 +90,15 @@ export default function ResidentsHub() {
 
       {/* Alertas e Verificações */}
       <Section title="Alertas e Verificações">
-        <AlertGrid alerts={alerts} />
+        <AlertGrid
+          alerts={alerts}
+          initialOpenFilter={initialAlertFilter}
+          onAutoOpenHandled={() => {
+            const next = new URLSearchParams(searchParams)
+            next.delete('alert')
+            setSearchParams(next, { replace: true })
+          }}
+        />
       </Section>
 
       {/* Grid com Gráfico de Dependência e Lista de Residentes */}
