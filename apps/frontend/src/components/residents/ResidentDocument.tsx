@@ -111,19 +111,20 @@ export default function ResidentDocument({ resident, isPrinting = false }: Resid
       =============================================================== */}
       <section className="mb-8 print-avoid-break">
         <div className="flex gap-6 items-start">
-          {/* FOTO (formato moderno 1:1) */}
+          {/* FOTO (formato circular) */}
           {resident.fotoUrl ? (
-            <div className="w-[140px] h-[140px] border border-border rounded-md bg-muted overflow-hidden print:shadow-none flex-shrink-0">
+            <div className="w-[140px] h-[140px] border-2 border-border rounded-full bg-muted/30 overflow-hidden print:shadow-none flex-shrink-0">
               <PhotoViewer
                 photoUrl={resident.fotoUrl}
                 altText={resident.fullName}
                 size="lg"
-                className="w-full h-full object-cover"
+                rounded
+                className="!w-full !h-full"
               />
             </div>
           ) : (
-            <div className="w-[140px] h-[140px] bg-muted border border-border rounded-md flex items-center justify-center text-muted-foreground text-xs print:shadow-none flex-shrink-0">
-              FOTO 3x4
+            <div className="w-[140px] h-[140px] bg-muted/30 border-2 border-border rounded-full flex items-center justify-center text-muted-foreground text-xs print:shadow-none flex-shrink-0">
+              FOTO
             </div>
           )}
 

@@ -125,36 +125,37 @@ export async function detectFaceAndCrop(
     const faceWidth = x2 - x1
     const faceHeight = y2 - y1
 
-    // Adicionar margem de 30% ao redor do rosto
-    const margin = 0.3
-    const marginX = faceWidth * margin
-    const marginY = faceHeight * margin
+    // Margens assimétricas em nível moderado:
+    // preserva a testa sem "afastar" excessivamente o rosto.
+    const sideMargin = faceWidth * 0.25
+    const topMargin = faceHeight * 0.42
+    const bottomMargin = faceHeight * 0.22
 
-    // Calcular crop com margem (garantir que não ultrapasse limites da imagem)
-    let cropX = Math.max(0, x1 - marginX)
-    let cropY = Math.max(0, y1 - marginY)
-    let cropWidth = Math.min(
-      imageElement.width - cropX,
-      faceWidth + marginX * 2,
+    const expandedLeft = x1 - sideMargin
+    const expandedRight = x2 + sideMargin
+    const expandedTop = y1 - topMargin
+    const expandedBottom = y2 + bottomMargin
+
+    const expandedWidth = expandedRight - expandedLeft
+    const expandedHeight = expandedBottom - expandedTop
+
+    // Garantir proporção 1:1 (quadrado) e respeitar limites da imagem
+    const cropSize = Math.min(
+      Math.max(expandedWidth, expandedHeight),
+      imageElement.width,
+      imageElement.height,
     )
-    let cropHeight = Math.min(
-      imageElement.height - cropY,
-      faceHeight + marginY * 2,
-    )
 
-    // Garantir proporção 1:1 (quadrado)
-    const cropSize = Math.min(cropWidth, cropHeight)
-    cropWidth = cropSize
-    cropHeight = cropSize
-
-    // Centralizar crop no rosto
+    // Centro com viés suave para cima (mais discreto que a versão anterior)
     const faceCenterX = x1 + faceWidth / 2
-    const faceCenterY = y1 + faceHeight / 2
+    const faceCenterY = y1 + faceHeight * 0.48
 
-    cropX = Math.max(0, faceCenterX - cropSize / 2)
-    cropY = Math.max(0, faceCenterY - cropSize / 2)
+    let cropX = faceCenterX - cropSize / 2
+    let cropY = faceCenterY - cropSize / 2
 
     // Ajustar se ultrapassar bordas
+    if (cropX < 0) cropX = 0
+    if (cropY < 0) cropY = 0
     if (cropX + cropSize > imageElement.width) {
       cropX = imageElement.width - cropSize
     }
@@ -169,8 +170,8 @@ export async function detectFaceAndCrop(
       cropData: {
         x: Math.round(cropX),
         y: Math.round(cropY),
-        width: Math.round(cropWidth),
-        height: Math.round(cropHeight),
+        width: Math.round(cropSize),
+        height: Math.round(cropSize),
       },
       confidence: face.probability ? face.probability[0] : undefined,
     }

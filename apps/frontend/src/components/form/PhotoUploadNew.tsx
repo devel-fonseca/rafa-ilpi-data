@@ -180,7 +180,7 @@ export function PhotoUploadNew({
 
       {/* Visualizador de foto com controles */}
       {selectedImage && (
-        <div className="space-y-2">
+        <div className="space-y-2 flex flex-col items-center">
           {/* Container da foto com botão remover */}
           <div className="relative inline-block">
             <div onClick={handleClickPreview} className="cursor-pointer">
@@ -188,6 +188,8 @@ export function PhotoUploadNew({
                 photoUrl={selectedImage}
                 altText={label}
                 size="lg"
+                rounded
+                className="!w-24 !h-24 sm:!w-32 sm:!h-32"
                 isSignedUrl={selectedImage?.startsWith('data:') || selectedImage?.startsWith('blob:')}
               />
             </div>
@@ -206,10 +208,10 @@ export function PhotoUploadNew({
             {/* Badge de detecção facial */}
             {faceDetected !== null && (
               <div
-                className={`absolute bottom-2 left-2 px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-md ${
+                className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-xl text-xs font-medium flex items-center gap-1 shadow-md backdrop-blur-sm border border-white/20 pointer-events-none ${
                   faceDetected
-                    ? 'bg-success text-white'
-                    : 'bg-warning text-white'
+                    ? 'bg-success/85 text-white'
+                    : 'bg-warning/85 text-white'
                 }`}
               >
                 <Scan className="w-3 h-3" />

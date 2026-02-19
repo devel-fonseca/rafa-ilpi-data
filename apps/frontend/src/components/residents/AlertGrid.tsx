@@ -1,14 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertCard } from './AlertCard'
 import { ResidentAlertModal } from './ResidentAlertModal'
 import type { ResidentAlert } from '@/hooks/useResidentAlerts'
 
 interface AlertGridProps {
   alerts: ResidentAlert[]
+  initialOpenFilter?: string | null
+  onAutoOpenHandled?: () => void
 }
 
-export function AlertGrid({ alerts }: AlertGridProps) {
+export function AlertGrid({ alerts, initialOpenFilter, onAutoOpenHandled }: AlertGridProps) {
   const [selectedAlert, setSelectedAlert] = useState<ResidentAlert | null>(null)
+  const [hasAutoOpened, setHasAutoOpened] = useState(false)
 
   const handleAlertClick = (alert: ResidentAlert) => {
     setSelectedAlert(alert)
@@ -17,6 +20,27 @@ export function AlertGrid({ alerts }: AlertGridProps) {
   const handleCloseModal = () => {
     setSelectedAlert(null)
   }
+
+  useEffect(() => {
+    if (!initialOpenFilter || hasAutoOpened || !alerts.length || selectedAlert) return
+
+    const alertToOpen = alerts.find((alert) => alert.action.filter === initialOpenFilter)
+    if (!alertToOpen) {
+      setHasAutoOpened(true)
+      onAutoOpenHandled?.()
+      return
+    }
+
+    setSelectedAlert(alertToOpen)
+    setHasAutoOpened(true)
+    onAutoOpenHandled?.()
+  }, [
+    alerts,
+    hasAutoOpened,
+    initialOpenFilter,
+    onAutoOpenHandled,
+    selectedAlert,
+  ])
 
   if (alerts.length === 0) {
     return (
@@ -55,6 +79,7 @@ export function AlertGrid({ alerts }: AlertGridProps) {
             : selectedAlert.action.filter === 'without-guardian' ? 'assign-guardian'
             : selectedAlert.action.filter === 'without-emergency-contact' ? 'assign-emergency-contact'
             : selectedAlert.action.filter === 'without-recent-anthropometry' ? 'register-anthropometry'
+            : selectedAlert.action.filter === 'without-photo' ? 'upload-photo'
             : undefined
           }
         />

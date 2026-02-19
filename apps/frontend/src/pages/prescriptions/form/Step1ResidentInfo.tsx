@@ -253,11 +253,12 @@ export function Step1ResidentInfo() {
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
             {/* Foto */}
-            <div className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border-2 border-border">
+            <div className="flex-shrink-0 w-24 h-24 rounded-full overflow-hidden border-2 border-border bg-muted/30">
               <PhotoViewer
                 photoUrl={resident.fotoUrl}
                 altText={resident.fullName}
                 size="lg"
+                rounded
                 className="!w-24 !h-24"
               />
             </div>

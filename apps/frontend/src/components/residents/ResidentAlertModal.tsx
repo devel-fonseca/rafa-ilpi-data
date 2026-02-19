@@ -10,6 +10,7 @@ import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { AssignBedDialog } from '@/components/beds/AssignBedDialog'
 import { AssignGuardianDialog } from '@/components/residents/AssignGuardianDialog'
 import { AssignEmergencyContactDialog } from '@/components/residents/AssignEmergencyContactDialog'
+import { AssignPhotoDialog } from '@/components/residents/AssignPhotoDialog'
 import { AnthropometryModal } from '@/components/clinical-data/AnthropometryModal'
 import { tenantKey } from '@/lib/query-keys'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
@@ -24,7 +25,12 @@ interface ResidentAlertModalProps {
   type: 'critical' | 'warning' | 'info'
   residents: Resident[]
   alertFilter?: string
-  actionType?: 'assign-bed' | 'assign-guardian' | 'assign-emergency-contact' | 'register-anthropometry'
+  actionType?:
+    | 'assign-bed'
+    | 'assign-guardian'
+    | 'assign-emergency-contact'
+    | 'register-anthropometry'
+    | 'upload-photo'
 }
 
 export function ResidentAlertModal({
@@ -50,12 +56,14 @@ export function ResidentAlertModal({
   const [assignGuardianResident, setAssignGuardianResident] = useState<Resident | null>(null)
   const [assignContactResident, setAssignContactResident] = useState<Resident | null>(null)
   const [anthropometryResident, setAnthropometryResident] = useState<Resident | null>(null)
+  const [uploadPhotoResident, setUploadPhotoResident] = useState<Resident | null>(null)
 
   const handleResidentClick = (resident: Resident) => {
     const needsResidentUpdatePermission =
       actionType === 'assign-bed' ||
       actionType === 'assign-guardian' ||
-      actionType === 'assign-emergency-contact'
+      actionType === 'assign-emergency-contact' ||
+      actionType === 'upload-photo'
 
     if (needsResidentUpdatePermission && !canUpdateResidents) {
       toast.error('Sem permissão', {
@@ -77,6 +85,8 @@ export function ResidentAlertModal({
       setAssignGuardianResident(resident)
     } else if (actionType === 'assign-emergency-contact') {
       setAssignContactResident(resident)
+    } else if (actionType === 'upload-photo') {
+      setUploadPhotoResident(resident)
     } else if (actionType === 'register-anthropometry') {
       setAnthropometryResident(resident)
     } else {
@@ -171,6 +181,8 @@ export function ResidentAlertModal({
         ? 'Cadastrar responsável legal'
       : actionType === 'assign-emergency-contact'
         ? 'Cadastrar contato de emergência'
+        : actionType === 'upload-photo'
+          ? 'Enviar foto do residente'
         : actionType === 'register-anthropometry'
           ? 'Registrar antropometria'
         : title
@@ -180,6 +192,8 @@ export function ResidentAlertModal({
       ? 'Selecione um residente para cadastrar o responsável legal.'
       : actionType === 'assign-emergency-contact'
         ? 'Selecione um residente para adicionar ou completar o contato de emergência.'
+        : actionType === 'upload-photo'
+          ? 'Selecione um residente para enviar a foto.'
         : actionType === 'register-anthropometry'
           ? 'Selecione um residente para registrar peso e altura.'
         : description
@@ -301,6 +315,19 @@ export function ResidentAlertModal({
           }}
           residentId={anthropometryResident.id}
           onSuccess={handleAnthropometrySuccess}
+        />
+      )}
+
+      {uploadPhotoResident && (
+        <AssignPhotoDialog
+          open={!!uploadPhotoResident}
+          onOpenChange={(open) => {
+            if (!open) setUploadPhotoResident(null)
+          }}
+          residentId={uploadPhotoResident.id}
+          residentName={uploadPhotoResident.fullName}
+          currentPhotoUrl={uploadPhotoResident.fotoUrl}
+          onSuccess={handleAssignContactSuccess}
         />
       )}
     </>
