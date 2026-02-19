@@ -20,10 +20,31 @@ import {
   useUpdateAnthropometry,
 } from '@/hooks/useResidentHealth'
 import type { ResidentAnthropometry } from '@/api/resident-health.api'
+import {
+  calculateBmiFromKgCm,
+  centimetersToMeters,
+  formatHeightCmInput,
+  formatWeightInput,
+  metersToCentimeters,
+  parseHeightCmInput,
+  parseWeightInput,
+} from '@/utils/anthropometryInput'
 
 const formSchema = z.object({
-  height: z.number().min(0.5, 'Altura mínima é 0.5m').max(2.5, 'Altura máxima é 2.5m'),
-  weight: z.number().min(20, 'Peso mínimo é 20kg').max(300, 'Peso máximo é 300kg'),
+  heightCm: z
+    .string()
+    .min(1, 'Altura é obrigatória')
+    .refine((val) => {
+      const heightCm = parseHeightCmInput(val)
+      return heightCm !== null && heightCm >= 50 && heightCm <= 250
+    }, 'Altura deve ser entre 50 e 250 cm'),
+  weight: z
+    .string()
+    .min(1, 'Peso é obrigatório')
+    .refine((val) => {
+      const weight = parseWeightInput(val)
+      return weight !== null && weight >= 20 && weight <= 300
+    }, 'Peso deve ser entre 20 e 300 kg'),
   measurementDate: z.string().min(1, 'Data da medição é obrigatória'),
   notes: z.string().optional(),
   changeReason: z.string().optional(),
@@ -36,6 +57,7 @@ interface AnthropometryModalProps {
   onOpenChange: (open: boolean) => void
   residentId: string
   anthropometry?: ResidentAnthropometry | null
+  onSuccess?: () => void
 }
 
 export function AnthropometryModal({
@@ -43,6 +65,7 @@ export function AnthropometryModal({
   onOpenChange,
   residentId,
   anthropometry,
+  onSuccess,
 }: AnthropometryModalProps) {
   const isEditing = !!anthropometry
 
@@ -55,8 +78,8 @@ export function AnthropometryModal({
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      height: 0,
-      weight: 0,
+      heightCm: '',
+      weight: '',
       measurementDate: '',
       notes: '',
       changeReason: '',
@@ -71,16 +94,16 @@ export function AnthropometryModal({
   useEffect(() => {
     if (open && anthropometry) {
       reset({
-        height: Number(anthropometry.height),
-        weight: Number(anthropometry.weight),
+        heightCm: String(metersToCentimeters(Number(anthropometry.height))),
+        weight: formatWeightInput(String(anthropometry.weight).replace('.', ',')),
         measurementDate: anthropometry.measurementDate.split('T')[0],
         notes: anthropometry.notes || '',
         changeReason: '',
       })
     } else if (open && !anthropometry) {
       reset({
-        height: 0,
-        weight: 0,
+        heightCm: '',
+        weight: '',
         measurementDate: new Date().toISOString().split('T')[0],
         notes: '',
       })
@@ -88,6 +111,10 @@ export function AnthropometryModal({
   }, [open, anthropometry, reset])
 
   const onSubmit = async (data: FormData) => {
+    const heightCm = parseHeightCmInput(data.heightCm)
+    const weightKg = parseWeightInput(data.weight)
+    if (heightCm === null || weightKg === null) return
+
     try {
       if (isEditing && anthropometry) {
         if (!data.changeReason || data.changeReason.length < 10) {
@@ -96,8 +123,8 @@ export function AnthropometryModal({
         await updateMutation.mutateAsync({
           id: anthropometry.id,
           data: {
-            height: data.height,
-            weight: data.weight,
+            height: centimetersToMeters(heightCm),
+            weight: weightKg,
             measurementDate: data.measurementDate,
             notes: data.notes || undefined,
             changeReason: data.changeReason,
@@ -106,23 +133,30 @@ export function AnthropometryModal({
       } else {
         await createMutation.mutateAsync({
           residentId,
-          height: data.height,
-          weight: data.weight,
+          height: centimetersToMeters(heightCm),
+          weight: weightKg,
           measurementDate: data.measurementDate,
           notes: data.notes || undefined,
         })
       }
       onOpenChange(false)
       reset()
+      onSuccess?.()
     } catch (error) {
       // Erro tratado pelo hook
     }
   }
 
   // Calcular IMC em tempo real
-  const height = watch('height')
+  const heightCm = watch('heightCm')
   const weight = watch('weight')
-  const bmi = height > 0 ? (weight / (height * height)).toFixed(1) : '0'
+  const parsedHeightCm = parseHeightCmInput(heightCm)
+  const parsedWeight = parseWeightInput(weight)
+  const bmiValue =
+    parsedHeightCm !== null && parsedWeight !== null
+      ? calculateBmiFromKgCm(parsedWeight, parsedHeightCm)
+      : null
+  const bmi = bmiValue ? bmiValue.toFixed(1) : '0'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,16 +175,20 @@ export function AnthropometryModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="height">Altura (metros) *</Label>
+              <Label htmlFor="heightCm">Altura (cm) *</Label>
               <Input
-                id="height"
-                type="number"
-                step="0.01"
-                placeholder="Ex: 1.65"
-                {...register('height', { valueAsNumber: true })}
+                id="heightCm"
+                type="text"
+                inputMode="numeric"
+                placeholder="Ex: 170"
+                {...register('heightCm')}
+                onChange={(e) => {
+                  e.target.value = formatHeightCmInput(e.target.value)
+                  register('heightCm').onChange(e)
+                }}
               />
-              {errors.height && (
-                <p className="text-sm text-destructive">{errors.height.message}</p>
+              {errors.heightCm && (
+                <p className="text-sm text-destructive">{errors.heightCm.message}</p>
               )}
             </div>
 
@@ -158,10 +196,14 @@ export function AnthropometryModal({
               <Label htmlFor="weight">Peso (kg) *</Label>
               <Input
                 id="weight"
-                type="number"
-                step="0.1"
-                placeholder="Ex: 70.5"
-                {...register('weight', { valueAsNumber: true })}
+                type="text"
+                inputMode="decimal"
+                placeholder="Ex: 70,5"
+                {...register('weight')}
+                onChange={(e) => {
+                  e.target.value = formatWeightInput(e.target.value)
+                  register('weight').onChange(e)
+                }}
               />
               {errors.weight && (
                 <p className="text-sm text-destructive">{errors.weight.message}</p>
@@ -169,7 +211,7 @@ export function AnthropometryModal({
             </div>
           </div>
 
-          {height > 0 && weight > 0 && (
+          {bmiValue !== null && (
             <div className="p-3 bg-muted rounded-md">
               <div className="text-sm font-medium">IMC Calculado</div>
               <div className="text-2xl font-bold">{bmi}</div>

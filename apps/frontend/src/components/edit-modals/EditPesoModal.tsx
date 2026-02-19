@@ -4,6 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit, ShieldAlert } from 'lucide-react'
 import { formatDateOnlySafe, formatDateTimeSafe } from '@/utils/dateHelpers'
+import {
+  calculateBmiFromKgCm,
+  formatHeightCmInput,
+  formatWeightInput,
+  metersToCentimeters,
+  parseHeightCmInput,
+  parseWeightInput,
+} from '@/utils/anthropometryInput'
 import type { PesoRecord } from '@/types/daily-records'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -21,8 +29,8 @@ const editPesoSchema = z.object({
     .min(1, 'Peso é obrigatório')
     .refine(
       (val) => {
-        const num = parseFloat(val.replace(',', '.'))
-        return !isNaN(num) && num > 0 && num < 500
+        const num = parseWeightInput(val)
+        return num !== null && num > 0 && num < 500
       },
       { message: 'Peso deve ser entre 0 e 500 kg' }
     ),
@@ -32,8 +40,8 @@ const editPesoSchema = z.object({
     .refine(
       (val) => {
         if (!val || val === '') return true
-        const num = parseFloat(val)
-        return !isNaN(num) && num > 0 && num <= 300
+        const num = parseHeightCmInput(val)
+        return num !== null && num > 0 && num <= 300
       },
       { message: 'Altura deve ser entre 1 e 300 cm' }
     ),
@@ -63,7 +71,7 @@ function normalizeHeightToCm(value: unknown): number | undefined {
   if (!Number.isFinite(height) || height <= 0) return undefined
 
   // Compatibilidade: alguns registros antigos podem estar em metros (ex.: 1.68).
-  if (height <= 3) return Math.round(height * 100)
+  if (height <= 3) return metersToCentimeters(height)
 
   return Math.round(height)
 }
@@ -103,19 +111,11 @@ export function EditPesoModal({
   const imc = useMemo(() => {
     if (!watchPeso || !watchAltura) return null
 
-    // Peso com vírgula (ex: "65,5")
-    const pesoNum = parseFloat(watchPeso.replace(',', '.'))
+    const pesoNum = parseWeightInput(watchPeso)
+    const alturaCm = parseHeightCmInput(watchAltura)
+    if (pesoNum === null || alturaCm === null) return null
 
-    // Altura em centímetros inteiros (ex: "170")
-    const alturaCm = parseFloat(watchAltura)
-
-    if (isNaN(pesoNum) || isNaN(alturaCm) || alturaCm === 0) return null
-
-    // Converte altura de cm para metros
-    const alturaMetros = alturaCm / 100
-    const imcValue = pesoNum / (alturaMetros * alturaMetros)
-
-    return imcValue
+    return calculateBmiFromKgCm(pesoNum, alturaCm)
   }, [watchPeso, watchAltura])
 
   const imcClassificacao = useMemo(() => {
@@ -132,7 +132,7 @@ export function EditPesoModal({
     if (record && open) {
       // Formatar peso com vírgula para exibição
       const pesoFormatted = record.data.peso
-        ? String(record.data.peso).replace('.', ',')
+        ? formatWeightInput(String(record.data.peso).replace('.', ','))
         : ''
       const alturaCm = normalizeHeightToCm(record.data.altura)
 
@@ -147,8 +147,8 @@ export function EditPesoModal({
   }, [record, open, reset])
 
   const handleFormSubmit = (data: EditPesoFormData) => {
-    const pesoNum = parseFloat(data.peso.replace(',', '.'))
-    const alturaCm = data.altura ? parseFloat(data.altura) : undefined
+    const pesoNum = parseWeightInput(data.peso)
+    const alturaCm = parseHeightCmInput(data.altura)
 
     const payload: Record<string, unknown> = {
       editReason: data.editReason,
@@ -165,8 +165,8 @@ export function EditPesoModal({
     }
 
     const nextData: ComparablePesoData = {
-      peso: Number.isFinite(pesoNum) ? pesoNum : undefined,
-      altura: alturaCm && Number.isFinite(alturaCm) ? alturaCm : undefined,
+      peso: pesoNum !== null ? pesoNum : undefined,
+      altura: alturaCm !== null ? alturaCm : undefined,
       imc: imc ? Number(imc.toFixed(2)) : undefined,
     }
 
@@ -242,24 +242,11 @@ export function EditPesoModal({
               <Input
                 {...register('peso')}
                 type="text"
+                inputMode="decimal"
                 placeholder="Ex: 65,5"
                 className="mt-2"
                 onChange={(e) => {
-                  // Remove tudo que não é dígito
-                  const value = e.target.value.replace(/\D/g, '')
-
-                  // Limita a 4 dígitos (máximo 500 kg = 5000)
-                  const limited = value.slice(0, 4)
-
-                  // Formata com vírgula se tiver mais de 1 dígito
-                  let formatted = limited
-                  if (limited.length > 1) {
-                    const intPart = limited.slice(0, -1)
-                    const decPart = limited.slice(-1)
-                    formatted = `${intPart},${decPart}`
-                  }
-
-                  e.target.value = formatted
+                  e.target.value = formatWeightInput(e.target.value)
                   register('peso').onChange(e)
                 }}
               />
@@ -277,14 +264,7 @@ export function EditPesoModal({
                 placeholder="Ex: 170"
                 className="mt-2"
                 onChange={(e) => {
-                  // Remove tudo que não é dígito
-                  const value = e.target.value.replace(/\D/g, '')
-
-                  // Limita a 3 dígitos (máximo 300 cm)
-                  const limited = value.slice(0, 3)
-
-                  // Mantém apenas números inteiros (centímetros)
-                  e.target.value = limited
+                  e.target.value = formatHeightCmInput(e.target.value)
                   register('altura').onChange(e)
                 }}
               />
