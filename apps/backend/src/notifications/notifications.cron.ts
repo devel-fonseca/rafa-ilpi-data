@@ -284,7 +284,7 @@ export class NotificationsCronService {
             message:
               `O plantão ${shift.team?.name || 'Sem equipe'} • ${shiftName} ` +
               `(${startTime}-${endTime}) está pendente de encerramento há ${overdueLabel}.`,
-            actionUrl: '/dashboard/escala-cuidados',
+            actionUrl: '/dashboard/meus-plantoes',
             entityType: 'SHIFT',
             entityId: shift.id,
             metadata: {
