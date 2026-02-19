@@ -26,6 +26,42 @@ export class InstitutionalProfileService {
   // PERFIL INSTITUCIONAL
   // ──────────────────────────────────────────────────────────────────────────
 
+  private normalizeNullableProfileFields(
+    data: Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput,
+  ): Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput {
+    const normalized = { ...data } as Record<string, unknown>
+
+    const nullableStringFields = [
+      'tradeName',
+      'cnesCode',
+      'contactPhone',
+      'contactEmail',
+      'websiteUrl',
+      'mission',
+      'vision',
+      'values',
+      'notes',
+    ]
+
+    for (const field of nullableStringFields) {
+      if (normalized[field] === '') {
+        normalized[field] = null
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(normalized, 'capacityDeclared') && normalized.capacityDeclared === '') {
+      normalized.capacityDeclared = null
+    }
+    if (Object.prototype.hasOwnProperty.call(normalized, 'capacityLicensed') && normalized.capacityLicensed === '') {
+      normalized.capacityLicensed = null
+    }
+    if (Object.prototype.hasOwnProperty.call(normalized, 'foundedAt') && normalized.foundedAt === '') {
+      normalized.foundedAt = null
+    }
+
+    return normalized as Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput
+  }
+
   /**
    * Busca o perfil institucional do tenant
    * Retorna null se não existir
@@ -90,10 +126,10 @@ export class InstitutionalProfileService {
   async createOrUpdateProfile(tenantId: string, dto: CreateTenantProfileDto | UpdateTenantProfileDto) {
     // Converter foundedAt de string para Date se fornecido
     const { foundedAt, ...rest } = dto
-    const processedData = {
+    const processedData = this.normalizeNullableProfileFields({
       ...rest,
       ...(foundedAt ? { foundedAt: parseISO(`${foundedAt}T12:00:00.000`) } : {}),
-    }
+    }) as Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput
 
     return this.tenantContext.client.tenantProfile.upsert({
       where: { tenantId },
@@ -130,7 +166,8 @@ export class InstitutionalProfileService {
 
     // 2. Atualizar perfil institucional (tenant schema) se fornecido
     if (dto.profile && Object.keys(dto.profile).length > 0) {
-      const profileData: Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput = { ...dto.profile }
+      const profileData: Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput =
+        this.normalizeNullableProfileFields({ ...dto.profile })
 
       // Converter foundedAt se fornecido
       if (profileData.foundedAt) {

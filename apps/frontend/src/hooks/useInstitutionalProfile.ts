@@ -10,6 +10,7 @@ import {
   type UpdateTenantDocumentDto,
   type DocumentStatus,
 } from '@/api/institutional-documents.api'
+import { useAuthStore } from '@/stores/auth.store'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // QUERY KEYS
@@ -50,7 +51,28 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (data: UpdateInstitutionalProfileDto) =>
       institutionalProfileAPI.createOrUpdateProfile(data),
-    onSuccess: () => {
+    onSuccess: (updatedProfile) => {
+      // Sincronizar dados institucionais em memória para refletir no header
+      // e no nome exibido nos relatórios sem exigir novo login.
+      useAuthStore.setState((state) => {
+        if (!state.user) return state
+
+        return {
+          user: {
+            ...state.user,
+            tenant: {
+              ...state.user.tenant,
+              name: updatedProfile.tenant?.name ?? state.user.tenant?.name ?? '',
+              cnpj: updatedProfile.tenant?.cnpj ?? state.user.tenant?.cnpj ?? null,
+              profile: {
+                ...state.user.tenant?.profile,
+                tradeName: updatedProfile.profile?.tradeName ?? null,
+              },
+            },
+          },
+        }
+      })
+
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.profile() })
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.compliance() })

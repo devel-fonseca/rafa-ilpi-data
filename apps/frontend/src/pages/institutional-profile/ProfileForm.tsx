@@ -194,16 +194,15 @@ export function ProfileForm() {
       const tenantData: Record<string, unknown> = {}
 
       Object.entries(data).forEach(([key, value]) => {
-        const processedValue = value === '' ? undefined : value
-
         if (profileFields.includes(key)) {
           if (key === 'capacityDeclared' || key === 'capacityLicensed') {
-            profileData[key] = processedValue ? Number(processedValue) : undefined
+            profileData[key] = value === '' || value === undefined ? null : Number(value)
           } else {
-            profileData[key] = processedValue
+            profileData[key] = value === '' ? null : value
           }
         } else if (tenantFields.includes(key)) {
-          tenantData[key] = processedValue
+          // Campos do tenant continuam sem "clear" explícito por null neste formulário.
+          tenantData[key] = value === '' ? undefined : value
         }
       })
 
