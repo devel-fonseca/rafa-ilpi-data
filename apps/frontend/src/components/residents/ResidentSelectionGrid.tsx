@@ -359,7 +359,7 @@ export function ResidentSelectionGrid({
                           <PhotoViewer
                             photoUrl={resident.fotoUrl}
                             altText={resident.fullName}
-                            size="xs"
+                            size="avatar"
                             rounded={true}
                           />
                         </div>

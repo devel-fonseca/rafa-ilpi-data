@@ -9,7 +9,7 @@ interface PhotoViewerProps {
   photoUrlMedium?: string
   altText?: string
   /** Tamanhos semânticos otimizados para thumbnails */
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'avatar' | 'md' | 'lg' | 'xl'
   /** Se true, exibe bordas arredondadas (rounded-full) */
   rounded?: boolean
   className?: string
@@ -20,6 +20,7 @@ interface PhotoViewerProps {
 const sizeClasses = {
   xs: 'w-8 h-8',      // 32px - para listagens muito compactas
   sm: 'w-16 h-16',    // 64px - ideal para listas (usa thumbnail small)
+  avatar: 'w-12 h-12', // 48px - destaque maior para listas de residentes
   md: 'w-32 h-32',    // 128px - ideal para cards (usa thumbnail medium)
   lg: 'w-48 h-48',    // 192px - ideal para perfis (usa original)
   xl: 'w-64 h-64',    // 256px - ideal para visualização detalhada (usa original)
@@ -114,6 +115,8 @@ export function PhotoViewer({
       case 'xs': // 32px - usa small (64px) se disponível
       case 'sm': // 64px - usa small (64px)
         return smallUrl || mediumUrl || photoUrl
+      case 'avatar': // 48px - prioriza medium para melhor nitidez visual
+        return mediumUrl || smallUrl || photoUrl
       case 'md': // 128px - usa medium (150px)
         return mediumUrl || smallUrl || photoUrl
       case 'lg': // 192px - usa original (300px)
