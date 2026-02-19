@@ -29,6 +29,17 @@ export class ResidentProfileSummaryDto {
   residentsWithoutBed: number;
 }
 
+export class AgeRangeDistributionDto {
+  @ApiProperty()
+  range: string;
+
+  @ApiProperty()
+  count: number;
+
+  @ApiProperty()
+  percentage: number;
+}
+
 export class GenderDistributionDto {
   @ApiProperty()
   label: string;
@@ -78,6 +89,9 @@ export class ClinicalIndicatorsDto {
 
   @ApiProperty()
   residentsWithContraindications: number;
+
+  @ApiProperty()
+  contraindicationsTotal: number;
 }
 
 export class TopConditionDto {
@@ -108,6 +122,132 @@ export class RoutineLoadByTypeDto {
 
   @ApiProperty()
   count: number;
+}
+
+export class ComplexityIndicatorsDto {
+  @ApiProperty()
+  complexityIndex: number;
+
+  @ApiProperty()
+  weightedScore: number;
+
+  @ApiProperty()
+  residentsWithMobilityAid: number;
+
+  @ApiProperty()
+  mobilityAidPercentage: number;
+
+  @ApiProperty()
+  requiredCaregiversPerShift: number;
+}
+
+export class AllergySeverityDistributionDto {
+  @ApiProperty()
+  severity: string;
+
+  @ApiProperty()
+  count: number;
+}
+
+export class DietaryRestrictionTypeDistributionDto {
+  @ApiProperty()
+  type: string;
+
+  @ApiProperty()
+  count: number;
+}
+
+export class BmiDistributionDto {
+  @ApiProperty()
+  category: string;
+
+  @ApiProperty()
+  count: number;
+
+  @ApiProperty()
+  percentage: number;
+}
+
+export class NutritionalFunctionalIndicatorsDto {
+  @ApiProperty()
+  anthropometryRecencyDays: number;
+
+  @ApiProperty({ type: [BmiDistributionDto] })
+  bmiDistribution: BmiDistributionDto[];
+
+  @ApiProperty()
+  percentWithoutRecentAnthropometry: number;
+
+  @ApiProperty()
+  percentWithoutDependencyAssessment: number;
+
+  @ApiProperty()
+  percentWithoutClinicalProfile: number;
+}
+
+export class RoutineCoverageByTypeDto {
+  @ApiProperty()
+  recordType: string;
+
+  @ApiProperty()
+  due: number;
+
+  @ApiProperty()
+  done: number;
+
+  @ApiProperty()
+  compliance: number;
+}
+
+export class TreatmentRoutineIndicatorsDto {
+  @ApiProperty()
+  residentsWithActivePrescription: number;
+
+  @ApiProperty()
+  residentsWithPolypharmacy: number;
+
+  @ApiProperty()
+  totalActiveMedications: number;
+
+  @ApiProperty()
+  totalRoutineSchedules: number;
+
+  @ApiProperty({ type: [RoutineCoverageByTypeDto] })
+  routineCoverageByType: RoutineCoverageByTypeDto[];
+}
+
+export class GovernanceQualityIndicatorsDto {
+  @ApiProperty()
+  residentsWithoutLegalGuardian: number;
+
+  @ApiProperty()
+  residentsWithoutEmergencyContact: number;
+
+  @ApiProperty()
+  residentsWithoutBed: number;
+
+  @ApiProperty()
+  residentsWithoutActiveContract: number;
+
+  @ApiProperty()
+  residentsWithCriticalIncompleteFields: number;
+}
+
+export class CriticalIncompleteResidentDto {
+  @ApiProperty()
+  residentId: string;
+
+  @ApiProperty()
+  residentName: string;
+
+  @ApiProperty({ nullable: true })
+  bedCode: string | null;
+
+  @ApiProperty()
+  missingFieldsCount: number;
+
+  @ApiProperty({ type: [String] })
+  missingFields: string[];
 }
 
 export class DependencyTrendPointDto {
@@ -195,20 +335,44 @@ export class InstitutionalResidentProfileReportDto {
   @ApiProperty({ type: [GenderDistributionDto] })
   genderDistribution: GenderDistributionDto[];
 
+  @ApiProperty({ type: [AgeRangeDistributionDto] })
+  ageRangeDistribution: AgeRangeDistributionDto[];
+
   @ApiProperty({ type: [DependencyDistributionDto] })
   dependencyDistribution: DependencyDistributionDto[];
+
+  @ApiProperty({ type: ComplexityIndicatorsDto })
+  complexityIndicators: ComplexityIndicatorsDto;
 
   @ApiProperty({ type: ClinicalIndicatorsDto })
   clinicalIndicators: ClinicalIndicatorsDto;
 
+  @ApiProperty({ type: [AllergySeverityDistributionDto] })
+  allergiesBySeverity: AllergySeverityDistributionDto[];
+
+  @ApiProperty({ type: [DietaryRestrictionTypeDistributionDto] })
+  dietaryRestrictionsByType: DietaryRestrictionTypeDistributionDto[];
+
   @ApiProperty({ type: [TopConditionDto] })
   topConditions: TopConditionDto[];
+
+  @ApiProperty({ type: NutritionalFunctionalIndicatorsDto })
+  nutritionalFunctionalIndicators: NutritionalFunctionalIndicatorsDto;
 
   @ApiProperty({ type: CareLoadSummaryDto })
   careLoadSummary: CareLoadSummaryDto;
 
   @ApiProperty({ type: [RoutineLoadByTypeDto] })
   routineLoadByType: RoutineLoadByTypeDto[];
+
+  @ApiProperty({ type: TreatmentRoutineIndicatorsDto })
+  treatmentRoutineIndicators: TreatmentRoutineIndicatorsDto;
+
+  @ApiProperty({ type: GovernanceQualityIndicatorsDto })
+  governanceQualityIndicators: GovernanceQualityIndicatorsDto;
+
+  @ApiProperty({ type: [CriticalIncompleteResidentDto] })
+  criticalIncompleteResidents: CriticalIncompleteResidentDto[];
 
   @ApiProperty({ description: 'Quantidade de meses considerados na tendência (6-12)' })
   trendMonths: number;

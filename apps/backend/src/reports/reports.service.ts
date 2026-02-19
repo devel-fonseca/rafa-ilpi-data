@@ -1418,6 +1418,9 @@ export class ReportsService {
     const referenceDateOnly = asOfDate ? parseDateOnly(asOfDate) : getCurrentDateInTz(timezone);
     const referenceDate = new Date(`${referenceDateOnly}T12:00:00.000Z`);
     const normalizedTrendMonths = this.normalizeTrendMonths(trendMonths);
+    const anthropometryRecencyDays = 90;
+    const anthropometryRecentThreshold = new Date(referenceDate);
+    anthropometryRecentThreshold.setUTCDate(anthropometryRecentThreshold.getUTCDate() - anthropometryRecencyDays);
 
     const residents = await this.tenantContext.client.resident.findMany({
       where: {
@@ -1431,6 +1434,7 @@ export class ReportsService {
         birthDate: true,
         admissionDate: true,
         legalGuardianName: true,
+        emergencyContacts: true,
         bed: { select: { code: true } },
         dependencyAssessments: {
           where: {
@@ -1445,6 +1449,25 @@ export class ReportsService {
           },
           orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
           take: 1,
+        },
+        anthropometryRecords: {
+          where: { deletedAt: null },
+          orderBy: [{ measurementDate: 'desc' }, { createdAt: 'desc' }],
+          take: 1,
+          select: {
+            bmi: true,
+            weight: true,
+            height: true,
+            measurementDate: true,
+          },
+        },
+        clinicalProfile: {
+          where: { deletedAt: null },
+          select: {
+            healthStatus: true,
+            specialNeeds: true,
+            functionalAspects: true,
+          },
         },
         conditions: {
           where: { deletedAt: null },
@@ -1463,6 +1486,7 @@ export class ReportsService {
         dietaryRestrictions: {
           where: { deletedAt: null },
           select: {
+            restrictionType: true,
             contraindications: true,
           },
         },
@@ -1478,6 +1502,19 @@ export class ReportsService {
             },
           },
         },
+        contracts: {
+          where: {
+            deletedAt: null,
+            rescindedAt: null,
+            startDate: { lte: referenceDate },
+            OR: [
+              { isIndefinite: true },
+              { endDate: { gte: referenceDate } },
+            ],
+          },
+          select: { id: true },
+          take: 1,
+        },
         scheduleConfigs: {
           where: {
             deletedAt: null,
@@ -1491,8 +1528,31 @@ export class ReportsService {
       orderBy: { fullName: 'asc' },
     });
 
+    const dailyRecords = await this.getDailyRecords(referenceDateOnly, referenceDate, null);
+    const routineCompliance = await this.calculateScheduleCompliance(
+      referenceDate,
+      dailyRecords,
+      residents.map((resident) => ({ id: resident.id })),
+      null,
+    );
+    const routineCoverageByType = routineCompliance
+      .filter((item) => item.due > 0)
+      .map((item) => ({
+        recordType: item.recordType,
+        due: item.due,
+        done: item.done,
+        compliance: item.compliance ?? 0,
+      }))
+      .sort((a, b) => b.due - a.due || a.recordType.localeCompare(b.recordType));
+
     const totalResidents = residents.length;
     const genders = new Map<string, number>();
+    const ageRanges = new Map<string, number>([
+      ['60-69', 0],
+      ['70-79', 0],
+      ['80+', 0],
+      ['Outras idades', 0],
+    ]);
     const dependencyByKey = new Map<string, number>([
       ['GRAU_I', 0],
       ['GRAU_II', 0],
@@ -1501,6 +1561,14 @@ export class ReportsService {
     ]);
     const routineByType = new Map<string, number>();
     const conditionMap = new Map<string, { label: string; count: number }>();
+    const allergySeverityMap = new Map<string, number>();
+    const dietaryRestrictionTypeMap = new Map<string, number>();
+    const bmiDistributionMap = new Map<string, number>([
+      ['Baixo peso', 0],
+      ['Adequado', 0],
+      ['Sobrepeso', 0],
+      ['Sem dado', 0],
+    ]);
 
     let totalAge = 0;
     let minAge = 0;
@@ -1508,6 +1576,9 @@ export class ReportsService {
     let totalStayDays = 0;
     let residentsWithLegalGuardian = 0;
     let residentsWithoutBed = 0;
+    let residentsWithoutEmergencyContact = 0;
+    let residentsWithoutActiveContract = 0;
+    let residentsWithCriticalIncompleteFields = 0;
 
     let residentsWithConditions = 0;
     let totalConditions = 0;
@@ -1517,9 +1588,23 @@ export class ReportsService {
     let residentsWithDietaryRestrictions = 0;
     let totalDietaryRestrictions = 0;
     let residentsWithContraindications = 0;
+    let contraindicationsTotal = 0;
     let totalActiveMedications = 0;
     let residentsWithPolypharmacy = 0;
+    let residentsWithActivePrescription = 0;
     let totalRoutineSchedules = 0;
+    let residentsWithMobilityAid = 0;
+    let residentsWithoutDependencyAssessment = 0;
+    let residentsWithoutRecentAnthropometry = 0;
+    let residentsWithoutClinicalProfile = 0;
+
+    const criticalIncompleteResidents: Array<{
+      residentId: string;
+      residentName: string;
+      bedCode: string | null;
+      missingFieldsCount: number;
+      missingFields: string[];
+    }> = [];
 
     const residentRows = residents.map((resident) => {
       const age = this.calculateAge(resident.birthDate, referenceDate);
@@ -1532,12 +1617,54 @@ export class ReportsService {
       if (resident.legalGuardianName) residentsWithLegalGuardian += 1;
       if (!resident.bed?.code) residentsWithoutBed += 1;
 
+      if (age >= 60 && age <= 69) {
+        ageRanges.set('60-69', (ageRanges.get('60-69') || 0) + 1);
+      } else if (age >= 70 && age <= 79) {
+        ageRanges.set('70-79', (ageRanges.get('70-79') || 0) + 1);
+      } else if (age >= 80) {
+        ageRanges.set('80+', (ageRanges.get('80+') || 0) + 1);
+      } else {
+        ageRanges.set('Outras idades', (ageRanges.get('Outras idades') || 0) + 1);
+      }
+
+      const hasEmergencyContact = this.hasValidEmergencyContact(resident.emergencyContacts);
+      if (!hasEmergencyContact) {
+        residentsWithoutEmergencyContact += 1;
+      }
+      const hasActiveContract = resident.contracts.length > 0;
+      if (!hasActiveContract) {
+        residentsWithoutActiveContract += 1;
+      }
+
       const genderLabel = this.formatGenderCompact(resident.gender);
       genders.set(genderLabel, (genders.get(genderLabel) || 0) + 1);
 
       const assessment = resident.dependencyAssessments[0];
       const dependencyKey = assessment?.dependencyLevel || 'NAO_INFORMADO';
       dependencyByKey.set(dependencyKey, (dependencyByKey.get(dependencyKey) || 0) + 1);
+      if (!assessment) {
+        residentsWithoutDependencyAssessment += 1;
+      }
+      if (assessment?.mobilityAid) {
+        residentsWithMobilityAid += 1;
+      }
+
+      const latestAnthropometry = resident.anthropometryRecords[0];
+      const bmiValue = this.getAnthropometryBmi(latestAnthropometry);
+      const bmiCategory = this.getBmiCategory(bmiValue);
+      bmiDistributionMap.set(bmiCategory, (bmiDistributionMap.get(bmiCategory) || 0) + 1);
+
+      const hasRecentAnthropometry =
+        latestAnthropometry?.measurementDate &&
+        latestAnthropometry.measurementDate >= anthropometryRecentThreshold;
+      if (!hasRecentAnthropometry) {
+        residentsWithoutRecentAnthropometry += 1;
+      }
+
+      const hasClinicalProfile = this.hasClinicalProfileContent(resident.clinicalProfile);
+      if (!hasClinicalProfile) {
+        residentsWithoutClinicalProfile += 1;
+      }
 
       const conditionCount = resident.conditions.length;
       const allergyCount = resident.allergies.length;
@@ -1557,9 +1684,24 @@ export class ReportsService {
       totalDietaryRestrictions += dietaryCount;
       totalActiveMedications += activeMedicationCount;
       totalRoutineSchedules += routineSchedulesCount;
+      if (resident.prescriptions.length > 0) {
+        residentsWithActivePrescription += 1;
+      }
 
       severeAllergies += resident.allergies.filter((allergy) =>
         allergy.severity === 'GRAVE' || allergy.severity === 'ANAFILAXIA').length;
+      for (const allergy of resident.allergies) {
+        const severity = this.formatAllergySeverity(allergy.severity);
+        allergySeverityMap.set(severity, (allergySeverityMap.get(severity) || 0) + 1);
+      }
+
+      for (const restriction of resident.dietaryRestrictions) {
+        const type = this.formatRestrictionType(restriction.restrictionType);
+        dietaryRestrictionTypeMap.set(
+          type,
+          (dietaryRestrictionTypeMap.get(type) || 0) + 1,
+        );
+      }
 
       if (activeMedicationCount >= 5) residentsWithPolypharmacy += 1;
 
@@ -1580,11 +1722,45 @@ export class ReportsService {
         }
       }
 
+      const contraindicationsFromConditions = resident.conditions.filter(
+        (condition) => !!condition.contraindications?.trim(),
+      ).length;
+      const contraindicationsFromAllergies = resident.allergies.filter(
+        (allergy) => !!allergy.contraindications?.trim(),
+      ).length;
+      const contraindicationsFromRestrictions = resident.dietaryRestrictions.filter(
+        (restriction) => !!restriction.contraindications?.trim(),
+      ).length;
+      const contraindicationsFromResident =
+        contraindicationsFromConditions +
+        contraindicationsFromAllergies +
+        contraindicationsFromRestrictions;
+      contraindicationsTotal += contraindicationsFromResident;
+
       const hasContraindications =
-        resident.conditions.some((condition) => !!condition.contraindications?.trim()) ||
-        resident.allergies.some((allergy) => !!allergy.contraindications?.trim()) ||
-        resident.dietaryRestrictions.some((restriction) => !!restriction.contraindications?.trim());
+        contraindicationsFromResident > 0;
       if (hasContraindications) residentsWithContraindications += 1;
+
+      const missingFields: string[] = [];
+      if (!resident.legalGuardianName) missingFields.push('Responsável legal');
+      if (!hasEmergencyContact) missingFields.push('Contato de emergência');
+      if (!resident.bed?.code) missingFields.push('Leito definido');
+      if (!hasActiveContract) missingFields.push('Contrato vigente');
+      if (!assessment) missingFields.push('Avaliação de dependência vigente');
+      if (!hasClinicalProfile) missingFields.push('Perfil clínico preenchido');
+      if (!hasRecentAnthropometry) {
+        missingFields.push(`Antropometria recente (${anthropometryRecencyDays} dias)`);
+      }
+      if (missingFields.length > 0) {
+        residentsWithCriticalIncompleteFields += 1;
+        criticalIncompleteResidents.push({
+          residentId: resident.id,
+          residentName: resident.fullName,
+          bedCode: resident.bed?.code || null,
+          missingFieldsCount: missingFields.length,
+          missingFields,
+        });
+      }
 
       return {
         id: resident.id,
@@ -1605,13 +1781,24 @@ export class ReportsService {
       };
     });
 
+    const calculatePercentage = (count: number, total: number) =>
+      total > 0 ? Math.round((count / total) * 100) : 0;
+
     const byGender = Array.from(genders.entries())
       .map(([label, count]) => ({
         label,
         count,
-        percentage: totalResidents > 0 ? Math.round((count / totalResidents) * 100) : 0,
+        percentage: calculatePercentage(count, totalResidents),
       }))
       .sort((a, b) => b.count - a.count);
+
+    const ageRangeDistribution = ['60-69', '70-79', '80+', 'Outras idades']
+      .map((range) => ({
+        range,
+        count: ageRanges.get(range) || 0,
+        percentage: calculatePercentage(ageRanges.get(range) || 0, totalResidents),
+      }))
+      .filter((item) => item.count > 0 || item.range !== 'Outras idades');
 
     const dependencyOrder = ['GRAU_I', 'GRAU_II', 'GRAU_III', 'NAO_INFORMADO'];
     const dependencyDistribution = dependencyOrder
@@ -1620,11 +1807,25 @@ export class ReportsService {
         return {
           level: this.formatDependencyLevelCompact(key),
           count,
-          percentage: totalResidents > 0 ? Math.round((count / totalResidents) * 100) : 0,
+          percentage: calculatePercentage(count, totalResidents),
           requiredCaregivers: this.getRequiredCaregiversByDependencyLevel(key, count),
         };
       })
       .filter((item) => item.count > 0 || item.level === 'Não informado');
+    const dependencyCounts = {
+      grauI: dependencyByKey.get('GRAU_I') || 0,
+      grauII: dependencyByKey.get('GRAU_II') || 0,
+      grauIII: dependencyByKey.get('GRAU_III') || 0,
+      notInformed: dependencyByKey.get('NAO_INFORMADO') || 0,
+    };
+    const complexityWeightedScore =
+      dependencyCounts.grauI +
+      dependencyCounts.grauII * 2 +
+      dependencyCounts.grauIII * 3;
+    const requiredCaregiversPerShift =
+      this.getRequiredCaregiversByDependencyLevel('GRAU_I', dependencyCounts.grauI) +
+      this.getRequiredCaregiversByDependencyLevel('GRAU_II', dependencyCounts.grauII) +
+      this.getRequiredCaregiversByDependencyLevel('GRAU_III', dependencyCounts.grauIII);
 
     const topConditions = Array.from(conditionMap.values())
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
@@ -1632,12 +1833,31 @@ export class ReportsService {
       .map((item) => ({
         condition: item.label,
         count: item.count,
-        percentage: totalResidents > 0 ? Math.round((item.count / totalResidents) * 100) : 0,
+        percentage: calculatePercentage(item.count, totalResidents),
+      }));
+
+    const allergiesBySeverity = Array.from(allergySeverityMap.entries())
+      .map(([severity, count]) => ({ severity, count }))
+      .sort((a, b) => b.count - a.count || a.severity.localeCompare(b.severity));
+
+    const dietaryRestrictionsByType = Array.from(dietaryRestrictionTypeMap.entries())
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count || a.type.localeCompare(b.type));
+
+    const bmiDistribution = ['Baixo peso', 'Adequado', 'Sobrepeso', 'Sem dado']
+      .map((category) => ({
+        category,
+        count: bmiDistributionMap.get(category) || 0,
+        percentage: calculatePercentage(bmiDistributionMap.get(category) || 0, totalResidents),
       }));
 
     const routineLoadByType = Array.from(routineByType.entries())
       .map(([recordType, count]) => ({ recordType, count }))
       .sort((a, b) => b.count - a.count || a.recordType.localeCompare(b.recordType));
+
+    criticalIncompleteResidents.sort(
+      (a, b) => b.missingFieldsCount - a.missingFieldsCount || a.residentName.localeCompare(b.residentName),
+    );
 
     const { dependencyTrend, careLoadTrend } =
       await this.generateInstitutionalResidentProfileTrends(referenceDate, normalizedTrendMonths);
@@ -1655,7 +1875,18 @@ export class ReportsService {
         residentsWithoutBed,
       },
       genderDistribution: byGender,
+      ageRangeDistribution,
       dependencyDistribution,
+      complexityIndicators: {
+        complexityIndex:
+          totalResidents > 0
+            ? Math.round((complexityWeightedScore / totalResidents) * 100) / 100
+            : 0,
+        weightedScore: complexityWeightedScore,
+        residentsWithMobilityAid,
+        mobilityAidPercentage: calculatePercentage(residentsWithMobilityAid, totalResidents),
+        requiredCaregiversPerShift,
+      },
       clinicalIndicators: {
         residentsWithConditions,
         totalConditions,
@@ -1665,14 +1896,48 @@ export class ReportsService {
         residentsWithDietaryRestrictions,
         totalDietaryRestrictions,
         residentsWithContraindications,
+        contraindicationsTotal,
       },
+      allergiesBySeverity,
+      dietaryRestrictionsByType,
       topConditions,
+      nutritionalFunctionalIndicators: {
+        anthropometryRecencyDays,
+        bmiDistribution,
+        percentWithoutRecentAnthropometry: calculatePercentage(
+          residentsWithoutRecentAnthropometry,
+          totalResidents,
+        ),
+        percentWithoutDependencyAssessment: calculatePercentage(
+          residentsWithoutDependencyAssessment,
+          totalResidents,
+        ),
+        percentWithoutClinicalProfile: calculatePercentage(
+          residentsWithoutClinicalProfile,
+          totalResidents,
+        ),
+      },
       careLoadSummary: {
         totalActiveMedications,
         residentsWithPolypharmacy,
         totalRoutineSchedules,
       },
       routineLoadByType,
+      treatmentRoutineIndicators: {
+        residentsWithActivePrescription,
+        residentsWithPolypharmacy,
+        totalActiveMedications,
+        totalRoutineSchedules,
+        routineCoverageByType,
+      },
+      governanceQualityIndicators: {
+        residentsWithoutLegalGuardian: totalResidents - residentsWithLegalGuardian,
+        residentsWithoutEmergencyContact,
+        residentsWithoutBed: residentsWithoutBed,
+        residentsWithoutActiveContract,
+        residentsWithCriticalIncompleteFields,
+      },
+      criticalIncompleteResidents,
       trendMonths: normalizedTrendMonths,
       dependencyTrend,
       careLoadTrend,
@@ -1692,6 +1957,50 @@ export class ReportsService {
   private calculateDaysDifference(startDate: Date, endDate: Date): number {
     const diffTime = endDate.getTime() - startDate.getTime();
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  private hasValidEmergencyContact(contacts: unknown): boolean {
+    if (!contacts || !Array.isArray(contacts)) return false;
+    return contacts.some((contact) => {
+      if (!contact || typeof contact !== 'object') return false;
+      const c = contact as { name?: unknown; phone?: unknown };
+      const hasName = typeof c.name === 'string' && c.name.trim().length > 0;
+      const hasPhone = typeof c.phone === 'string' && c.phone.trim().length > 0;
+      return hasName || hasPhone;
+    });
+  }
+
+  private hasClinicalProfileContent(
+    profile: { healthStatus: string | null; specialNeeds: string | null; functionalAspects: string | null } | null,
+  ): boolean {
+    if (!profile) return false;
+    return Boolean(
+      profile.healthStatus?.trim() ||
+      profile.specialNeeds?.trim() ||
+      profile.functionalAspects?.trim(),
+    );
+  }
+
+  private getAnthropometryBmi(
+    anthropometry: { bmi: Prisma.Decimal | null; weight: Prisma.Decimal | null; height: Prisma.Decimal | null } | undefined,
+  ): number | null {
+    if (!anthropometry) return null;
+    if (anthropometry.bmi) return Number(anthropometry.bmi);
+    if (anthropometry.weight && anthropometry.height) {
+      const weight = Number(anthropometry.weight);
+      const height = Number(anthropometry.height);
+      if (height > 0) {
+        return Math.round((weight / (height * height)) * 10) / 10;
+      }
+    }
+    return null;
+  }
+
+  private getBmiCategory(bmi: number | null): string {
+    if (bmi === null || Number.isNaN(bmi)) return 'Sem dado';
+    if (bmi < 18.5) return 'Baixo peso';
+    if (bmi < 25) return 'Adequado';
+    return 'Sobrepeso';
   }
 
   private formatDependencyLevelCompact(level: string | null | undefined): string {
