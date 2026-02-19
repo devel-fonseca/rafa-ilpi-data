@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
+import { residentsAPI } from '@/api/residents.api'
 import { Page, PageHeader } from '@/design-system/components'
 import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionGrid'
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
@@ -12,11 +12,13 @@ export default function ResidentSelectionPage() {
 
   // Buscar lista de residentes
   const { data: residentsData, isLoading: isLoadingResidents } = useQuery({
-    queryKey: tenantKey('residents'),
-    queryFn: async () => {
-      const response = await api.get('/residents')
-      return response.data
-    },
+    queryKey: tenantKey('residents', 'daily-records-selection', 'page-1-limit-1000'),
+    queryFn: () => residentsAPI.getAll({
+      page: 1,
+      limit: 1000,
+      sortBy: 'fullName',
+      sortOrder: 'asc',
+    }),
   })
 
   // Buscar últimos registros
