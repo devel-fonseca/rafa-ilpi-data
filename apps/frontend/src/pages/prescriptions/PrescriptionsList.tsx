@@ -4,7 +4,6 @@ import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { usePrescriptionsDashboard } from '@/hooks/usePrescriptions'
 import type { Prescription, QueryPrescriptionParams, Medication, SOSMedication } from '@/api/prescriptions.api'
 import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,10 +44,7 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  FileText,
   AlertTriangle,
-  Pill,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   FileCheck,
@@ -58,6 +54,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { usePermissions } from '@/hooks/usePermissions'
 import { MedicalReviewModal } from './modals/MedicalReviewModal'
 import { DeletePrescriptionModal } from './modals/DeletePrescriptionModal'
+import { StatsCards } from './components/StatsCards'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export default function PrescriptionsList() {
@@ -250,13 +247,14 @@ export default function PrescriptionsList() {
   return (
     <Page>
       <PageHeader
-        title="Prescrições"
-        subtitle="Gerencie as prescrições da ILPI"
+        title="Lista de Prescrições"
+        subtitle="Visualize e gerencie as prescrições da ILPI"
         breadcrumbs={[
           { label: 'Dashboard', href: '/dashboard' },
           { label: 'Prescrições', href: '/dashboard/prescricoes' },
           { label: 'Lista' },
         ]}
+        backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         actions={
           canCreatePrescriptions && (
             <Button onClick={() => navigate('/dashboard/prescricoes/new')}>
@@ -269,71 +267,7 @@ export default function PrescriptionsList() {
 
       {/* Stats Cards */}
       {stats && (
-        <Section title="Estatísticas">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Total</h3>
-                    <p className="text-2xl font-bold text-primary mt-1">{stats.totalActive}</p>
-                  </div>
-                  <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Vencendo em 5 dias</h3>
-                    <p className="text-2xl font-bold text-severity-warning mt-1">
-                      {stats.expiringIn5Days}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center w-12 h-12 bg-severity-warning/10 rounded-lg">
-                    <AlertTriangle className="h-6 w-6 text-severity-warning" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Antibióticos</h3>
-                    <p className="text-2xl font-bold text-success mt-1">
-                      {stats.activeAntibiotics}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg">
-                    <Pill className="h-6 w-6 text-success" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Controlados</h3>
-                    <p className="text-2xl font-bold text-medication-controlled mt-1">
-                      {stats.activeControlled}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center w-12 h-12 bg-medication-controlled/10 rounded-lg">
-                    <CheckCircle2 className="h-6 w-6 text-medication-controlled" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </Section>
+        <StatsCards stats={stats} />
       )}
 
       {/* Search and Filters */}

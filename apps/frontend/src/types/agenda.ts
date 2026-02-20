@@ -349,7 +349,7 @@ export enum PrescriptionType {
 
 export enum PrescriptionStatus {
   ACTIVE = 'ACTIVE',
-  EXPIRING_SOON = 'EXPIRING_SOON', // Vence em até 7 dias
+  EXPIRING_SOON = 'EXPIRING_SOON', // Vence em até 5 dias
   EXPIRED = 'EXPIRED',
   NEEDS_REVIEW = 'NEEDS_REVIEW', // Data de revisão chegou
 }
@@ -374,4 +374,10 @@ export interface PrescriptionCalendarItem {
   notes?: string
 }
 
-export type PrescriptionFilterType = 'all' | 'active' | 'expiring' | 'expired' | 'needs_review'
+export type PrescriptionFilterType =
+  | 'all'
+  | 'active'
+  | 'expiring'
+  | 'expired'
+  | 'needs_review'
+  | 'controlled'

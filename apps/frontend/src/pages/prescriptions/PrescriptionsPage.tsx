@@ -71,9 +71,7 @@ export function PrescriptionsPage() {
       />
 
       {/* Cards de Estatísticas */}
-      <Section title="Estatísticas">
-        <StatsCards stats={stats} />
-      </Section>
+      <StatsCards stats={stats} />
 
       {/* Alertas Críticos */}
       {alerts && alerts.length > 0 && (
@@ -88,7 +86,18 @@ export function PrescriptionsPage() {
       </Section>
 
       {/* Grid com Listas */}
-      <Section title="Monitoramento">
+      <Section
+        title="Monitoramento"
+        headerAction={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/dashboard/prescricoes/painel')}
+          >
+            Ver monitoramento
+          </Button>
+        }
+      >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Prescrições Próximas do Vencimento */}
           <div>

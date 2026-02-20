@@ -1,47 +1,38 @@
-import { useState, useMemo } from 'react'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
-import { PrescriptionsView } from '@/components/agenda/PrescriptionsView'
-import { usePrescriptionsForCalendar } from '@/hooks/usePrescriptions'
-import { PrescriptionFilterType } from '@/types/agenda'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { PrescriptionsMonitoringView } from './components/PrescriptionsMonitoringView'
+import { usePrescriptionsForMonitoring } from '@/hooks/usePrescriptions'
+import { PrescriptionMonitoringFilter } from '@/types/prescription-monitoring'
 import { usePermissions } from '@/hooks/usePermissions'
 import { Page, PageHeader, AccessDenied } from '@/design-system/components'
 
 export default function PrescriptionsPanelPage() {
-  const [prescriptionFilter, setPrescriptionFilter] = useState<PrescriptionFilterType>('all')
+  const navigate = useNavigate()
+  const [prescriptionFilter, setPrescriptionFilter] = useState<PrescriptionMonitoringFilter>('all')
 
   // Verificar permissão
   const { canViewPrescriptionCalendar } = usePermissions()
   const canSeePrescriptions = canViewPrescriptionCalendar()
 
-  // Usar mês atual fixo
-  const today = useMemo(() => new Date(), [])
-  const monthStart = useMemo(() => format(startOfMonth(today), 'yyyy-MM-dd'), [today])
-  const monthEnd = useMemo(() => format(endOfMonth(today), 'yyyy-MM-dd'), [today])
-
-  // Buscar prescrições do mês atual
+  // Buscar prescrições de monitoramento (sem dependência de agenda/calendário)
   const {
     data: prescriptions = [],
     isLoading,
-  } = usePrescriptionsForCalendar(
-    monthStart,
-    monthEnd,
-    undefined, // Sem filtro de residente (visão geral)
-    prescriptionFilter,
-    canSeePrescriptions
-  )
+  } = usePrescriptionsForMonitoring(undefined, canSeePrescriptions)
 
   // Verificação de permissão
   if (!canSeePrescriptions) {
     return (
       <Page>
         <PageHeader
-          title="Painel de Prescrições"
-          subtitle="Visualize prescrições por validade e status de revisão"
+          title="Monitoramento de Prescrições"
+          subtitle="Acompanhe prescrições por status de validade e revisão"
           breadcrumbs={[
             { label: 'Dashboard', href: '/dashboard' },
             { label: 'Prescrições', href: '/dashboard/prescricoes' },
-            { label: 'Painel' },
+            { label: 'Monitoramento' },
           ]}
+          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         />
         <AccessDenied
           message="Esta funcionalidade é restrita a Responsáveis Técnicos e Enfermeiros"
@@ -53,14 +44,19 @@ export default function PrescriptionsPanelPage() {
   return (
     <Page>
       <PageHeader
-        title="Painel de Prescrições"
-        subtitle="Visualize prescrições por validade e status de revisão"
+        title="Monitoramento de Prescrições"
+        subtitle="Acompanhe prescrições por status de validade e revisão"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Prescrições', href: '/dashboard/prescricoes' },
+          { label: 'Monitoramento' },
+        ]}
+        backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
       />
 
       {/* Conteúdo */}
-      <PrescriptionsView
+      <PrescriptionsMonitoringView
         prescriptions={prescriptions}
-        selectedDate={today}
         isLoading={isLoading}
         filter={prescriptionFilter}
         onFilterChange={setPrescriptionFilter}
