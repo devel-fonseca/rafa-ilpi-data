@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Grid3x3, List, Accessibility } from 'lucide-react'
+import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Grid3x3, List, Accessibility, X } from 'lucide-react'
 import { useUserPreference } from '@/hooks/useUserPreference'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -58,6 +58,9 @@ interface ResidentSelectionGridProps {
   onSelectResident: (residentId: string) => void
   isLoading?: boolean
   statsComponent?: React.ReactNode
+  statusFilter?: string
+  onStatusFilterChange?: (filter: string) => void
+  clinicalOccurrenceResidentIds?: string[]
 }
 
 export function ResidentSelectionGrid({
@@ -66,11 +69,40 @@ export function ResidentSelectionGrid({
   onSelectResident,
   isLoading = false,
   statsComponent,
+  statusFilter: controlledStatusFilter,
+  onStatusFilterChange,
+  clinicalOccurrenceResidentIds = [],
 }: ResidentSelectionGridProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('active')
+  const [internalStatusFilter, setInternalStatusFilter] = useState<string>(
+    controlledStatusFilter || 'active'
+  )
   const [currentPage, setCurrentPage] = useState(1)
   const [quickViewResidentId, setQuickViewResidentId] = useState<string | null>(null)
+  const statusFilter = controlledStatusFilter ?? internalStatusFilter
+  const quickFilterOptions = useMemo(
+    () => [
+      { value: 'withRecord', label: 'Com registro hoje' },
+      { value: 'withoutRecord', label: 'Sem registro hoje' },
+      { value: 'withoutRecord24h', label: 'Sem registro 24h+' },
+      { value: 'withClinicalOccurrences48h', label: 'Ocorrências clínicas 48h' },
+    ],
+    []
+  )
+
+  const statusFilterLabelMap = useMemo(
+    () =>
+      new Map<string, string>([
+        ['all', 'Todos'],
+        ['active', 'Ativos'],
+        ['inactive', 'Inativos'],
+        ['withRecord', 'Com registro hoje'],
+        ['withoutRecord', 'Sem registro hoje'],
+        ['withoutRecord24h', 'Sem registro 24h+'],
+        ['withClinicalOccurrences48h', 'Ocorrências clínicas 48h'],
+      ]),
+    []
+  )
 
   // Usar preferência do usuário no backend (ao invés de localStorage)
   // Ideal para dispositivos compartilhados em ILPI
@@ -101,6 +133,9 @@ export function ResidentSelectionGrid({
     }
 
     // Filtro de status
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const clinicalOccurrenceSet = new Set(clinicalOccurrenceResidentIds)
+
     if (statusFilter === 'active') {
       filtered = filtered.filter((r) => r.status === 'Ativo')
     } else if (statusFilter === 'inactive') {
@@ -109,10 +144,54 @@ export function ResidentSelectionGrid({
       filtered = filtered.filter((r) => latestRecordsMap.has(r.id))
     } else if (statusFilter === 'withoutRecord') {
       filtered = filtered.filter((r) => !latestRecordsMap.has(r.id))
+    } else if (statusFilter === 'withoutRecord24h') {
+      filtered = filtered.filter((resident) => {
+        const residentLatestRecord = latestRecords.find(
+          (record) => record.residentId === resident.id
+        )
+
+        if (!residentLatestRecord) return true
+
+        return new Date(residentLatestRecord.createdAt) < twentyFourHoursAgo
+      })
+    } else if (statusFilter === 'withClinicalOccurrences48h') {
+      filtered = filtered.filter((resident) => clinicalOccurrenceSet.has(resident.id))
     }
 
     return filtered
-  }, [residents, searchTerm, statusFilter, latestRecordsMap])
+  }, [clinicalOccurrenceResidentIds, latestRecords, latestRecordsMap, residents, searchTerm, statusFilter])
+
+  const handleStatusFilterChange = (nextFilter: string) => {
+    setInternalStatusFilter(nextFilter)
+    onStatusFilterChange?.(nextFilter)
+  }
+
+  const toggleQuickFilter = (filter: string) => {
+    handleStatusFilterChange(statusFilter === filter ? 'active' : filter)
+  }
+
+  const hasSearchFilter = searchTerm.trim().length > 0
+  const hasStatusFilter = statusFilter !== 'active'
+  const hasAnyActiveFilter = hasSearchFilter || hasStatusFilter
+  const quickFilterValues = quickFilterOptions.map((option) => option.value)
+  const advancedFiltersCount =
+    hasStatusFilter && !quickFilterValues.includes(statusFilter) ? 1 : 0
+
+  const contextualPlaceholder = useMemo(() => {
+    if (statusFilter === 'withoutRecord24h') {
+      return 'Buscar entre residentes sem registro há 24h+...'
+    }
+    if (statusFilter === 'withClinicalOccurrences48h') {
+      return 'Buscar entre residentes com ocorrências clínicas nas últimas 48h...'
+    }
+    if (statusFilter === 'withRecord') {
+      return 'Buscar entre residentes com registro hoje...'
+    }
+    if (statusFilter === 'withoutRecord') {
+      return 'Buscar entre residentes sem registro hoje...'
+    }
+    return 'Buscar residente (nome, CPF ou CNS)...'
+  }, [statusFilter])
 
   // Resetar página quando filtros mudarem
   useEffect(() => {
@@ -148,72 +227,132 @@ export function ResidentSelectionGrid({
       {statsComponent}
 
       {/* Busca e Filtros */}
-      <div className="flex gap-3">
-        {/* Botões de Visualização */}
-        <div className="flex gap-1 border rounded-md p-1">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'ghost'}
-            size="icon"
-            onClick={() => setViewMode('grid')}
-            className="h-8 w-8"
-          >
-            <Grid3x3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'ghost'}
-            size="icon"
-            onClick={() => setViewMode('list')}
-            className="h-8 w-8"
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar residente (nome, CPF ou CNS)..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Dropdown de Filtros */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* Modo de visualização */}
+          <div className="flex gap-1 border rounded-md p-1 shrink-0">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-8"
+            >
+              <Grid3x3 className="h-4 w-4 mr-1.5" />
+              Grade
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-              {statusFilter === 'all' && <Check className="mr-2 h-4 w-4" />}
-              {statusFilter !== 'all' && <span className="mr-2 h-4 w-4" />}
-              Todos
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter('active')}>
-              {statusFilter === 'active' && <Check className="mr-2 h-4 w-4" />}
-              {statusFilter !== 'active' && <span className="mr-2 h-4 w-4" />}
-              Ativos
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
-              {statusFilter === 'inactive' && <Check className="mr-2 h-4 w-4" />}
-              {statusFilter !== 'inactive' && <span className="mr-2 h-4 w-4" />}
-              Inativos
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter('withRecord')}>
-              {statusFilter === 'withRecord' && <Check className="mr-2 h-4 w-4" />}
-              {statusFilter !== 'withRecord' && <span className="mr-2 h-4 w-4" />}
-              Com registro hoje
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter('withoutRecord')}>
-              {statusFilter === 'withoutRecord' && <Check className="mr-2 h-4 w-4" />}
-              {statusFilter !== 'withoutRecord' && <span className="mr-2 h-4 w-4" />}
-              Sem registro hoje
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-8"
+            >
+              <List className="h-4 w-4 mr-1.5" />
+              Lista
+            </Button>
+          </div>
+
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={contextualPlaceholder}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Dropdown de Filtros Avançados */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="shrink-0">
+                <Filter className="h-4 w-4 mr-1.5" />
+                Mais filtros{advancedFiltersCount > 0 ? ` (${advancedFiltersCount})` : ''}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => handleStatusFilterChange('all')}>
+                {statusFilter === 'all' && <Check className="mr-2 h-4 w-4" />}
+                {statusFilter !== 'all' && <span className="mr-2 h-4 w-4" />}
+                Todos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusFilterChange('active')}>
+                {statusFilter === 'active' && <Check className="mr-2 h-4 w-4" />}
+                {statusFilter !== 'active' && <span className="mr-2 h-4 w-4" />}
+                Ativos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusFilterChange('inactive')}>
+                {statusFilter === 'inactive' && <Check className="mr-2 h-4 w-4" />}
+                {statusFilter !== 'inactive' && <span className="mr-2 h-4 w-4" />}
+                Inativos
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Filtros rápidos */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {quickFilterOptions.map((option) => (
+            <Button
+              key={option.value}
+              type="button"
+              size="sm"
+              variant={statusFilter === option.value ? 'default' : 'outline'}
+              className="whitespace-nowrap"
+              onClick={() => toggleQuickFilter(option.value)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Chips de filtros ativos */}
+        {hasAnyActiveFilter && (
+          <div className="flex flex-wrap items-center gap-2">
+            {hasStatusFilter && (
+              <Badge variant="secondary" className="gap-1 pr-1">
+                {statusFilterLabelMap.get(statusFilter) || 'Filtro aplicado'}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 rounded-full"
+                  onClick={() => handleStatusFilterChange('active')}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )}
+            {hasSearchFilter && (
+              <Badge variant="secondary" className="gap-1 pr-1 max-w-[320px]">
+                <span className="truncate">Busca: {searchTerm}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 rounded-full shrink-0"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-muted-foreground"
+              onClick={() => {
+                setSearchTerm('')
+                handleStatusFilterChange('active')
+              }}
+            >
+              Limpar tudo
+            </Button>
+          </div>
+        )}
+
+        <p className="text-sm text-muted-foreground">
+          Mostrando <span className="font-medium">{filteredResidents.length}</span> de{' '}
+          <span className="font-medium">{residents.length}</span> residentes
+        </p>
       </div>
 
       {/* Grid ou Lista de Residentes */}

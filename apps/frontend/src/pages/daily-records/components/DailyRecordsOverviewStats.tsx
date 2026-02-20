@@ -2,8 +2,9 @@ import { CheckCircle2, AlertTriangle, Clock, Target } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDailyRecordsByDate, type DailyRecord } from '@/hooks/useDailyRecords'
+import { useVitalSignAlerts } from '@/hooks/useVitalSignAlerts'
 import { useScheduledRecordsStats } from '@/hooks/useResidentSchedule'
-import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
+import { getCurrentDate, extractDateOnly, formatTimeSafe } from '@/utils/dateHelpers'
 import { useMemo } from 'react'
 
 interface Resident {
@@ -22,23 +23,68 @@ interface LatestRecord {
 interface DailyRecordsOverviewStatsProps {
   residents: Resident[]
   latestRecords: LatestRecord[]
+  onApplyQuickFilter?: (
+    filter: 'withoutRecord24h' | 'withClinicalOccurrences48h',
+    residentIds?: string[]
+  ) => void
+  activeQuickFilter?: 'withoutRecord24h' | 'withClinicalOccurrences48h' | null
 }
 
 export function DailyRecordsOverviewStats({
   residents,
   latestRecords,
+  onApplyQuickFilter,
+  activeQuickFilter,
 }: DailyRecordsOverviewStatsProps) {
   const today = getCurrentDate()
+  const now = useMemo(() => new Date(), [])
+  const fortyEightHoursAgo = useMemo(
+    () => new Date(now.getTime() - 48 * 60 * 60 * 1000),
+    [now]
+  )
+  const yesterday = extractDateOnly(new Date(now.getTime() - 24 * 60 * 60 * 1000))
+  const twoDaysAgo = extractDateOnly(new Date(now.getTime() - 48 * 60 * 60 * 1000))
   const { data: allRecordsToday } = useDailyRecordsByDate(today)
+  const { data: allRecordsYesterday } = useDailyRecordsByDate(yesterday)
+  const { data: allRecordsTwoDaysAgo } = useDailyRecordsByDate(twoDaysAgo)
   const { data: scheduledRecordsStats } = useScheduledRecordsStats(today)
 
-  // Garantir que allRecordsToday é array
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const safeAllRecordsToday = Array.isArray(allRecordsToday) ? allRecordsToday : []
+  const vitalAlertsFilters = useMemo(() => {
+    return {
+      startDate: fortyEightHoursAgo.toISOString(),
+      endDate: now.toISOString(),
+      page: 1,
+      limit: 100,
+    }
+  }, [fortyEightHoursAgo, now])
+
+  const { data: vitalAlertsResponse } = useVitalSignAlerts(vitalAlertsFilters)
+
+  // Registros recentes (últimas 48h), consolidados em até 3 dias civis
+  const safeAllRecordsRecent = useMemo(() => {
+    const byId = new Map<string, DailyRecord>()
+    const sources = [
+      ...(Array.isArray(allRecordsToday) ? allRecordsToday : []),
+      ...(Array.isArray(allRecordsYesterday) ? allRecordsYesterday : []),
+      ...(Array.isArray(allRecordsTwoDaysAgo) ? allRecordsTwoDaysAgo : []),
+    ]
+
+    sources.forEach((record) => {
+      if (record?.id) {
+        byId.set(record.id, record)
+      }
+    })
+
+    return Array.from(byId.values())
+  }, [allRecordsToday, allRecordsYesterday, allRecordsTwoDaysAgo])
 
   // Filtrar apenas residentes ativos
   const activeResidents = useMemo(
     () => residents.filter((r) => r.status === 'Ativo'),
+    [residents]
+  )
+  const residentNameMap = useMemo(
+    () => new Map(residents.map((r) => [r.id, r.fullName])),
     [residents]
   )
 
@@ -88,11 +134,189 @@ export function DailyRecordsOverviewStats({
   }, [activeResidents, latestRecords])
 
   // ──────────────────────────────────────────────────────────────────────────
-  // CARD 3: Intercorrências hoje
+  // CARD 3: Intercorrências últimas 48h
   // ──────────────────────────────────────────────────────────────────────────
   const intercorrencesToday = useMemo(() => {
-    return safeAllRecordsToday.filter((record: DailyRecord) => record.type === 'INTERCORRENCIA')
-  }, [safeAllRecordsToday])
+    return safeAllRecordsRecent.filter((record: DailyRecord) => {
+      if (record.type !== 'INTERCORRENCIA') return false
+
+      const recordDate = extractDateOnly(record.date)
+      const recordTime = typeof (record as { time?: unknown }).time === 'string'
+        ? ((record as { time?: string }).time || '').slice(0, 5)
+        : '00:00'
+      const occurredAt = new Date(`${recordDate}T${recordTime}:00`)
+
+      return !Number.isNaN(occurredAt.getTime()) && occurredAt >= fortyEightHoursAgo && occurredAt <= now
+    })
+  }, [safeAllRecordsRecent, fortyEightHoursAgo, now])
+
+  const clinicalAlertsSummary = useMemo(() => {
+    type MergedClinicalEvent = {
+      residentId: string
+      date: string
+      time: string
+      label: string
+      sourcePriority: number
+    }
+
+    const incidentEvents: MergedClinicalEvent[] = intercorrencesToday
+      .map((record: DailyRecord) => ({
+        residentId: record.residentId,
+        date: extractDateOnly(record.date),
+        time: typeof (record as { time?: unknown }).time === 'string'
+          ? ((record as { time?: string }).time || '').slice(0, 5)
+          : '00:00',
+        label: 'Intercorrência',
+        sourcePriority: 3,
+      }))
+      .filter((event) => event.residentId)
+
+    const formatVitalDetails = (params: {
+      systolic: number | null
+      glucose: number | null
+      oxygen: number | null
+      temperature: number | null
+      heartRate: number | null
+      bloodPressureRaw: string
+    }): string => {
+      const { systolic, glucose, oxygen, temperature, heartRate, bloodPressureRaw } = params
+      const abnormalParameters: string[] = []
+
+      if (glucose !== null && (glucose >= 180 || glucose < 70)) {
+        abnormalParameters.push(`Glicemia ${glucose} mg/dL`)
+      }
+      if (systolic !== null && (systolic >= 140 || systolic < 90)) {
+        abnormalParameters.push(`PA ${bloodPressureRaw || `${systolic} mmHg`}`)
+      }
+      if (oxygen !== null && oxygen < 92) {
+        abnormalParameters.push(`SpO2 ${oxygen}%`)
+      }
+      if (temperature !== null && (temperature >= 38 || temperature < 35.5)) {
+        abnormalParameters.push(`Temp ${temperature.toFixed(1)}°C`)
+      }
+      if (heartRate !== null && (heartRate > 100 || heartRate < 60)) {
+        abnormalParameters.push(`FC ${heartRate} bpm`)
+      }
+
+      return abnormalParameters.length > 0
+        ? abnormalParameters.join(' • ')
+        : 'Sinal vital fora da faixa'
+    }
+
+    // Fallback robusto: monitoramentos anormais do dia (mesma lógica de limiar do backend)
+    // para evitar perder contagem quando alertas vierem de fontes distintas.
+    const monitoringAbnormalEvents: MergedClinicalEvent[] = safeAllRecordsRecent
+      .filter((record: DailyRecord) => record.type === 'MONITORAMENTO')
+      .map((record: DailyRecord) => {
+        const recordData = ((record as { data?: unknown }).data ?? {}) as Record<string, unknown>
+        const parseNumber = (value: unknown): number | null => {
+          if (value === null || value === undefined || value === '') return null
+          const normalized = String(value).replace(',', '.').trim()
+          const parsed = Number(normalized)
+          return Number.isFinite(parsed) ? parsed : null
+        }
+
+        const bloodPressureRaw = String(recordData.pressaoArterial ?? '').trim()
+        const [systolicStr] = bloodPressureRaw.split('/')
+        const systolic = parseNumber(systolicStr)
+        const glucose = parseNumber(recordData.glicemia)
+        const temperature = parseNumber(recordData.temperatura)
+        const oxygen = parseNumber(recordData.saturacaoO2)
+        const heartRate = parseNumber(recordData.frequenciaCardiaca)
+
+        const hasAbnormalVital =
+          (systolic !== null && (systolic >= 140 || systolic < 90)) ||
+          (glucose !== null && (glucose >= 180 || glucose < 70)) ||
+          (temperature !== null && (temperature >= 38 || temperature < 35.5)) ||
+          (oxygen !== null && oxygen < 92) ||
+          (heartRate !== null && (heartRate > 100 || heartRate < 60))
+
+        if (!hasAbnormalVital) return null
+
+        const detail = formatVitalDetails({
+          systolic,
+          glucose,
+          oxygen,
+          temperature,
+          heartRate,
+          bloodPressureRaw,
+        })
+
+        return {
+          residentId: record.residentId,
+          date: extractDateOnly(record.date),
+          time: typeof (record as { time?: unknown }).time === 'string'
+            ? ((record as { time?: string }).time || '').slice(0, 5)
+            : '00:00',
+          label: `Monitoramento anormal: ${detail}`,
+          sourcePriority: 2,
+        }
+      })
+      .filter((event): event is MergedClinicalEvent => {
+        if (!event) return false
+        const occurredAt = new Date(`${event.date}T${event.time}:00`)
+        return !Number.isNaN(occurredAt.getTime()) && occurredAt >= fortyEightHoursAgo && occurredAt <= now
+      })
+
+    // Evitar duplicações de alertas vitais no mesmo registro de sinais vitais
+    // (um monitoramento pode gerar múltiplos alertas por parâmetro)
+    const vitalAlertsRaw = Array.isArray(vitalAlertsResponse?.data)
+      ? vitalAlertsResponse.data
+      : []
+
+    const uniqueVitalEventsByVitalSign = new Map<string, MergedClinicalEvent>()
+    vitalAlertsRaw.forEach((alert) => {
+      const timestamp = alert.vitalSign?.timestamp || alert.createdAt
+      const eventDate = extractDateOnly(timestamp)
+      const eventTime = formatTimeSafe(timestamp).slice(0, 5)
+      const occurredAt = new Date(`${eventDate}T${eventTime}:00`)
+      if (Number.isNaN(occurredAt.getTime()) || occurredAt < fortyEightHoursAgo || occurredAt > now) return
+
+      const eventKey = alert.vitalSignId || alert.id
+      if (!uniqueVitalEventsByVitalSign.has(eventKey)) {
+        uniqueVitalEventsByVitalSign.set(eventKey, {
+          residentId: alert.residentId,
+          date: eventDate,
+          time: eventTime,
+          label: `${alert.title || 'Alerta clínico'}${alert.value ? `: ${alert.value}` : ''}`,
+          sourcePriority: 1,
+        })
+      }
+    })
+
+    const allEvents = [
+      ...incidentEvents,
+      ...monitoringAbnormalEvents,
+      ...Array.from(uniqueVitalEventsByVitalSign.values()),
+    ]
+
+    // Dedupe entre fontes por residente + minuto do evento.
+    // Se houver conflito, priorizar fonte mais clínica (intercorrência > monitoramento > alerta vital).
+    const uniqueEventsByResidentMinute = new Map<string, MergedClinicalEvent>()
+    allEvents.forEach((event) => {
+      const key = `${event.residentId}|${event.date}|${event.time}`
+      const existing = uniqueEventsByResidentMinute.get(key)
+      if (!existing || event.sourcePriority > existing.sourcePriority) {
+        uniqueEventsByResidentMinute.set(key, event)
+      }
+    })
+
+    const events = Array.from(uniqueEventsByResidentMinute.values()).sort((a, b) =>
+      `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`)
+    )
+
+    return {
+      count: events.length,
+      residentIds: Array.from(new Set(events.map((event) => event.residentId))),
+      eventsPreview: events.slice(0, 5).map((event) => ({
+        residentName: residentNameMap.get(event.residentId) || 'Residente',
+        date: event.date,
+        time: event.time,
+        label: event.label,
+      })),
+      remainingCount: Math.max(0, events.length - 5),
+    }
+  }, [intercorrencesToday, safeAllRecordsRecent, vitalAlertsResponse?.data, fortyEightHoursAgo, now, residentNameMap])
 
   // ──────────────────────────────────────────────────────────────────────────
   // CARD 4: Taxa de Cobertura de Registros Obrigatórios
@@ -141,9 +365,11 @@ export function DailyRecordsOverviewStats({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className={`hover:shadow-md transition-shadow cursor-help ${
+            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${
               residentsWithoutRecordsFor24h.length > 0 ? 'border-destructive/50' : ''
-            }`}>
+            } ${activeQuickFilter === 'withoutRecord24h' ? 'ring-2 ring-destructive/40' : ''}`}
+            onClick={() => onApplyQuickFilter?.('withoutRecord24h')}
+            >
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -206,47 +432,49 @@ export function DailyRecordsOverviewStats({
         </Tooltip>
       </TooltipProvider>
 
-      {/* Card 3: Intercorrências Hoje */}
+      {/* Card 3: Intercorrências últimas 48h */}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className={`hover:shadow-md transition-shadow cursor-help ${
-              intercorrencesToday.length > 0 ? 'border-warning/50' : ''
-            }`}>
+            <Card className={`hover:shadow-md transition-shadow cursor-pointer ${
+              clinicalAlertsSummary.count > 0 ? 'border-warning/50' : ''
+            } ${activeQuickFilter === 'withClinicalOccurrences48h' ? 'ring-2 ring-warning/40' : ''}`}
+            onClick={() => onApplyQuickFilter?.('withClinicalOccurrences48h', clinicalAlertsSummary.residentIds)}
+            >
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-muted-foreground">
-                      Intercorrências hoje
+                      Intercorrências 48h
                     </h3>
                     <div className="mt-2 flex items-baseline gap-2">
                       <p className={`text-2xl font-bold ${
-                        intercorrencesToday.length > 0 ? 'text-warning' : 'text-muted-foreground'
+                        clinicalAlertsSummary.count > 0 ? 'text-warning' : 'text-muted-foreground'
                       }`}>
-                        {intercorrencesToday.length}
+                        {clinicalAlertsSummary.count}
                       </p>
                       <span className="text-sm text-muted-foreground">
-                        {intercorrencesToday.length === 1 ? 'alerta' : 'alertas'}
+                        {clinicalAlertsSummary.count === 1 ? 'alerta' : 'alertas'}
                       </span>
                     </div>
-                    {intercorrencesToday.length > 0 && (
+                    {clinicalAlertsSummary.count > 0 && (
                       <p className="text-xs text-warning mt-1 font-medium">
-                        ⚠️ Eventos registrados
+                        ⚠️ Acompanhar continuidade
                       </p>
                     )}
-                    {intercorrencesToday.length === 0 && (
+                    {clinicalAlertsSummary.count === 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Nenhum evento hoje
+                        Nenhum evento nas últimas 48h
                       </p>
                     )}
                   </div>
                   <div className={`flex items-center justify-center w-12 h-12 rounded-lg shrink-0 ${
-                    intercorrencesToday.length > 0
+                    clinicalAlertsSummary.count > 0
                       ? 'bg-warning/10'
                       : 'bg-muted'
                   }`}>
                     <AlertTriangle className={`h-6 w-6 ${
-                      intercorrencesToday.length > 0
+                      clinicalAlertsSummary.count > 0
                         ? 'text-warning'
                         : 'text-muted-foreground'
                     }`} />
@@ -255,8 +483,24 @@ export function DailyRecordsOverviewStats({
               </CardContent>
             </Card>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Intercorrências e eventos que exigem atenção especial</p>
+          <TooltipContent className="max-w-xs">
+            <p className="font-semibold mb-1">Ocorrências clínicas nas últimas 48 horas</p>
+            {clinicalAlertsSummary.count > 0 ? (
+              <ul className="text-xs space-y-0.5">
+                {clinicalAlertsSummary.eventsPreview.map((event, index) => (
+                  <li key={`${event.residentName}-${event.date}-${event.time}-${index}`}>
+                    • {event.residentName} - {event.label} ({event.time})
+                  </li>
+                ))}
+                {clinicalAlertsSummary.remainingCount > 0 && (
+                  <li className="text-muted-foreground">
+                    + {clinicalAlertsSummary.remainingCount} outros
+                  </li>
+                )}
+              </ul>
+            ) : (
+              <p className="text-xs">Nenhuma ocorrência clínica nas últimas 48 horas</p>
+            )}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { residentsAPI } from '@/api/residents.api'
 import { Page, PageHeader } from '@/design-system/components'
@@ -9,6 +10,8 @@ import { tenantKey } from '@/lib/query-keys'
 
 export default function ResidentSelectionPage() {
   const navigate = useNavigate()
+  const [statusFilter, setStatusFilter] = useState<string>('active')
+  const [clinicalOccurrenceResidentIds, setClinicalOccurrenceResidentIds] = useState<string[]>([])
 
   // Buscar lista de residentes
   const { data: residentsData, isLoading: isLoadingResidents } = useQuery({
@@ -29,6 +32,25 @@ export default function ResidentSelectionPage() {
     navigate(`/dashboard/registros-diarios/${residentId}`)
   }
 
+  const handleQuickFilter = (
+    filter: 'withoutRecord24h' | 'withClinicalOccurrences48h',
+    residentIds?: string[]
+  ) => {
+    setStatusFilter(filter)
+    if (filter === 'withClinicalOccurrences48h') {
+      setClinicalOccurrenceResidentIds(Array.isArray(residentIds) ? residentIds : [])
+    } else {
+      setClinicalOccurrenceResidentIds([])
+    }
+  }
+
+  const handleStatusFilterChange = (filter: string) => {
+    setStatusFilter(filter)
+    if (filter !== 'withClinicalOccurrences48h') {
+      setClinicalOccurrenceResidentIds([])
+    }
+  }
+
   return (
     <Page>
       <PageHeader
@@ -44,10 +66,19 @@ export default function ResidentSelectionPage() {
         latestRecords={latestRecords}
         onSelectResident={handleSelectResident}
         isLoading={isLoadingResidents || isLoadingLatest}
+        statusFilter={statusFilter}
+        onStatusFilterChange={handleStatusFilterChange}
+        clinicalOccurrenceResidentIds={clinicalOccurrenceResidentIds}
         statsComponent={
           <DailyRecordsOverviewStats
             residents={residentsData?.data || []}
             latestRecords={latestRecords}
+            onApplyQuickFilter={handleQuickFilter}
+            activeQuickFilter={
+              statusFilter === 'withoutRecord24h' || statusFilter === 'withClinicalOccurrences48h'
+                ? statusFilter
+                : null
+            }
           />
         }
       />
