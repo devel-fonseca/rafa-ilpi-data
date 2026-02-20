@@ -349,10 +349,6 @@ export function ResidentSelectionGrid({
           </div>
         )}
 
-        <p className="text-sm text-muted-foreground">
-          Mostrando <span className="font-medium">{filteredResidents.length}</span> de{' '}
-          <span className="font-medium">{residents.length}</span> residentes
-        </p>
       </div>
 
       {/* Grid ou Lista de Residentes */}

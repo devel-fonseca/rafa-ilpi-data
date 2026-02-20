@@ -51,6 +51,15 @@ export default function ResidentSelectionPage() {
     }
   }
 
+  const handleClinicalOccurrenceResidentIdsChange = (residentIds: string[]) => {
+    setClinicalOccurrenceResidentIds((current) => {
+      if (current.length === residentIds.length && current.every((id, index) => id === residentIds[index])) {
+        return current
+      }
+      return residentIds
+    })
+  }
+
   return (
     <Page>
       <PageHeader
@@ -74,6 +83,7 @@ export default function ResidentSelectionPage() {
             residents={residentsData?.data || []}
             latestRecords={latestRecords}
             onApplyQuickFilter={handleQuickFilter}
+            onClinicalOccurrenceResidentIdsChange={handleClinicalOccurrenceResidentIdsChange}
             activeQuickFilter={
               statusFilter === 'withoutRecord24h' || statusFilter === 'withClinicalOccurrences48h'
                 ? statusFilter

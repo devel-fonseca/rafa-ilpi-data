@@ -5,7 +5,7 @@ import { useDailyRecordsByDate, type DailyRecord } from '@/hooks/useDailyRecords
 import { useVitalSignAlerts } from '@/hooks/useVitalSignAlerts'
 import { useScheduledRecordsStats } from '@/hooks/useResidentSchedule'
 import { getCurrentDate, extractDateOnly, formatTimeSafe } from '@/utils/dateHelpers'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 
 interface Resident {
   id: string
@@ -28,6 +28,7 @@ interface DailyRecordsOverviewStatsProps {
     residentIds?: string[]
   ) => void
   activeQuickFilter?: 'withoutRecord24h' | 'withClinicalOccurrences48h' | null
+  onClinicalOccurrenceResidentIdsChange?: (residentIds: string[]) => void
 }
 
 export function DailyRecordsOverviewStats({
@@ -35,6 +36,7 @@ export function DailyRecordsOverviewStats({
   latestRecords,
   onApplyQuickFilter,
   activeQuickFilter,
+  onClinicalOccurrenceResidentIdsChange,
 }: DailyRecordsOverviewStatsProps) {
   const today = getCurrentDate()
   const now = useMemo(() => new Date(), [])
@@ -323,6 +325,10 @@ export function DailyRecordsOverviewStats({
   // ──────────────────────────────────────────────────────────────────────────
   const mandatoryRecordsCoverage = scheduledRecordsStats?.compliancePercentage ?? 100
 
+  useEffect(() => {
+    onClinicalOccurrenceResidentIdsChange?.(clinicalAlertsSummary.residentIds)
+  }, [clinicalAlertsSummary.residentIds, onClinicalOccurrenceResidentIdsChange])
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {/* Card 1: Residentes com Registros */}
@@ -330,27 +336,27 @@ export function DailyRecordsOverviewStats({
         <Tooltip>
           <TooltipTrigger asChild>
             <Card className="hover:shadow-md transition-shadow cursor-help">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Residentes com registros
-                    </h3>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <p className="text-2xl font-bold text-success">
-                        {residentsWithRecordsCount}
-                      </p>
-                      <span className="text-sm text-muted-foreground">
-                        / {activeResidents.length}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {residentsWithRecordsPercentage}% cobertura hoje
-                    </p>
+              <CardContent className="p-4 h-full flex flex-col">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Residentes com registros
+                  </h3>
+                  <div className="flex items-center justify-center w-10 h-10 bg-success/10 rounded-lg shrink-0">
+                    <CheckCircle2 className="h-5 w-5 text-success" />
                   </div>
-                  <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg shrink-0">
-                    <CheckCircle2 className="h-6 w-6 text-success" />
-                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <p className="text-3xl sm:text-4xl font-bold text-success leading-none">
+                    {residentsWithRecordsCount}
+                  </p>
+                  <span className="text-sm font-medium ml-1 text-muted-foreground">
+                    / {activeResidents.length}
+                  </span>
+                </div>
+                <div className="mt-auto pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    {residentsWithRecordsPercentage}% cobertura hoje
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -370,44 +376,43 @@ export function DailyRecordsOverviewStats({
             } ${activeQuickFilter === 'withoutRecord24h' ? 'ring-2 ring-destructive/40' : ''}`}
             onClick={() => onApplyQuickFilter?.('withoutRecord24h')}
             >
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Sem registro há 24h+
-                    </h3>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <p className={`text-2xl font-bold ${
-                        residentsWithoutRecordsFor24h.length > 0 ? 'text-destructive' : 'text-muted-foreground'
-                      }`}>
-                        {residentsWithoutRecordsFor24h.length}
-                      </p>
-                      <span className="text-sm text-muted-foreground">
-                        {residentsWithoutRecordsFor24h.length === 1 ? 'crítico' : 'críticos'}
-                      </span>
-                    </div>
-                    {residentsWithoutRecordsFor24h.length > 0 && (
-                      <p className="text-xs text-destructive mt-1 font-medium">
-                        ⚠️ Atenção necessária
-                      </p>
-                    )}
-                    {residentsWithoutRecordsFor24h.length === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Todos acompanhados
-                      </p>
-                    )}
-                  </div>
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-lg shrink-0 ${
+              <CardContent className="p-4 h-full flex flex-col">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Sem registro há 24h+
+                  </h3>
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${
                     residentsWithoutRecordsFor24h.length > 0
                       ? 'bg-destructive/10'
                       : 'bg-muted'
                   }`}>
-                    <Clock className={`h-6 w-6 ${
+                    <Clock className={`h-5 w-5 ${
                       residentsWithoutRecordsFor24h.length > 0
                         ? 'text-destructive'
                         : 'text-muted-foreground'
                     }`} />
                   </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <p className={`text-3xl sm:text-4xl font-bold leading-none ${
+                    residentsWithoutRecordsFor24h.length > 0 ? 'text-destructive' : 'text-muted-foreground'
+                  }`}>
+                    {residentsWithoutRecordsFor24h.length}
+                  </p>
+                  <span className="text-sm font-medium ml-1 text-muted-foreground">
+                    {residentsWithoutRecordsFor24h.length === 1 ? 'crítico' : 'críticos'}
+                  </span>
+                </div>
+                <div className="mt-auto pt-2 border-t">
+                  {residentsWithoutRecordsFor24h.length > 0 ? (
+                    <p className="text-xs text-destructive font-medium">
+                      Atenção necessária
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Todos acompanhados
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -441,44 +446,43 @@ export function DailyRecordsOverviewStats({
             } ${activeQuickFilter === 'withClinicalOccurrences48h' ? 'ring-2 ring-warning/40' : ''}`}
             onClick={() => onApplyQuickFilter?.('withClinicalOccurrences48h', clinicalAlertsSummary.residentIds)}
             >
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Intercorrências 48h
-                    </h3>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <p className={`text-2xl font-bold ${
-                        clinicalAlertsSummary.count > 0 ? 'text-warning' : 'text-muted-foreground'
-                      }`}>
-                        {clinicalAlertsSummary.count}
-                      </p>
-                      <span className="text-sm text-muted-foreground">
-                        {clinicalAlertsSummary.count === 1 ? 'alerta' : 'alertas'}
-                      </span>
-                    </div>
-                    {clinicalAlertsSummary.count > 0 && (
-                      <p className="text-xs text-warning mt-1 font-medium">
-                        ⚠️ Acompanhar continuidade
-                      </p>
-                    )}
-                    {clinicalAlertsSummary.count === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Nenhum evento nas últimas 48h
-                      </p>
-                    )}
-                  </div>
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-lg shrink-0 ${
+              <CardContent className="p-4 h-full flex flex-col">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Intercorrências 48h
+                  </h3>
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${
                     clinicalAlertsSummary.count > 0
                       ? 'bg-warning/10'
                       : 'bg-muted'
                   }`}>
-                    <AlertTriangle className={`h-6 w-6 ${
+                    <AlertTriangle className={`h-5 w-5 ${
                       clinicalAlertsSummary.count > 0
                         ? 'text-warning'
                         : 'text-muted-foreground'
                     }`} />
                   </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <p className={`text-3xl sm:text-4xl font-bold leading-none ${
+                    clinicalAlertsSummary.count > 0 ? 'text-warning' : 'text-muted-foreground'
+                  }`}>
+                    {clinicalAlertsSummary.count}
+                  </p>
+                  <span className="text-sm font-medium ml-1 text-muted-foreground">
+                    {clinicalAlertsSummary.count === 1 ? 'alerta' : 'alertas'}
+                  </span>
+                </div>
+                <div className="mt-auto pt-2 border-t">
+                  {clinicalAlertsSummary.count > 0 ? (
+                    <p className="text-xs text-warning font-medium">
+                      Acompanhar continuidade
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhum evento nas últimas 48h
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -510,42 +514,41 @@ export function DailyRecordsOverviewStats({
         <Tooltip>
           <TooltipTrigger asChild>
             <Card className="hover:shadow-md transition-shadow cursor-help">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Cobertura programados
-                    </h3>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <p className={`text-2xl font-bold ${
-                        mandatoryRecordsCoverage >= 80
-                          ? 'text-success'
-                          : mandatoryRecordsCoverage >= 50
-                            ? 'text-warning'
-                            : 'text-destructive'
-                      }`}>
-                        {mandatoryRecordsCoverage}%
-                      </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Registros essenciais
-                    </p>
-                    {/* Barra de progresso visual */}
-                    <div className="mt-2 w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all ${
-                          mandatoryRecordsCoverage >= 80
-                            ? 'bg-success'
-                            : mandatoryRecordsCoverage >= 50
-                              ? 'bg-warning'
-                              : 'bg-destructive'
-                        }`}
-                        style={{ width: `${mandatoryRecordsCoverage}%` }}
-                      />
-                    </div>
+              <CardContent className="p-4 h-full flex flex-col">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Cobertura programados
+                  </h3>
+                  <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg shrink-0">
+                    <Target className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg shrink-0">
-                    <Target className="h-6 w-6 text-primary" />
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <p className={`text-3xl sm:text-4xl font-bold leading-none ${
+                    mandatoryRecordsCoverage >= 80
+                      ? 'text-success'
+                      : mandatoryRecordsCoverage >= 50
+                        ? 'text-warning'
+                        : 'text-destructive'
+                  }`}>
+                    {mandatoryRecordsCoverage}%
+                  </p>
+                </div>
+                <div className="mt-auto pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-1.5">
+                    Registros essenciais
+                  </p>
+                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all ${
+                        mandatoryRecordsCoverage >= 80
+                          ? 'bg-success'
+                          : mandatoryRecordsCoverage >= 50
+                            ? 'bg-warning'
+                            : 'bg-destructive'
+                      }`}
+                      style={{ width: `${mandatoryRecordsCoverage}%` }}
+                    />
                   </div>
                 </div>
               </CardContent>
