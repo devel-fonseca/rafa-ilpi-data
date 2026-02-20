@@ -102,6 +102,7 @@ export class VitalSignsService {
       resident.id,
       resident.fullName,
       createDto,
+      userId,
     );
 
     return vitalSign;
@@ -309,6 +310,7 @@ export class VitalSignsService {
         vitalSign.residentId,
         resident.fullName,
         updateDto,
+        userId,
       );
     }
 
@@ -495,6 +497,7 @@ export class VitalSignsService {
     residentId: string,
     residentName: string,
     data: CreateVitalSignDto | UpdateVitalSignDto,
+    actorUserId: string,
   ) {
     try {
       const recipientIds = await this.recipientsResolver.resolveByTenantId(
@@ -555,7 +558,7 @@ export class VitalSignsService {
               systolic: data.systolicBloodPressure,
               diastolic: data.diastolicBloodPressure,
             },
-          });
+          }, actorUserId);
         } else if (data.systolicBloodPressure >= 140 || data.systolicBloodPressure < 90) {
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
@@ -597,7 +600,7 @@ export class VitalSignsService {
               systolic: data.systolicBloodPressure,
               diastolic: data.diastolicBloodPressure,
             },
-          });
+          }, actorUserId);
         }
       }
 
@@ -635,7 +638,7 @@ export class VitalSignsService {
               detectedAt: new Date(),
               glucose: data.bloodGlucose,
             },
-          });
+          }, actorUserId);
         } else if (data.bloodGlucose >= 180 || data.bloodGlucose < 70) {
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
@@ -668,14 +671,14 @@ export class VitalSignsService {
               detectedAt: new Date(),
               glucose: data.bloodGlucose,
             },
-          });
+          }, actorUserId);
         }
       }
 
       // Temperatura
       if (data.temperature !== undefined && data.temperature !== null) {
         if (data.temperature >= 39 || data.temperature < 35) {
-          await this.notificationsService.createDirectedNotification(
+          const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
             {
@@ -690,8 +693,25 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Temperatura', value: `${data.temperature}°C` },
           });
           this.logger.warn('Notificação criada: Temperatura Crítica', { residentName, value: data.temperature });
+
+          await this.vitalSignAlertsService.create({
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: data.temperature >= 39 ? VitalSignAlertType.TEMPERATURE_HIGH : VitalSignAlertType.TEMPERATURE_LOW,
+            severity: AlertSeverity.CRITICAL,
+            title: 'Temperatura Crítica',
+            description: `Temperatura ${data.temperature >= 39 ? 'muito alta' : 'muito baixa'}: ${data.temperature}°C. Valores usuais: 35,5-37,5°C.`,
+            value: `${data.temperature}°C`,
+            metadata: {
+              threshold: data.temperature >= 39 ? '≥39°C' : '<35°C',
+              expectedRange: '35,5-37,5°C',
+              detectedAt: new Date(),
+              temperature: data.temperature,
+            },
+          }, actorUserId);
         } else if (data.temperature >= 38 || data.temperature < 35.5) {
-          await this.notificationsService.createDirectedNotification(
+          const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
             {
@@ -706,13 +726,30 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Temperatura', value: `${data.temperature}°C` },
           });
           this.logger.warn('Notificação criada: Temperatura Anormal', { residentName, value: data.temperature });
+
+          await this.vitalSignAlertsService.create({
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: data.temperature >= 38 ? VitalSignAlertType.TEMPERATURE_HIGH : VitalSignAlertType.TEMPERATURE_LOW,
+            severity: AlertSeverity.WARNING,
+            title: 'Temperatura Anormal',
+            description: `Temperatura ${data.temperature >= 38 ? 'elevada' : 'baixa'}: ${data.temperature}°C. Valores usuais: 35,5-37,5°C.`,
+            value: `${data.temperature}°C`,
+            metadata: {
+              threshold: data.temperature >= 38 ? '≥38°C' : '<35,5°C',
+              expectedRange: '35,5-37,5°C',
+              detectedAt: new Date(),
+              temperature: data.temperature,
+            },
+          }, actorUserId);
         }
       }
 
       // Saturação de Oxigênio
       if (data.oxygenSaturation !== undefined && data.oxygenSaturation !== null) {
         if (data.oxygenSaturation < 90) {
-          await this.notificationsService.createDirectedNotification(
+          const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
             {
@@ -727,8 +764,25 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Saturação O₂', value: `${data.oxygenSaturation}%` },
           });
           this.logger.warn('Notificação criada: SpO₂ Crítica', { residentName, value: data.oxygenSaturation });
+
+          await this.vitalSignAlertsService.create({
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: VitalSignAlertType.OXYGEN_LOW,
+            severity: AlertSeverity.CRITICAL,
+            title: 'Saturação de O₂ Crítica',
+            description: `Saturação periférica de oxigênio crítica: ${data.oxygenSaturation}%. Valores usuais: ≥92%.`,
+            value: `${data.oxygenSaturation}%`,
+            metadata: {
+              threshold: '<90%',
+              expectedRange: '≥92%',
+              detectedAt: new Date(),
+              oxygenSaturation: data.oxygenSaturation,
+            },
+          }, actorUserId);
         } else if (data.oxygenSaturation < 92) {
-          await this.notificationsService.createDirectedNotification(
+          const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
             {
@@ -743,13 +797,30 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Saturação O₂', value: `${data.oxygenSaturation}%` },
           });
           this.logger.warn('Notificação criada: SpO₂ Baixa', { residentName, value: data.oxygenSaturation });
+
+          await this.vitalSignAlertsService.create({
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: VitalSignAlertType.OXYGEN_LOW,
+            severity: AlertSeverity.WARNING,
+            title: 'Saturação de O₂ Baixa',
+            description: `Saturação periférica de oxigênio baixa: ${data.oxygenSaturation}%. Valores usuais: ≥92%.`,
+            value: `${data.oxygenSaturation}%`,
+            metadata: {
+              threshold: '<92%',
+              expectedRange: '≥92%',
+              detectedAt: new Date(),
+              oxygenSaturation: data.oxygenSaturation,
+            },
+          }, actorUserId);
         }
       }
 
       // Frequência Cardíaca
       if (data.heartRate !== undefined && data.heartRate !== null) {
         if (data.heartRate > 120 || data.heartRate < 50) {
-          await this.notificationsService.createDirectedNotification(
+          const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
             {
@@ -764,8 +835,25 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Frequência Cardíaca', value: `${data.heartRate} bpm` },
           });
           this.logger.warn('Notificação criada: FC Crítica', { residentName, value: data.heartRate });
+
+          await this.vitalSignAlertsService.create({
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: data.heartRate > 120 ? VitalSignAlertType.HEART_RATE_HIGH : VitalSignAlertType.HEART_RATE_LOW,
+            severity: AlertSeverity.CRITICAL,
+            title: 'Frequência Cardíaca Crítica',
+            description: `Frequência cardíaca ${data.heartRate > 120 ? 'muito alta (taquicardia)' : 'muito baixa (bradicardia)'}: ${data.heartRate} bpm. Valores usuais: 60-100 bpm.`,
+            value: `${data.heartRate} bpm`,
+            metadata: {
+              threshold: data.heartRate > 120 ? '>120 bpm' : '<50 bpm',
+              expectedRange: '60-100 bpm',
+              detectedAt: new Date(),
+              heartRate: data.heartRate,
+            },
+          }, actorUserId);
         } else if (data.heartRate > 100 || data.heartRate < 60) {
-          await this.notificationsService.createDirectedNotification(
+          const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
             {
@@ -780,6 +868,23 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Frequência Cardíaca', value: `${data.heartRate} bpm` },
           });
           this.logger.warn('Notificação criada: FC Anormal', { residentName, value: data.heartRate });
+
+          await this.vitalSignAlertsService.create({
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: data.heartRate > 100 ? VitalSignAlertType.HEART_RATE_HIGH : VitalSignAlertType.HEART_RATE_LOW,
+            severity: AlertSeverity.WARNING,
+            title: 'Frequência Cardíaca Anormal',
+            description: `Frequência cardíaca ${data.heartRate > 100 ? 'elevada' : 'baixa'}: ${data.heartRate} bpm. Valores usuais: 60-100 bpm.`,
+            value: `${data.heartRate} bpm`,
+            metadata: {
+              threshold: data.heartRate > 100 ? '>100 bpm' : '<60 bpm',
+              expectedRange: '60-100 bpm',
+              detectedAt: new Date(),
+              heartRate: data.heartRate,
+            },
+          }, actorUserId);
         }
       }
     } catch (error) {

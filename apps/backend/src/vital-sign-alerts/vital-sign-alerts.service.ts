@@ -34,6 +34,22 @@ export class VitalSignAlertsService {
       `Criando alerta médico: ${dto.type} para residente ${dto.residentId}`,
     )
 
+    // Garantir usuário válido para trilha/auditoria (UUID obrigatório no histórico)
+    const alertCreatorId =
+      createdBy ||
+      (
+        await this.tenantContext.client.vitalSign.findUnique({
+          where: { id: dto.vitalSignId },
+          select: { userId: true },
+        })
+      )?.userId
+
+    if (!alertCreatorId) {
+      throw new NotFoundException(
+        'Não foi possível identificar o usuário responsável pela criação do alerta',
+      )
+    }
+
     // Calcular prioridade automaticamente baseado na severidade
     const priority = this.calculatePriority(dto.severity, dto.type)
 
@@ -54,7 +70,7 @@ export class VitalSignAlertsService {
           status: dto.status || AlertStatus.ACTIVE,
           priority: dto.priority !== undefined ? dto.priority : priority,
           assignedTo: dto.assignedTo,
-          createdBy,
+          createdBy: alertCreatorId,
         },
         include: {
           resident: {
@@ -87,7 +103,7 @@ export class VitalSignAlertsService {
           assignedTo: newAlert.assignedTo,
           medicalNotes: null,
           actionTaken: null,
-          changedBy: createdBy || 'SYSTEM', // Sistema se não houver usuário
+          changedBy: alertCreatorId,
           changeType: 'CREATED',
           changeReason: 'Alerta criado automaticamente pelo sistema',
         },
