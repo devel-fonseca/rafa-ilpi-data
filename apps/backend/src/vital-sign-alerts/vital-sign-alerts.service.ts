@@ -98,6 +98,31 @@ export class VitalSignAlertsService {
               id: true,
               fullName: true,
               bedId: true,
+              bed: {
+                select: {
+                  id: true,
+                  code: true,
+                  room: {
+                    select: {
+                      id: true,
+                      code: true,
+                      floor: {
+                        select: {
+                          id: true,
+                          code: true,
+                          building: {
+                            select: {
+                              id: true,
+                              code: true,
+                              name: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
           vitalSign: {
@@ -182,6 +207,31 @@ export class VitalSignAlertsService {
               id: true,
               fullName: true,
               bedId: true,
+              bed: {
+                select: {
+                  id: true,
+                  code: true,
+                  room: {
+                    select: {
+                      id: true,
+                      code: true,
+                      floor: {
+                        select: {
+                          id: true,
+                          code: true,
+                          building: {
+                            select: {
+                              id: true,
+                              code: true,
+                              name: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
           vitalSign: {
@@ -250,24 +300,27 @@ export class VitalSignAlertsService {
             id: true,
             fullName: true,
             bedId: true,
-            bed: {
-              select: {
-                id: true,
-                code: true,
-                room: {
-                  select: {
-                    id: true,
-                    name: true,
-                    floor: {
-                      select: {
-                        id: true,
-                        name: true,
-                        building: {
-                          select: {
-                            id: true,
-                            name: true,
+              bed: {
+                select: {
+                  id: true,
+                  code: true,
+                  room: {
+                    select: {
+                      id: true,
+                      code: true,
+                      name: true,
+                      floor: {
+                        select: {
+                          id: true,
+                          code: true,
+                          name: true,
+                          building: {
+                            select: {
+                              id: true,
+                              code: true,
+                              name: true,
+                            },
                           },
-                        },
                       },
                     },
                   },
@@ -606,6 +659,38 @@ export class VitalSignAlertsService {
       },
       orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
       include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+            bedId: true,
+            bed: {
+              select: {
+                id: true,
+                code: true,
+                room: {
+                  select: {
+                    id: true,
+                    code: true,
+                    floor: {
+                      select: {
+                        id: true,
+                        code: true,
+                        building: {
+                          select: {
+                            id: true,
+                            code: true,
+                            name: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
         vitalSign: {
           select: {
             id: true,

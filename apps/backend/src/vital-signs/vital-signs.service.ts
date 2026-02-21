@@ -35,6 +35,38 @@ export class VitalSignsService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
+  private isProcedureGuidanceRecipient(
+    positionCode?: PositionCode | null,
+    isTechnicalManager = false,
+  ): boolean {
+    if (!positionCode || isTechnicalManager) {
+      return false;
+    }
+
+    const allowedPositions = new Set<PositionCode>([
+      PositionCode.CAREGIVER,
+      PositionCode.NURSING_TECHNICIAN,
+      PositionCode.NURSING_ASSISTANT,
+      PositionCode.NURSE,
+    ]);
+
+    return allowedPositions.has(positionCode);
+  }
+
+  private getHigherSeverity(
+    current: NotificationSeverity,
+    incoming: NotificationSeverity,
+  ): NotificationSeverity {
+    const rank: Record<NotificationSeverity, number> = {
+      [NotificationSeverity.INFO]: 1,
+      [NotificationSeverity.SUCCESS]: 1,
+      [NotificationSeverity.WARNING]: 2,
+      [NotificationSeverity.CRITICAL]: 3,
+    };
+
+    return rank[incoming] > rank[current] ? incoming : current;
+  }
+
   /**
    * Criar registro de sinais vitais COM versionamento
    */
@@ -500,6 +532,23 @@ export class VitalSignsService {
     actorUserId: string,
   ) {
     try {
+      const actorProfile = await this.tenantContext.client.userProfile.findUnique({
+        where: { userId: actorUserId },
+        select: {
+          positionCode: true,
+          isTechnicalManager: true,
+        },
+      });
+      const shouldNotifyActorProcedure = this.isProcedureGuidanceRecipient(
+        actorProfile?.positionCode,
+        actorProfile?.isTechnicalManager ?? false,
+      );
+      const detectedAnomalies: string[] = [];
+      let guidanceNotificationType: SystemNotificationType =
+        SystemNotificationType.VITAL_SIGN_ABNORMAL_BP;
+      let guidanceNotificationSeverity: NotificationSeverity =
+        NotificationSeverity.WARNING;
+
       const recipientIds = await this.recipientsResolver.resolveByTenantId(
         this.tenantContext.tenantId,
         {
@@ -513,7 +562,6 @@ export class VitalSignsService {
           includeTechnicalManagerFlag: true,
         },
       );
-      if (recipientIds.length === 0) return;
 
       // Pressão arterial (sistólica/diastólica)
       const systolic =
@@ -543,6 +591,13 @@ export class VitalSignsService {
               : `${diastolic} mmHg`;
 
         if (hasCriticalPressure) {
+          detectedAnomalies.push(`Pressão Arterial Crítica: ${pressureValue}`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_BP;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.CRITICAL,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -582,6 +637,13 @@ export class VitalSignsService {
             },
           }, actorUserId);
         } else if (hasWarningPressure) {
+          detectedAnomalies.push(`Pressão Arterial Anormal: ${pressureValue}`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_BP;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.WARNING,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -626,6 +688,13 @@ export class VitalSignsService {
       // Glicemia
       if (data.bloodGlucose !== undefined && data.bloodGlucose !== null) {
         if (data.bloodGlucose >= 250 || data.bloodGlucose < 60) {
+          detectedAnomalies.push(`Glicemia Crítica: ${data.bloodGlucose} mg/dL`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.CRITICAL,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -659,6 +728,13 @@ export class VitalSignsService {
             },
           }, actorUserId);
         } else if (data.bloodGlucose >= 180 || data.bloodGlucose < 70) {
+          detectedAnomalies.push(`Glicemia Anormal: ${data.bloodGlucose} mg/dL`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.WARNING,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -697,6 +773,13 @@ export class VitalSignsService {
       // Temperatura
       if (data.temperature !== undefined && data.temperature !== null) {
         if (data.temperature >= 39 || data.temperature < 35) {
+          detectedAnomalies.push(`Temperatura Crítica: ${data.temperature}°C`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_TEMPERATURE;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.CRITICAL,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -730,6 +813,13 @@ export class VitalSignsService {
             },
           }, actorUserId);
         } else if (data.temperature >= 38 || data.temperature < 35.5) {
+          detectedAnomalies.push(`Temperatura Anormal: ${data.temperature}°C`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_TEMPERATURE;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.WARNING,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -768,6 +858,13 @@ export class VitalSignsService {
       // Saturação de Oxigênio
       if (data.oxygenSaturation !== undefined && data.oxygenSaturation !== null) {
         if (data.oxygenSaturation < 90) {
+          detectedAnomalies.push(`Saturação de O₂ Crítica: ${data.oxygenSaturation}%`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_BP;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.CRITICAL,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -801,6 +898,13 @@ export class VitalSignsService {
             },
           }, actorUserId);
         } else if (data.oxygenSaturation < 92) {
+          detectedAnomalies.push(`Saturação de O₂ Baixa: ${data.oxygenSaturation}%`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_BP;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.WARNING,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -839,6 +943,13 @@ export class VitalSignsService {
       // Frequência Cardíaca
       if (data.heartRate !== undefined && data.heartRate !== null) {
         if (data.heartRate > 120 || data.heartRate < 50) {
+          detectedAnomalies.push(`Frequência Cardíaca Crítica: ${data.heartRate} bpm`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_HEART_RATE;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.CRITICAL,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -872,6 +983,13 @@ export class VitalSignsService {
             },
           }, actorUserId);
         } else if (data.heartRate > 100 || data.heartRate < 60) {
+          detectedAnomalies.push(`Frequência Cardíaca Anormal: ${data.heartRate} bpm`);
+          guidanceNotificationType = SystemNotificationType.VITAL_SIGN_ABNORMAL_HEART_RATE;
+          guidanceNotificationSeverity = this.getHigherSeverity(
+            guidanceNotificationSeverity,
+            NotificationSeverity.WARNING,
+          );
+
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -905,6 +1023,40 @@ export class VitalSignsService {
             },
           }, actorUserId);
         }
+      }
+
+      if (shouldNotifyActorProcedure && detectedAnomalies.length > 0) {
+        const anomalySummary = detectedAnomalies.join(' • ');
+        const hasMultipleAnomalies = detectedAnomalies.length > 1;
+        await this.notificationsService.createDirectedNotification(
+          this.tenantContext.tenantId,
+          [actorUserId],
+          {
+            type: guidanceNotificationType,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: guidanceNotificationSeverity,
+            title: hasMultipleAnomalies
+              ? 'Parâmetros anormais registrados'
+              : 'Parâmetro anormal registrado',
+            message: `Você registrou monitoramento com alteração para ${residentName}: ${anomalySummary}. Siga o procedimento operacional padrão institucional correspondente.`,
+            actionUrl: `/dashboard/sinais-vitais/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: {
+              residentId,
+              residentName,
+              anomalies: detectedAnomalies,
+              guidance: 'FOLLOW_STANDARD_PROCEDURE',
+              source: 'VITAL_SIGN_CAPTURE',
+            },
+          },
+        );
+
+        this.logger.info('Notificação de conduta enviada ao usuário registrador', {
+          actorUserId,
+          residentId,
+          anomaliesDetected: detectedAnomalies.length,
+        });
       }
     } catch (error) {
       // Não falhar a criação/atualização do sinal vital se notificação falhar
