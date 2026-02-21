@@ -10,6 +10,7 @@ import type { Resident } from '@/api/residents.api'
  */
 export type MedicalSection =
   | 'personal'
+  | 'alerts-occurrences'
   | 'clinical-profile'
   | 'vaccinations'
   | 'health-documents'
@@ -71,6 +72,16 @@ export interface ResidentWithAccommodation extends Resident {
 export interface ResidentSummaryViewProps extends MedicalViewProps {
   resident: ResidentWithAccommodation
   onVitalSignsClick: () => void
+  canLoadVitalSignAlerts: boolean
+}
+
+/**
+ * Props para a view de alertas e intercorrências do residente
+ */
+export interface AlertsOccurrencesViewProps extends MedicalViewProps {
+  onVitalSignsClick: () => void
+  canLoadVitalSignAlerts: boolean
+  onOpenIncidentManagement?: () => void
 }
 
 /**

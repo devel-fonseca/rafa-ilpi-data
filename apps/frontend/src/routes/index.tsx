@@ -33,6 +33,7 @@ import ResidentsHub from '@/pages/residents/ResidentsHub'
 import ResidentForm from '@/pages/residents/ResidentForm'
 import ResidentView from '@/pages/residents/ResidentView'
 import ResidentMedicalRecord from '@/pages/residents/ResidentMedicalRecord'
+import ResidentIncidentsPage from '@/pages/incidents/ResidentIncidentsPage'
 import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
 import { BelongingsPage } from '@/pages/residents/belongings'
 import ResidentPanelPage from '@/pages/residents/ResidentPanelPage'
@@ -300,14 +301,22 @@ export const router = createBrowserRouter([
         path: 'residentes/:residentId/pertences',
         element: <BelongingsPage />,
       },
-          {
-            path: 'sinais-vitais/:residentId',
-            element: (
-              <FeatureGate featureKey="sinais_vitais">
-                {withSuspense(<VitalSignsPage />)}
-              </FeatureGate>
-            ),
-          },
+      {
+        path: 'sinais-vitais/:residentId',
+        element: (
+          <FeatureGate featureKey="sinais_vitais">
+            {withSuspense(<VitalSignsPage />)}
+          </FeatureGate>
+        ),
+      },
+      {
+        path: 'intercorrencias/:residentId',
+        element: (
+          <FeatureGate featureKey="registros_diarios">
+            {withSuspense(<ResidentIncidentsPage />)}
+          </FeatureGate>
+        ),
+      },
       {
         path: 'registros-diarios',
         element: (

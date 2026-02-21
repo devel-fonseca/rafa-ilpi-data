@@ -13,6 +13,7 @@ import {
   NotebookPen,
   Pill,
   PillBottle,
+  Siren,
   ClipboardList,
   Calendar,
 } from 'lucide-react'
@@ -38,6 +39,12 @@ const SECTIONS: Array<{
     label: 'Sumário do Residente',
     description: 'Resumo de saúde e informações essenciais',
     icon: User,
+  },
+  {
+    id: 'alerts-occurrences',
+    label: 'Alertas e Intercorrências',
+    description: 'Eventos clínicos e ocorrências recentes',
+    icon: Siren,
   },
   {
     id: 'clinical-profile',

@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 export { ResidentSummaryView } from './ResidentSummaryView'
+export { AlertsOccurrencesView } from './AlertsOccurrencesView'
 export { ClinicalProfileView } from './ClinicalProfileView'
 export { VaccinationsView } from './VaccinationsView'
 export { HealthDocumentsView } from './HealthDocumentsView'

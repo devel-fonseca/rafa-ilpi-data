@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { User } from '@/stores/auth.store'
 import {
+  dismissVitalSignAlertIncident,
+  confirmVitalSignAlertIncident,
+  DecideVitalSignAlertIncidentDto,
   getVitalSignAlerts,
   getVitalSignAlert,
   getActiveAlertsByResident,
@@ -12,6 +15,7 @@ import {
   QueryVitalSignAlertsDto,
   UpdateVitalSignAlertDto,
 } from '@/api/vitalSignAlerts.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // QUERY KEYS
@@ -126,6 +130,79 @@ export function useUpdateAlert() {
 }
 
 /**
+ * Hook para confirmar intercorrência a partir de alerta de sinal vital
+ */
+export function useConfirmAlertIncident() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: DecideVitalSignAlertIncidentDto }) =>
+      confirmVitalSignAlertIncident(id, data),
+    onSuccess: (result) => {
+      const updatedAlert = result.alert
+
+      queryClient.invalidateQueries({ queryKey: vitalSignAlertsKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: vitalSignAlertsKeys.detail(updatedAlert.id) })
+      queryClient.invalidateQueries({
+        queryKey: vitalSignAlertsKeys.byResident(updatedAlert.residentId),
+      })
+      queryClient.invalidateQueries({ queryKey: vitalSignAlertsKeys.stats() })
+      queryClient.invalidateQueries({ queryKey: vitalSignAlertsKeys.history(updatedAlert.id) })
+
+      queryClient.invalidateQueries({ queryKey: tenantKey('resident-incidents') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('resident-clinical-events') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('vital-signs', 'record-alerts') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('daily-records') })
+
+      toast.success('Intercorrência confirmada com sucesso')
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            'Erro ao confirmar intercorrência'
+      toast.error(message)
+    },
+  })
+}
+
+/**
+ * Hook para descartar intercorrência a partir de alerta de sinal vital
+ */
+export function useDismissAlertIncident() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: DecideVitalSignAlertIncidentDto }) =>
+      dismissVitalSignAlertIncident(id, data),
+    onSuccess: (result) => {
+      const updatedAlert = result.alert
+
+      queryClient.invalidateQueries({ queryKey: vitalSignAlertsKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: vitalSignAlertsKeys.detail(updatedAlert.id) })
+      queryClient.invalidateQueries({
+        queryKey: vitalSignAlertsKeys.byResident(updatedAlert.residentId),
+      })
+      queryClient.invalidateQueries({ queryKey: vitalSignAlertsKeys.stats() })
+      queryClient.invalidateQueries({ queryKey: vitalSignAlertsKeys.history(updatedAlert.id) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('resident-clinical-events') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('vital-signs', 'record-alerts') })
+
+      toast.success('Intercorrência descartada para este alerta')
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            'Erro ao descartar intercorrência'
+      toast.error(message)
+    },
+  })
+}
+
+/**
  * Hook para pré-preencher evolução a partir de alerta
  */
 export function usePrefillFromAlert(alertId: string, enabled = false) {
@@ -180,4 +257,13 @@ export function canManageVitalSignAlerts(user: User | null): boolean {
   }
 
   return false
+}
+
+/**
+ * Decisão de intercorrência (confirmar/descartar) é exclusiva de Admin/RT.
+ */
+export function canDecideVitalAlertIncident(user: User | null): boolean {
+  if (!user) return false
+  const positionCode = user.profile?.positionCode
+  return positionCode === 'ADMINISTRATOR' || positionCode === 'TECHNICAL_MANAGER'
 }

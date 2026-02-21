@@ -91,6 +91,7 @@ import type {
 import {
   MedicalRecordSidebar,
   ResidentSummaryView,
+  AlertsOccurrencesView,
   ClinicalProfileView,
   VaccinationsView,
   HealthDocumentsView,
@@ -110,6 +111,7 @@ import type { MedicalSection, MedicationAdministration } from '@/components/medi
 
 const SECTION_CONFIG: Record<MedicalSection, { title: string; subtitle: string }> = {
   'personal': { title: 'Sumário do Residente', subtitle: 'Resumo de saúde e informações essenciais' },
+  'alerts-occurrences': { title: 'Alertas e Intercorrências', subtitle: 'Linha do tempo de eventos clínicos e ocorrências' },
   'clinical-profile': { title: 'Perfil Clínico', subtitle: 'Condições de saúde e histórico clínico' },
   'vaccinations': { title: 'Vacinação', subtitle: 'Histórico de imunizações' },
   'health-documents': { title: 'Documentos de Saúde', subtitle: 'Exames, laudos e documentos anexados' },
@@ -193,6 +195,14 @@ export default function ResidentProfile() {
 
   // Verificar se o usuário tem permissão para visualizar prontuário
   const canViewMedicalRecord = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
+  const canLoadVitalSignAlerts = hasPermission(PermissionType.VIEW_VITAL_SIGNS) && hasFeature('sinais_vitais')
+
+  const handleSectionChange = (section: MedicalSection) => {
+    setActiveSection(section)
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set('section', section)
+    setSearchParams(nextParams, { replace: true })
+  }
 
   const handleViewRecord = (record: DailyRecord) => {
     setViewingRecord(record)
@@ -334,6 +344,10 @@ export default function ResidentProfile() {
     }
   }
 
+  const handleIncidentManagementClick = () => {
+    navigate(`/dashboard/intercorrencias/${id}`)
+  }
+
   useEffect(() => {
     const sectionParam = searchParams.get('section')
     if (!sectionParam || !(sectionParam in SECTION_CONFIG)) return
@@ -419,6 +433,16 @@ export default function ResidentProfile() {
             {...commonProps}
             resident={resident}
             onVitalSignsClick={handleVitalSignsClick}
+            canLoadVitalSignAlerts={canLoadVitalSignAlerts}
+          />
+        )
+      case 'alerts-occurrences':
+        return (
+          <AlertsOccurrencesView
+            {...commonProps}
+            onVitalSignsClick={handleVitalSignsClick}
+            canLoadVitalSignAlerts={canLoadVitalSignAlerts}
+            onOpenIncidentManagement={handleIncidentManagementClick}
           />
         )
       case 'clinical-profile':
@@ -486,7 +510,7 @@ export default function ResidentProfile() {
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 min-w-0">
         <MedicalRecordSidebar
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={handleSectionChange}
         />
 
         <Card className="min-w-0 overflow-hidden">

@@ -11,13 +11,22 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ActionDetailsSheet } from '@/design-system/components'
+import {
+  isValidBloodPressureFormat,
+  sanitizeBloodPressureInput,
+} from '@/utils/bloodPressureInput'
 
 const editMonitoramentoSchema = z.object({
   time: z
     .string()
     .min(1, 'Horário é obrigatório')
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
-  pressaoArterial: z.string().optional(),
+  pressaoArterial: z
+    .string()
+    .optional()
+    .refine((value) => isValidBloodPressureFormat(value), {
+      message: 'Formato inválido. Use 90/60 ou 120/80',
+    }),
   temperatura: z.string().optional(),
   frequenciaCardiaca: z.string().optional(),
   saturacaoO2: z.string().optional(),
@@ -105,7 +114,7 @@ export function EditMonitoramentoModal({
 
     const originalData = record.data as Record<string, unknown>
     const nextData: ComparableMonitoramentoData = {
-      pressaoArterial: data.pressaoArterial || undefined,
+      pressaoArterial: data.pressaoArterial?.trim() || undefined,
       temperatura: data.temperatura ? parseFloat(data.temperatura) : undefined,
       frequenciaCardiaca: data.frequenciaCardiaca ? parseInt(data.frequenciaCardiaca, 10) : undefined,
       saturacaoO2: data.saturacaoO2 ? parseInt(data.saturacaoO2, 10) : undefined,
@@ -173,15 +182,25 @@ export function EditMonitoramentoModal({
               name="pressaoArterial"
               control={control}
               render={({ field }) => (
-                <MaskedInput
-                  mask="999/99"
-                  value={field.value || ''}
-                  onChange={field.onChange}
+                <Input
+                  value={field.value ?? ''}
+                  onChange={(event) =>
+                    field.onChange(
+                      sanitizeBloodPressureInput(event.target.value),
+                    )
+                  }
                   placeholder="120/80"
                   className="mt-2"
+                  inputMode="text"
+                  maxLength={7}
                 />
               )}
             />
+            {errors.pressaoArterial && (
+              <p className="text-sm text-danger mt-1">
+                {errors.pressaoArterial.message}
+              </p>
+            )}
           </div>
         </div>
 

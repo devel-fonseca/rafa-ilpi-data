@@ -19,6 +19,7 @@ export {
 // Views
 export {
   ResidentSummaryView,
+  AlertsOccurrencesView,
   ClinicalProfileView,
   VaccinationsView,
   HealthDocumentsView,
@@ -34,6 +35,7 @@ export type {
   MedicalSection,
   MedicalViewProps,
   ResidentSummaryViewProps,
+  AlertsOccurrencesViewProps,
   DailyRecordsViewProps,
   PrescriptionsViewProps,
   MedicationsViewProps,

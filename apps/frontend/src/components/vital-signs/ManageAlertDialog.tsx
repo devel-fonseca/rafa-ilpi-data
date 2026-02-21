@@ -33,6 +33,8 @@ import {
   Heart,
   Droplet,
   TrendingUp,
+  CheckCircle2,
+  XCircle,
   FileText,
   User,
   Clock,
@@ -40,7 +42,13 @@ import {
   ChevronUp,
   History,
 } from 'lucide-react'
-import { useUpdateAlert, canManageVitalSignAlerts } from '@/hooks/useVitalSignAlerts'
+import {
+  useUpdateAlert,
+  useConfirmAlertIncident,
+  useDismissAlertIncident,
+  canManageVitalSignAlerts,
+  canDecideVitalAlertIncident,
+} from '@/hooks/useVitalSignAlerts'
 import { useAuthStore } from '@/stores/auth.store'
 import type { VitalSignAlert } from '@/api/vitalSignAlerts.api'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
@@ -68,6 +76,8 @@ export function ManageAlertDialog({
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const updateAlertMutation = useUpdateAlert()
+  const confirmIncidentMutation = useConfirmAlertIncident()
+  const dismissIncidentMutation = useDismissAlertIncident()
   const [showCreateEvolution, setShowCreateEvolution] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
 
@@ -82,6 +92,19 @@ export function ManageAlertDialog({
     })
 
   const currentStatus = watch('status')
+  const canDecideIncident = canDecideVitalAlertIncident(user)
+  const alertMetadata = (alert?.metadata ?? {}) as Record<string, unknown>
+  const incidentDecision = typeof alertMetadata.incidentDecision === 'string'
+    ? alertMetadata.incidentDecision
+    : null
+  const incidentRecordId = typeof alertMetadata.incidentRecordId === 'string'
+    ? alertMetadata.incidentRecordId
+    : null
+  const canShowIncidentDecisionActions =
+    canDecideIncident &&
+    incidentDecision !== 'CONFIRMED' &&
+    incidentDecision !== 'DISMISSED' &&
+    !incidentRecordId
 
   // Atualizar formulário quando alerta mudar
   useEffect(() => {
@@ -108,6 +131,44 @@ export function ManageAlertDialog({
           actionTaken: data.actionTaken || undefined,
         },
       })
+      onOpenChange(false)
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }
+
+  const handleConfirmIncident = async () => {
+    if (!alert) return
+
+    const values = watch()
+    try {
+      await confirmIncidentMutation.mutateAsync({
+        id: alert.id,
+        data: {
+          medicalNotes: values.medicalNotes || undefined,
+          actionTaken: values.actionTaken || undefined,
+        },
+      })
+
+      onOpenChange(false)
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }
+
+  const handleDismissIncident = async () => {
+    if (!alert) return
+
+    const values = watch()
+    try {
+      await dismissIncidentMutation.mutateAsync({
+        id: alert.id,
+        data: {
+          medicalNotes: values.medicalNotes || undefined,
+          actionTaken: values.actionTaken || undefined,
+        },
+      })
+
       onOpenChange(false)
     } catch (error) {
       // Error handled by mutation
@@ -147,9 +208,9 @@ export function ManageAlertDialog({
     setShowCreateEvolution(false)
     onOpenChange(false)
 
-    // Navegar para a aba de evoluções clínicas do residente
+    // Navegar para a seção de evoluções clínicas do prontuário do residente
     if (alert?.residentId) {
-      navigate(`/dashboard/residentes/${alert.residentId}?tab=evolucoes`)
+      navigate(`/dashboard/residentes/${alert.residentId}?section=clinical-notes`)
     }
   }
 
@@ -466,6 +527,59 @@ export function ManageAlertDialog({
               </CollapsibleContent>
             </Collapsible>
 
+            {canDecideIncident && (
+              <div className="space-y-3 rounded-lg border p-3 bg-muted/30">
+                <div className="text-sm font-medium">Decisão de Intercorrência</div>
+
+                {incidentDecision === 'CONFIRMED' || incidentRecordId ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-success">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Intercorrência confirmada para este alerta.
+                    </div>
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/dashboard/intercorrencias/${alert.residentId}`)}
+                      >
+                        Abrir gerenciamento de intercorrências
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {incidentDecision === 'DISMISSED' ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <XCircle className="h-4 w-4" />
+                    Intercorrência descartada para este alerta.
+                  </div>
+                ) : null}
+
+                {canShowIncidentDecisionActions && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="default"
+                      onClick={handleConfirmIncident}
+                      disabled={confirmIncidentMutation.isPending || dismissIncidentMutation.isPending}
+                    >
+                      {confirmIncidentMutation.isPending ? 'Confirmando...' : 'Confirmar intercorrência'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleDismissIncident}
+                      disabled={confirmIncidentMutation.isPending || dismissIncidentMutation.isPending}
+                    >
+                      {dismissIncidentMutation.isPending ? 'Descartando...' : 'Descartar intercorrência'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <DialogFooter className="gap-2">
               <Button
                 type="button"
@@ -489,7 +603,11 @@ export function ManageAlertDialog({
 
               <Button
                 type="submit"
-                disabled={updateAlertMutation.isPending}
+                disabled={
+                  updateAlertMutation.isPending ||
+                  confirmIncidentMutation.isPending ||
+                  dismissIncidentMutation.isPending
+                }
               >
                 {updateAlertMutation.isPending
                   ? 'Salvando...'

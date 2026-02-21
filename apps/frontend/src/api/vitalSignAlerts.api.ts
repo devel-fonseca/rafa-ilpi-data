@@ -113,6 +113,11 @@ export interface UpdateVitalSignAlertDto {
   actionTaken?: string
 }
 
+export interface DecideVitalSignAlertIncidentDto {
+  medicalNotes?: string
+  actionTaken?: string
+}
+
 export interface QueryVitalSignAlertsDto {
   residentId?: string
   status?: AlertStatus
@@ -133,6 +138,11 @@ export interface VitalSignAlertsResponse {
     limit: number
     totalPages: number
   }
+}
+
+export interface DecideVitalSignAlertIncidentResponse {
+  alert: VitalSignAlert
+  incidentRecordId?: string
 }
 
 export interface AlertStats {
@@ -232,6 +242,28 @@ export const updateVitalSignAlert = async (
   data: UpdateVitalSignAlertDto,
 ): Promise<VitalSignAlert> => {
   const response = await api.patch(`/vital-sign-alerts/${id}`, data)
+  return response.data
+}
+
+/**
+ * Confirmar intercorrência a partir de alerta de sinal vital
+ */
+export const confirmVitalSignAlertIncident = async (
+  id: string,
+  data: DecideVitalSignAlertIncidentDto = {},
+): Promise<DecideVitalSignAlertIncidentResponse> => {
+  const response = await api.post(`/vital-sign-alerts/${id}/confirm-incident`, data)
+  return response.data
+}
+
+/**
+ * Descartar conversão do alerta em intercorrência
+ */
+export const dismissVitalSignAlertIncident = async (
+  id: string,
+  data: DecideVitalSignAlertIncidentDto = {},
+): Promise<DecideVitalSignAlertIncidentResponse> => {
+  const response = await api.post(`/vital-sign-alerts/${id}/dismiss-incident`, data)
   return response.data
 }
 

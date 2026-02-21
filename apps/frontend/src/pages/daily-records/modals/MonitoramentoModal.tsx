@@ -15,13 +15,22 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import {
+  isValidBloodPressureFormat,
+  sanitizeBloodPressureInput,
+} from '@/utils/bloodPressureInput'
 
 const monitoramentoSchema = z.object({
   time: z
     .string()
     .min(1, 'Horário é obrigatório')
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
-  pressaoArterial: z.string().optional(),
+  pressaoArterial: z
+    .string()
+    .optional()
+    .refine((value) => isValidBloodPressureFormat(value), {
+      message: 'Formato inválido. Use 90/60 ou 120/80',
+    }),
   temperatura: z.string().optional(),
   frequenciaCardiaca: z.string().optional(),
   saturacaoO2: z.string().optional(),
@@ -71,7 +80,7 @@ export function MonitoramentoModal({
       time: data.time,
       recordedBy: currentUserName,
       data: {
-        pressaoArterial: data.pressaoArterial,
+        pressaoArterial: data.pressaoArterial?.trim() || undefined,
         temperatura: data.temperatura ? parseFloat(data.temperatura) : undefined,
         frequenciaCardiaca: data.frequenciaCardiaca
           ? parseInt(data.frequenciaCardiaca)
@@ -127,15 +136,25 @@ export function MonitoramentoModal({
                 name="pressaoArterial"
                 control={control}
                 render={({ field }) => (
-                  <MaskedInput
-                    mask="999/99"
-                    value={field.value || ''}
-                    onChange={field.onChange}
+                  <Input
+                    value={field.value ?? ''}
+                    onChange={(event) =>
+                      field.onChange(
+                        sanitizeBloodPressureInput(event.target.value)
+                      )
+                    }
                     placeholder="120/80"
                     className="mt-2"
+                    inputMode="text"
+                    maxLength={7}
                   />
                 )}
               />
+              {errors.pressaoArterial && (
+                <p className="text-sm text-danger mt-1">
+                  {errors.pressaoArterial.message}
+                </p>
+              )}
             </div>
           </div>
 

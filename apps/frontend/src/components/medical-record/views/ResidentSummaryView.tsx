@@ -11,13 +11,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Activity } from 'lucide-react'
+import { Activity, Clock3 } from 'lucide-react'
 import { useBloodType, useLatestAnthropometry } from '@/hooks/useResidentHealth'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
 import { useConsolidatedVitalSigns } from '@/hooks/useConsolidatedVitalSigns'
 import { useConditionsByResident } from '@/hooks/useConditions'
+import { useResidentAlertsOccurrences } from '@/hooks/useResidentAlertsOccurrences'
 import { BLOOD_TYPE_LABELS } from '@/api/resident-health.api'
 import { ConsolidatedVitalSignsGrid } from '@/components/residents/ConsolidatedVitalSignsGrid'
+import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import type { ResidentSummaryViewProps } from '../types'
 
 // ========== CONSTANTS ==========
@@ -43,7 +45,12 @@ const truncateText = (text: string | undefined | null, maxLength: number = 100) 
 
 // ========== COMPONENT ==========
 
-export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }: ResidentSummaryViewProps) {
+export function ResidentSummaryView({
+  resident,
+  residentId,
+  onVitalSignsClick,
+  canLoadVitalSignAlerts,
+}: ResidentSummaryViewProps) {
   const healthConditionsCardRef = useRef<HTMLDivElement>(null)
 
   // Buscar tipo sanguíneo da nova tabela
@@ -63,6 +70,14 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
 
   // Buscar sinais vitais consolidados (mesma fonte da Visualização Rápida)
   const { data: consolidatedVitalSigns } = useConsolidatedVitalSigns(residentId)
+  const { events: alertsAndOccurrences } = useResidentAlertsOccurrences({
+    residentId,
+    enableVitalAlerts: canLoadVitalSignAlerts,
+    vitalAlertsLimit: 20,
+    intercurrenciasLimit: 20,
+  })
+
+  const latestAlertsAndOccurrences = alertsAndOccurrences.slice(0, 3)
 
   const scrollToHealthConditions = () => {
     if (healthConditionsCardRef.current) {
@@ -312,6 +327,35 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
         ) : (
           <div className="text-sm text-muted-foreground italic">
             Nenhuma restrição alimentar cadastrada
+          </div>
+        )}
+      </div>
+
+      {/* Alertas e Intercorrências - resumo */}
+      <div className="border-t pt-6">
+        <div className="text-sm text-muted-foreground mb-2">Alertas e Intercorrências</div>
+
+        {latestAlertsAndOccurrences.length > 0 ? (
+          <div className="space-y-2">
+            {latestAlertsAndOccurrences.map((event) => (
+              <div key={event.id} className="rounded-md border px-3 py-2">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <Badge variant={event.source === 'VITAL_ALERT' ? 'danger' : 'warning'} className="text-xs">
+                    {event.source === 'VITAL_ALERT' ? 'Alerta vital' : 'Intercorrência'}
+                  </Badge>
+                  <span className="text-sm font-medium">{event.title}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{event.description}</p>
+                <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  {formatDateTimeSafe(event.timestamp)}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground italic">
+            Nenhum alerta ou intercorrência recente.
           </div>
         )}
       </div>

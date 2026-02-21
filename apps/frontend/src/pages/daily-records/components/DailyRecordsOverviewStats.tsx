@@ -175,20 +175,29 @@ export function DailyRecordsOverviewStats({
 
     const formatVitalDetails = (params: {
       systolic: number | null
+      diastolic: number | null
       glucose: number | null
       oxygen: number | null
       temperature: number | null
       heartRate: number | null
       bloodPressureRaw: string
     }): string => {
-      const { systolic, glucose, oxygen, temperature, heartRate, bloodPressureRaw } = params
+      const { systolic, diastolic, glucose, oxygen, temperature, heartRate, bloodPressureRaw } = params
       const abnormalParameters: string[] = []
 
       if (glucose !== null && (glucose >= 180 || glucose < 70)) {
         abnormalParameters.push(`Glicemia ${glucose} mg/dL`)
       }
-      if (systolic !== null && (systolic >= 140 || systolic < 90)) {
-        abnormalParameters.push(`PA ${bloodPressureRaw || `${systolic} mmHg`}`)
+      if (
+        (systolic !== null && (systolic >= 140 || systolic <= 90)) ||
+        (diastolic !== null && (diastolic >= 90 || diastolic < 60))
+      ) {
+        abnormalParameters.push(
+          `PA ${
+            bloodPressureRaw ||
+            `${systolic ?? '-'} / ${diastolic ?? '-'} mmHg`
+          }`
+        )
       }
       if (oxygen !== null && oxygen < 92) {
         abnormalParameters.push(`SpO2 ${oxygen}%`)
@@ -219,15 +228,17 @@ export function DailyRecordsOverviewStats({
         }
 
         const bloodPressureRaw = String(recordData.pressaoArterial ?? '').trim()
-        const [systolicStr] = bloodPressureRaw.split('/')
+        const [systolicStr, diastolicStr] = bloodPressureRaw.split('/')
         const systolic = parseNumber(systolicStr)
+        const diastolic = parseNumber(diastolicStr)
         const glucose = parseNumber(recordData.glicemia)
         const temperature = parseNumber(recordData.temperatura)
         const oxygen = parseNumber(recordData.saturacaoO2)
         const heartRate = parseNumber(recordData.frequenciaCardiaca)
 
         const hasAbnormalVital =
-          (systolic !== null && (systolic >= 140 || systolic < 90)) ||
+          (systolic !== null && (systolic >= 140 || systolic <= 90)) ||
+          (diastolic !== null && (diastolic >= 90 || diastolic < 60)) ||
           (glucose !== null && (glucose >= 180 || glucose < 70)) ||
           (temperature !== null && (temperature >= 38 || temperature < 35.5)) ||
           (oxygen !== null && oxygen < 92) ||
@@ -237,6 +248,7 @@ export function DailyRecordsOverviewStats({
 
         const detail = formatVitalDetails({
           systolic,
+          diastolic,
           glucose,
           oxygen,
           temperature,

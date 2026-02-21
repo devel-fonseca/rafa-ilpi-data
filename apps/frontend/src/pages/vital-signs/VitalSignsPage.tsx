@@ -346,7 +346,7 @@ export function VitalSignsPage() {
 
         {/* Aba Alertas */}
         <TabsContent value="alerts">
-          <VitalSignsAlerts residentId={residentId || ''} />
+          <VitalSignsAlerts residentId={residentId || ''} periodDays={parseInt(selectedPeriod, 10)} />
         </TabsContent>
       </Tabs>
     </Page>
