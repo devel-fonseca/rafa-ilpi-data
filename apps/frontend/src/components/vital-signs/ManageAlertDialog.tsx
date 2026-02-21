@@ -54,6 +54,10 @@ import type { VitalSignAlert } from '@/api/vitalSignAlerts.api'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { CreateEvolutionFromAlertDialog } from './CreateEvolutionFromAlertDialog'
 import { AlertHistoryTimeline } from './AlertHistoryTimeline'
+import {
+  formatBedFromResident,
+  type ResidentWithBed,
+} from '@/utils/formatters'
 
 interface ManageAlertDialogProps {
   alert: VitalSignAlert | null
@@ -279,6 +283,16 @@ export function ManageAlertDialog({
 
   if (!alert) return null
 
+  const formattedBedCode = alert.resident
+    ? formatBedFromResident(alert.resident as ResidentWithBed)
+    : '-'
+  const fallbackBedCode =
+    alert.resident?.bedId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(alert.resident.bedId)
+      ? alert.resident.bedId
+      : null
+  const residentBedLabel =
+    formattedBedCode !== '-' ? formattedBedCode : fallbackBedCode
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -325,9 +339,9 @@ export function ManageAlertDialog({
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">{alert.resident.fullName}</span>
-                  {alert.resident.bedId && (
+                  {residentBedLabel && (
                     <Badge variant="secondary" className="text-xs">
-                      Leito {alert.resident.bedId}
+                      Leito {residentBedLabel}
                     </Badge>
                   )}
                 </div>
@@ -536,16 +550,6 @@ export function ManageAlertDialog({
                     <div className="flex items-center gap-2 text-sm text-success">
                       <CheckCircle2 className="h-4 w-4" />
                       Intercorrência confirmada para este alerta.
-                    </div>
-                    <div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/dashboard/intercorrencias/${alert.residentId}`)}
-                      >
-                        Abrir gerenciamento de intercorrências
-                      </Button>
                     </div>
                   </div>
                 ) : null}

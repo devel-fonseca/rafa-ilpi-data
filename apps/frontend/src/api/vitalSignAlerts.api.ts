@@ -62,6 +62,23 @@ export interface VitalSignAlert {
     id: string
     fullName: string
     bedId?: string
+    bed?: {
+      id: string
+      code?: string
+      room?: {
+        id: string
+        code?: string
+        floor?: {
+          id: string
+          code?: string
+          building?: {
+            id: string
+            code?: string
+            name?: string
+          }
+        }
+      }
+    }
   }
   vitalSign?: {
     id: string
