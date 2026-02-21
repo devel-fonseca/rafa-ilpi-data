@@ -134,36 +134,50 @@ export function AlertsOccurrencesView({
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('all')}
-        >
-          Todos
-        </Button>
-        <Button
-          variant={filter === 'vital-alerts' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('vital-alerts')}
-          disabled={!canLoadVitalSignAlerts}
-        >
-          Alertas de sinais vitais
-        </Button>
-        <Button
-          variant={filter === 'intercorrencias' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('intercorrencias')}
-        >
-          Intercorrências
-        </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex rounded-md border overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setFilter('all')}
+            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              filter === 'all'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background hover:bg-muted'
+            }`}
+          >
+            Todos
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('vital-alerts')}
+            disabled={!canLoadVitalSignAlerts}
+            className={`px-3 py-1.5 text-sm font-medium transition-colors border-l ${
+              filter === 'vital-alerts'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background hover:bg-muted'
+            } ${!canLoadVitalSignAlerts ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            Alertas
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('intercorrencias')}
+            className={`px-3 py-1.5 text-sm font-medium transition-colors border-l ${
+              filter === 'intercorrencias'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background hover:bg-muted'
+            }`}
+          >
+            Intercorrências
+          </button>
+        </div>
         {onOpenIncidentManagement && (
           <Button variant="outline" size="sm" onClick={onOpenIncidentManagement}>
             Gerenciar intercorrências
           </Button>
         )}
         {canLoadVitalSignAlerts && (
-          <Button variant="outline" size="sm" className="ml-auto" onClick={onVitalSignsClick}>
+          <Button variant="outline" size="sm" onClick={onVitalSignsClick}>
             Ver Sinais Vitais
           </Button>
         )}
