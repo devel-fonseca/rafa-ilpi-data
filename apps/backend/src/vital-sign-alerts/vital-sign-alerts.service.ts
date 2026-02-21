@@ -1,17 +1,36 @@
 import {
   Injectable,
+  BadRequestException,
+  ForbiddenException,
   NotFoundException,
   Logger,
 } from '@nestjs/common'
-import { parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import {
   CreateVitalSignAlertDto,
+  DecideVitalSignAlertIncidentDto,
   UpdateVitalSignAlertDto,
   QueryVitalSignAlertsDto,
 } from './dto'
-import { AlertStatus, Prisma } from '@prisma/client'
+import {
+  AlertSeverity,
+  AlertStatus,
+  IncidentCategory,
+  IncidentSeverity,
+  IncidentSubtypeClinical,
+  NotificationCategory,
+  NotificationSeverity,
+  PositionCode,
+  Prisma,
+  SystemNotificationType,
+  VitalSignAlertType,
+} from '@prisma/client'
+import { NotificationsService } from '../notifications/notifications.service'
+import { DEFAULT_TIMEZONE } from '../utils/date.helpers'
+import { formatIncidentSubtype } from '../daily-records/utils/incident-formatters'
 
 @Injectable()
 export class VitalSignAlertsService {
@@ -20,6 +39,7 @@ export class VitalSignAlertsService {
   constructor(
     private prisma: PrismaService, // Para tabelas SHARED (public schema)
     private tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -416,6 +436,164 @@ export class VitalSignAlertsService {
   }
 
   /**
+   * Confirma que um alerta de sinal vital caracteriza intercorrência clínica
+   * e gera registro de INTERCORRENCIA para fluxo assistencial.
+   */
+  async confirmIncident(
+    id: string,
+    dto: DecideVitalSignAlertIncidentDto,
+    userId: string,
+  ) {
+    await this.assertCanDecideIncident(userId)
+
+    const alert = await this.findOne(id)
+    const metadata = this.getAlertMetadata(alert.metadata)
+    const decision = this.getIncidentDecision(metadata)
+
+    if (decision === 'DISMISSED') {
+      throw new BadRequestException('Este alerta já foi descartado para intercorrência')
+    }
+
+    const existingIncident = await this.findIncidentByAlertId(id)
+
+    const incidentRecord =
+      existingIncident ||
+      (await this.createIncidentFromAlert(alert, dto, userId))
+
+    const mergedMetadata: Prisma.InputJsonValue = {
+      ...metadata,
+      incidentDecision: 'CONFIRMED',
+      incidentDecisionAt: new Date().toISOString(),
+      incidentDecisionBy: userId,
+      incidentRecordId: incidentRecord.id,
+      incidentConfirmedBy: userId,
+      incidentConfirmedAt: new Date().toISOString(),
+    }
+
+    const medicalNotes =
+      dto.medicalNotes?.trim() ||
+      alert.medicalNotes ||
+      'Intercorrência confirmada a partir de alerta de sinais vitais.'
+
+    const actionTaken =
+      dto.actionTaken?.trim() ||
+      alert.actionTaken ||
+      'Registro de intercorrência gerado para acompanhamento clínico.'
+
+    await this.tenantContext.client.$transaction(async (prisma) => {
+      const updatedAlert = await prisma.vitalSignAlert.update({
+        where: { id },
+        data: {
+          // Alerta convertido em intercorrência segue ativo para gestão clínica
+          // (RT/Admin pode evoluir status depois dentro do gerenciamento).
+          status: AlertStatus.ACTIVE,
+          medicalNotes,
+          actionTaken,
+          metadata: mergedMetadata,
+        },
+      })
+
+      await prisma.vitalSignAlertHistory.create({
+        data: {
+          alertId: id,
+          status: updatedAlert.status,
+          assignedTo: updatedAlert.assignedTo,
+          medicalNotes: updatedAlert.medicalNotes,
+          actionTaken: updatedAlert.actionTaken,
+          changedBy: userId,
+          changeType: 'INCIDENT_CONFIRMED',
+          changeReason: `Intercorrência confirmada (registro ${incidentRecord.id})`,
+        },
+      })
+    })
+
+    this.logger.log(`Alerta ${id} confirmado como intercorrência`, {
+      alertId: id,
+      incidentRecordId: incidentRecord.id,
+      residentId: alert.residentId,
+    })
+
+    const refreshedAlert = await this.findOne(id)
+
+    return {
+      alert: refreshedAlert,
+      incidentRecordId: incidentRecord.id,
+    }
+  }
+
+  /**
+   * Descarta a criação de intercorrência para um alerta de sinal vital.
+   */
+  async dismissIncident(
+    id: string,
+    dto: DecideVitalSignAlertIncidentDto,
+    userId: string,
+  ) {
+    await this.assertCanDecideIncident(userId)
+
+    const alert = await this.findOne(id)
+    const metadata = this.getAlertMetadata(alert.metadata)
+    const decision = this.getIncidentDecision(metadata)
+
+    if (decision === 'CONFIRMED' || metadata.incidentRecordId) {
+      throw new BadRequestException('Este alerta já foi confirmado como intercorrência')
+    }
+
+    const mergedMetadata: Prisma.InputJsonValue = {
+      ...metadata,
+      incidentDecision: 'DISMISSED',
+      incidentDecisionAt: new Date().toISOString(),
+      incidentDecisionBy: userId,
+      incidentDismissedBy: userId,
+      incidentDismissedAt: new Date().toISOString(),
+    }
+
+    const medicalNotes =
+      dto.medicalNotes?.trim() ||
+      alert.medicalNotes ||
+      'Intercorrência descartada após avaliação clínica.'
+
+    const actionTaken =
+      dto.actionTaken?.trim() ||
+      alert.actionTaken ||
+      'Manter monitoramento do residente e reavaliar em caso de novos sinais.'
+
+    await this.tenantContext.client.$transaction(async (prisma) => {
+      const updatedAlert = await prisma.vitalSignAlert.update({
+        where: { id },
+        data: {
+          status: AlertStatus.IGNORED,
+          medicalNotes,
+          actionTaken,
+          metadata: mergedMetadata,
+        },
+      })
+
+      await prisma.vitalSignAlertHistory.create({
+        data: {
+          alertId: id,
+          status: updatedAlert.status,
+          assignedTo: updatedAlert.assignedTo,
+          medicalNotes: updatedAlert.medicalNotes,
+          actionTaken: updatedAlert.actionTaken,
+          changedBy: userId,
+          changeType: 'INCIDENT_DISMISSED',
+          changeReason: 'Intercorrência descartada pelo responsável clínico',
+        },
+      })
+    })
+
+    this.logger.log(`Alerta ${id} descartado para intercorrência`, {
+      alertId: id,
+      residentId: alert.residentId,
+    })
+
+    return {
+      alert: await this.findOne(id),
+    }
+  }
+
+  /**
    * Buscar alertas ativos de um residente
    */
   async findActiveByResident(residentId: string) {
@@ -469,6 +647,246 @@ export class VitalSignAlertsService {
       ignored,
       total: active + inTreatment + monitoring + resolved + ignored,
     }
+  }
+
+  private getAlertMetadata(
+    metadata: Prisma.JsonValue | null | undefined,
+  ): Record<string, unknown> {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      return {}
+    }
+
+    return metadata as Record<string, unknown>
+  }
+
+  private getIncidentDecision(metadata: Record<string, unknown>): 'CONFIRMED' | 'DISMISSED' | null {
+    const value = metadata.incidentDecision
+    if (value === 'CONFIRMED' || value === 'DISMISSED') {
+      return value
+    }
+    return null
+  }
+
+  private mapAlertSeverityToIncidentSeverity(severity: AlertSeverity): IncidentSeverity {
+    switch (severity) {
+      case AlertSeverity.CRITICAL:
+        return IncidentSeverity.GRAVE
+      case AlertSeverity.WARNING:
+        return IncidentSeverity.MODERADA
+      case AlertSeverity.INFO:
+      default:
+        return IncidentSeverity.LEVE
+    }
+  }
+
+  private mapAlertTypeToIncidentSubtype(type: VitalSignAlertType): IncidentSubtypeClinical {
+    switch (type) {
+      case VitalSignAlertType.GLUCOSE_HIGH:
+        return IncidentSubtypeClinical.HIPERGLICEMIA
+      case VitalSignAlertType.GLUCOSE_LOW:
+        return IncidentSubtypeClinical.HIPOGLICEMIA
+      case VitalSignAlertType.TEMPERATURE_HIGH:
+        return IncidentSubtypeClinical.FEBRE_HIPERTERMIA
+      case VitalSignAlertType.TEMPERATURE_LOW:
+        return IncidentSubtypeClinical.HIPOTERMIA
+      case VitalSignAlertType.OXYGEN_LOW:
+        return IncidentSubtypeClinical.DISPNEIA
+      case VitalSignAlertType.PRESSURE_HIGH:
+      case VitalSignAlertType.PRESSURE_LOW:
+      case VitalSignAlertType.HEART_RATE_HIGH:
+      case VitalSignAlertType.HEART_RATE_LOW:
+      default:
+        return IncidentSubtypeClinical.OUTRA_CLINICA
+    }
+  }
+
+  private async assertCanDecideIncident(userId: string) {
+    const userProfile = await this.tenantContext.client.userProfile.findFirst({
+      where: {
+        userId,
+      },
+      select: {
+        positionCode: true,
+      },
+    })
+
+    const allowedPositions = new Set<PositionCode>([
+      PositionCode.ADMINISTRATOR,
+      PositionCode.TECHNICAL_MANAGER,
+    ])
+
+    if (!userProfile?.positionCode || !allowedPositions.has(userProfile.positionCode)) {
+      throw new ForbiddenException('Apenas Administrador ou Responsável Técnico podem decidir intercorrências')
+    }
+  }
+
+  private async findIncidentByAlertId(alertId: string) {
+    return this.tenantContext.client.dailyRecord.findFirst({
+      where: {
+        type: 'INTERCORRENCIA',
+        data: {
+          path: ['alertaVitalId'],
+          equals: alertId,
+        },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    })
+  }
+
+  private async createIncidentFromAlert(
+    alert: Awaited<ReturnType<VitalSignAlertsService['findOne']>>,
+    dto: DecideVitalSignAlertIncidentDto,
+    userId: string,
+  ) {
+    const subtypeClinical = this.mapAlertTypeToIncidentSubtype(alert.type)
+    const incidentSeverity = this.mapAlertSeverityToIncidentSeverity(alert.severity)
+    const metadata = this.getAlertMetadata(alert.metadata)
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { timezone: true },
+    })
+    const timezone = tenant?.timezone || DEFAULT_TIMEZONE
+
+    const sourceTimestamp = alert.vitalSign?.timestamp || alert.createdAt
+    const zonedSourceTimestamp = toZonedTime(sourceTimestamp, timezone)
+    const localDate = format(zonedSourceTimestamp, 'yyyy-MM-dd')
+    const localTime = format(zonedSourceTimestamp, 'HH:mm')
+    const prismaDate = parseISO(`${localDate}T12:00:00.000`)
+
+    const creatorUser = await this.tenantContext.client.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    })
+    const recordedBy = creatorUser?.name || 'Sistema'
+
+    const description =
+      dto.medicalNotes?.trim() ||
+      `Intercorrência confirmada a partir de alerta de sinais vitais: ${alert.value}`
+
+    const actionTaken =
+      dto.actionTaken?.trim() ||
+      'Registrar conduta, manter monitoramento e reavaliar parâmetros em intervalo clínico adequado.'
+
+    const incidentData: Record<string, unknown> = {
+      descricao: description,
+      acaoTomada: actionTaken,
+      deteccaoAutomatica: false,
+      origemAlertaVital: true,
+      alertaVitalId: alert.id,
+      alertaVitalTipo: alert.type,
+      alertaVitalValor: alert.value,
+      alertaVitalTimestamp: sourceTimestamp.toISOString(),
+    }
+
+    if (typeof metadata.expectedRange === 'string') {
+      incidentData.expectedRange = metadata.expectedRange
+    }
+    if (typeof metadata.threshold === 'string') {
+      incidentData.threshold = metadata.threshold
+    }
+
+    const incidentRecord = await this.tenantContext.client.dailyRecord.create({
+      data: {
+        tenantId: this.tenantContext.tenantId,
+        residentId: alert.residentId,
+        userId,
+        type: 'INTERCORRENCIA',
+        date: prismaDate,
+        time: localTime,
+        recordedBy,
+        notes: `Intercorrência confirmada a partir do alerta ${alert.id}`,
+        incidentCategory: IncidentCategory.CLINICA,
+        incidentSubtypeClinical: subtypeClinical,
+        incidentSeverity,
+        isEventoSentinela: false,
+        isDoencaNotificavel: false,
+        rdcIndicators: [] as Prisma.InputJsonValue,
+        data: incidentData as Prisma.InputJsonValue,
+      },
+    })
+
+    try {
+      await this.notifyIncidentCreation({
+        residentId: alert.residentId,
+        residentName: alert.resident?.fullName || 'Residente',
+        subtypeClinical,
+        incidentSeverity,
+        incidentRecordId: incidentRecord.id,
+        actorUserId: userId,
+      })
+    } catch (error) {
+      this.logger.error('Falha ao notificar intercorrência confirmada', {
+        alertId: alert.id,
+        incidentRecordId: incidentRecord.id,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
+    return incidentRecord
+  }
+
+  private async notifyIncidentCreation(params: {
+    residentId: string
+    residentName: string
+    subtypeClinical: IncidentSubtypeClinical
+    incidentSeverity: IncidentSeverity
+    incidentRecordId: string
+    actorUserId: string
+  }) {
+    const {
+      residentId,
+      residentName,
+      subtypeClinical,
+      incidentSeverity,
+      incidentRecordId,
+      actorUserId,
+    } = params
+
+    const recipientIds =
+      await this.notificationsService.getIncidentNotificationRecipients(
+        this.tenantContext.tenantId,
+        actorUserId,
+      )
+
+    if (recipientIds.length === 0) {
+      return
+    }
+
+    const notificationSeverity =
+      incidentSeverity === IncidentSeverity.GRAVE || incidentSeverity === IncidentSeverity.CRITICA
+        ? NotificationSeverity.CRITICAL
+        : incidentSeverity === IncidentSeverity.MODERADA
+          ? NotificationSeverity.WARNING
+          : NotificationSeverity.INFO
+
+    const subtypeLabel = formatIncidentSubtype(subtypeClinical, undefined, undefined)
+
+    await this.notificationsService.createDirectedNotification(
+      this.tenantContext.tenantId,
+      recipientIds,
+      {
+        type: SystemNotificationType.INCIDENT_CREATED,
+        category: NotificationCategory.INCIDENT,
+        severity: notificationSeverity,
+        title: 'Intercorrência Confirmada a partir de Alerta',
+        message: `${residentName}: ${subtypeLabel}`,
+        actionUrl: `/dashboard/intercorrencias/${residentId}`,
+        entityType: 'DAILY_RECORD',
+        entityId: incidentRecordId,
+        metadata: {
+          residentId,
+          residentName,
+          subtypeClinical,
+          severity: incidentSeverity,
+          source: 'VITAL_SIGN_ALERT',
+          sourceIncidentWorkflow: 'CONFIRMED_BY_ADMIN_RT',
+        },
+      },
+    )
   }
 
   /**

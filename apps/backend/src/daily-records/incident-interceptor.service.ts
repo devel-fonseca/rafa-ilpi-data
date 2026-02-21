@@ -12,7 +12,21 @@ import {
   NotificationSeverity,
   SystemNotificationType,
 } from '@prisma/client';
+import { subDays } from 'date-fns';
 import { formatIncidentSubtype } from './utils/incident-formatters';
+import { DEFAULT_TIMEZONE, formatDateOnly, localToUTC } from '../utils/date.helpers';
+
+interface TenantClientForIncidentWindowCheck {
+  dailyRecord: {
+    findMany: (args: unknown) => Promise<
+      Array<{
+        id: string;
+        date: Date;
+        time: string;
+      }>
+    >;
+  };
+}
 
 /**
  * Serviço responsável por detectar automaticamente intercorrências
@@ -73,6 +87,9 @@ export class IncidentInterceptorService {
         case 'ELIMINACAO':
           await this.checkEliminacao(record, userId);
           break;
+        case 'MONITORAMENTO':
+          await this.checkMonitoramento(record, userId);
+          break;
         case 'ALIMENTACAO':
           await this.checkAlimentacao(record, userId);
           break;
@@ -99,6 +116,30 @@ export class IncidentInterceptorService {
   }
 
   /**
+   * Verifica registros de MONITORAMENTO.
+   *
+   * Regra atual: NÃO cria intercorrência automática.
+   * A detecção de anormalidade gera alerta médico persistente no módulo de Sinais Vitais,
+   * e o Admin/RT decide se confirma ou descarta a intercorrência.
+   */
+  private async checkMonitoramento(
+    record: DailyRecord,
+    _userId: string,
+  ): Promise<void> {
+    // REGRA DE NEGÓCIO:
+    // Monitoramento vital anormal NÃO deve gerar intercorrência automática.
+    // O alerta médico persistente é criado no VitalSignsService, e o Admin/RT
+    // decide posteriormente se confirma ou descarta a intercorrência.
+    this.logger.debug(
+      'MONITORAMENTO anormal processado sem criação automática de intercorrência',
+      {
+        recordId: record.id,
+        residentId: record.residentId,
+      },
+    );
+  }
+
+  /**
    * Verifica registros de ELIMINACAO para detectar:
    * - Diarreia (Indicador RDC: DIARREIA_AGUDA)
    * - Desidratação (Indicador RDC: DESIDRATACAO)
@@ -107,80 +148,156 @@ export class IncidentInterceptorService {
     record: DailyRecord,
     userId: string,
   ): Promise<void> {
-    // Obter tenant client baseado no tenantId do record
-    const tenantClient = await this.getTenantClient(record.tenantId);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: record.tenantId },
+      select: { schemaName: true, timezone: true },
+    });
+
+    if (!tenant) {
+      throw new Error(`Tenant ${record.tenantId} não encontrado`);
+    }
+
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+    const tenantTimezone = tenant.timezone || DEFAULT_TIMEZONE;
     const data = record.data as Record<string, unknown>;
 
-    // Detectar diarreia (Indicador RDC obrigatório)
-    if (data.tipo === 'Fezes') {
-      const consistencia = data.consistencia as string | undefined;
-      const consistenciaDiarreica =
-        consistencia?.toLowerCase().includes('diarr') ||
-        consistencia?.toLowerCase().includes('líquida') ||
-        consistencia?.toLowerCase().includes('liquida');
+    if (data.tipo !== 'Fezes') {
+      return;
+    }
 
-      // Critério: consistência diarréica OU múltiplas evacuações no mesmo dia
-      if (consistenciaDiarreica) {
-        await this.createAutoIncident({
-          tenantId: record.tenantId,
-          residentId: record.residentId,
-          date: record.date,
-          time: record.time,
-          userId,
-          recordedBy: record.recordedBy,
-          category: IncidentCategory.CLINICA,
-          subtypeClinical: IncidentSubtypeClinical.DOENCA_DIARREICA_AGUDA,
-          severity: IncidentSeverity.MODERADA,
-          description: `Diarreia detectada automaticamente (consistência: ${data.consistencia || 'não especificada'})`,
-          action:
-            'Monitorar hidratação, frequência das evacuações e sinais de desidratação. Comunicar enfermagem e avaliar necessidade de soro oral.',
-          rdcIndicators: [RdcIndicatorType.DIARREIA_AGUDA],
-          sourceRecordId: record.id,
-        });
+    const consistencia = data.consistencia as string | undefined;
+    if (!this.isDiarreicConsistency(consistencia)) {
+      return;
+    }
+
+    const currentOccurrenceAt = this.buildRecordTimestamp(
+      record.date,
+      record.time,
+      tenantTimezone,
+    );
+    const windowStart = new Date(currentOccurrenceAt.getTime() - 24 * 60 * 60 * 1000);
+
+    const eliminationCandidates: Array<{
+      id: string;
+      date: Date;
+      time: string;
+      data: unknown;
+    }> = await tenantClient.dailyRecord.findMany({
+      where: {
+        residentId: record.residentId,
+        type: 'ELIMINACAO',
+        date: {
+          gte: subDays(record.date, 1),
+          lte: record.date,
+        },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        date: true,
+        time: true,
+        data: true,
+      },
+    });
+
+    const diarreicEpisodesIn24h = eliminationCandidates.reduce((count, candidate) => {
+      const candidateData = candidate.data as Record<string, unknown>;
+      if (candidateData.tipo !== 'Fezes') {
+        return count;
       }
 
-      // Verificar se há múltiplas evacuações diarreicas no mesmo dia
-      const evacuacoesNoDia = await tenantClient.dailyRecord.count({
-        where: {
-          residentId: record.residentId,
-          type: 'ELIMINACAO',
-          date: record.date,
-          deletedAt: null,
+      if (!this.isDiarreicConsistency(candidateData.consistencia as string | undefined)) {
+        return count;
+      }
+
+      const candidateTimestamp = this.buildRecordTimestamp(
+        candidate.date,
+        candidate.time,
+        tenantTimezone,
+      );
+
+      if (candidateTimestamp >= windowStart && candidateTimestamp <= currentOccurrenceAt) {
+        return count + 1;
+      }
+
+      return count;
+    }, 0);
+
+    // Regra clínica: episódio único ou duplo em 24h = alerta, sem abrir intercorrência automaticamente.
+    if (diarreicEpisodesIn24h < 3) {
+      await this.createAutoClinicalAlert({
+        tenantId: record.tenantId,
+        residentId: record.residentId,
+        userId,
+        sourceRecordId: record.id,
+        title: 'Alerta clínico: evacuação diarreica',
+        message: `${diarreicEpisodesIn24h}/3 episódios diarreicos nas últimas 24h. Manter monitoramento clínico.`,
+        metadata: {
+          alertType: 'DIARRHEA_EPISODE_MONITORING',
+          episodesIn24h: diarreicEpisodesIn24h,
+          threshold: 3,
+          consistencia: consistencia || 'não especificada',
         },
       });
+      return;
+    }
 
-      if (evacuacoesNoDia >= 3 && consistenciaDiarreica) {
-        // Verificar se já não criamos um alerta de desidratação hoje
-        const desidratacaoExiste = await tenantClient.dailyRecord.findFirst({
-          where: {
-            residentId: record.residentId,
-            type: 'INTERCORRENCIA',
-            date: record.date,
-            incidentSubtypeClinical:
-              IncidentSubtypeClinical.DESIDRATACAO,
-            deletedAt: null,
-          },
-        });
+    const diarreaIncidentExists = await this.hasIncidentSubtypeInLast24Hours({
+      tenantClient,
+      residentId: record.residentId,
+      subtypeClinical: IncidentSubtypeClinical.DOENCA_DIARREICA_AGUDA,
+      referenceDate: record.date,
+      windowStart,
+      windowEnd: currentOccurrenceAt,
+      tenantTimezone,
+    });
 
-        if (!desidratacaoExiste) {
-          await this.createAutoIncident({
-            tenantId: record.tenantId,
-            residentId: record.residentId,
-            date: record.date,
-            time: record.time,
-            userId,
-            recordedBy: record.recordedBy,
-            category: IncidentCategory.CLINICA,
-            subtypeClinical: IncidentSubtypeClinical.DESIDRATACAO,
-            severity: IncidentSeverity.GRAVE,
-            description: `Risco de desidratação detectado (≥3 evacuações diarreicas no dia)`,
-            action:
-              'URGENTE: Avaliar sinais de desidratação (mucosas secas, turgor cutâneo, diurese). Iniciar reposição hídrica. Comunicar médico imediatamente.',
-            rdcIndicators: [RdcIndicatorType.DESIDRATACAO],
-            sourceRecordId: record.id,
-          });
-        }
-      }
+    if (!diarreaIncidentExists) {
+      await this.createAutoIncident({
+        tenantId: record.tenantId,
+        residentId: record.residentId,
+        date: record.date,
+        time: record.time,
+        userId,
+        recordedBy: record.recordedBy,
+        category: IncidentCategory.CLINICA,
+        subtypeClinical: IncidentSubtypeClinical.DOENCA_DIARREICA_AGUDA,
+        severity: IncidentSeverity.MODERADA,
+        description: 'Doença diarreica aguda detectada automaticamente (≥3 episódios em 24h)',
+        action:
+          'Monitorar hidratação, frequência das evacuações e sinais de desidratação. Comunicar enfermagem e avaliar necessidade de soro oral.',
+        rdcIndicators: [RdcIndicatorType.DIARREIA_AGUDA],
+        sourceRecordId: record.id,
+      });
+    }
+
+    const dehydrationIncidentExists = await this.hasIncidentSubtypeInLast24Hours({
+      tenantClient,
+      residentId: record.residentId,
+      subtypeClinical: IncidentSubtypeClinical.DESIDRATACAO,
+      referenceDate: record.date,
+      windowStart,
+      windowEnd: currentOccurrenceAt,
+      tenantTimezone,
+    });
+
+    if (!dehydrationIncidentExists) {
+      await this.createAutoIncident({
+        tenantId: record.tenantId,
+        residentId: record.residentId,
+        date: record.date,
+        time: record.time,
+        userId,
+        recordedBy: record.recordedBy,
+        category: IncidentCategory.CLINICA,
+        subtypeClinical: IncidentSubtypeClinical.DESIDRATACAO,
+        severity: IncidentSeverity.GRAVE,
+        description: 'Risco de desidratação detectado (≥3 episódios diarreicos em 24h)',
+        action:
+          'URGENTE: Avaliar sinais de desidratação (mucosas secas, turgor cutâneo, diurese). Iniciar reposição hídrica. Comunicar médico imediatamente.',
+        rdcIndicators: [RdcIndicatorType.DESIDRATACAO],
+        sourceRecordId: record.id,
+      });
     }
   }
 
@@ -419,6 +536,158 @@ export class IncidentInterceptorService {
     }
   }
 
+  private isDiarreicConsistency(consistency?: string): boolean {
+    if (!consistency) {
+      return false;
+    }
+
+    const normalized = consistency.toLowerCase();
+    return (
+      normalized.includes('diarr') ||
+      normalized.includes('líquida') ||
+      normalized.includes('liquida')
+    );
+  }
+
+  private normalizeRecordTime(time?: string | null): string {
+    if (!time) {
+      return '00:00';
+    }
+
+    return /^([0-1]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '00:00';
+  }
+
+  private buildRecordTimestamp(
+    date: Date,
+    time: string | null | undefined,
+    tenantTimezone: string,
+  ): Date {
+    return localToUTC(
+      formatDateOnly(date),
+      this.normalizeRecordTime(time),
+      tenantTimezone,
+    );
+  }
+
+  private async hasIncidentSubtypeInLast24Hours(params: {
+    tenantClient: TenantClientForIncidentWindowCheck;
+    residentId: string;
+    subtypeClinical: IncidentSubtypeClinical;
+    referenceDate: Date;
+    windowStart: Date;
+    windowEnd: Date;
+    tenantTimezone: string;
+  }): Promise<boolean> {
+    const {
+      tenantClient,
+      residentId,
+      subtypeClinical,
+      referenceDate,
+      windowStart,
+      windowEnd,
+      tenantTimezone,
+    } = params;
+
+    const incidentCandidates: Array<{
+      id: string;
+      date: Date;
+      time: string;
+    }> = await tenantClient.dailyRecord.findMany({
+      where: {
+        residentId,
+        type: 'INTERCORRENCIA',
+        incidentSubtypeClinical: subtypeClinical,
+        date: {
+          gte: subDays(referenceDate, 1),
+          lte: referenceDate,
+        },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        date: true,
+        time: true,
+      },
+    });
+
+    return incidentCandidates.some((incident) => {
+      const incidentTimestamp = this.buildRecordTimestamp(
+        incident.date,
+        incident.time,
+        tenantTimezone,
+      );
+      return incidentTimestamp >= windowStart && incidentTimestamp <= windowEnd;
+    });
+  }
+
+  private async createAutoClinicalAlert(params: {
+    tenantId: string;
+    residentId: string;
+    userId: string;
+    sourceRecordId: string;
+    title: string;
+    message: string;
+    severity?: NotificationSeverity;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    const {
+      tenantId,
+      residentId,
+      userId,
+      sourceRecordId,
+      title,
+      message,
+      severity = NotificationSeverity.WARNING,
+      metadata,
+    } = params;
+
+    try {
+      const tenantClient = await this.getTenantClient(tenantId);
+      const resident = await tenantClient.resident.findUnique({
+        where: { id: residentId },
+        select: { fullName: true },
+      });
+
+      if (!resident) {
+        return;
+      }
+
+      const recipientIds =
+        await this.notificationsService.getIncidentNotificationRecipients(
+          tenantId,
+          userId,
+        );
+
+      await this.notificationsService.createDirectedNotification(
+        tenantId,
+        recipientIds,
+        {
+          type: SystemNotificationType.INCIDENT_RDC_INDICATOR_ALERT,
+          category: NotificationCategory.INCIDENT,
+          severity,
+          title,
+          message: `${resident.fullName}: ${message}`,
+          actionUrl: `/dashboard/intercorrencias/${residentId}`,
+          entityType: 'DAILY_RECORD',
+          entityId: sourceRecordId,
+          metadata: {
+            residentId,
+            residentName: resident.fullName,
+            alertOnly: true,
+            ...metadata,
+          },
+        },
+      );
+    } catch (error) {
+      this.logger.error('Erro ao criar alerta clínico automático', {
+        error: error.message,
+        stack: error.stack,
+        tenantId,
+        residentId,
+      });
+    }
+  }
+
   /**
    * Cria uma intercorrência automática com base na detecção
    */
@@ -437,6 +706,8 @@ export class IncidentInterceptorService {
     action: string;
     rdcIndicators: RdcIndicatorType[];
     sourceRecordId: string;
+    dedupeBySourceRecord?: boolean;
+    additionalData?: Record<string, unknown>;
   }): Promise<void> {
     const {
       tenantId,
@@ -453,6 +724,8 @@ export class IncidentInterceptorService {
       action,
       rdcIndicators,
       sourceRecordId,
+      dedupeBySourceRecord = false,
+      additionalData,
     } = params;
 
     // Obter tenant client usando getTenantClient
@@ -460,15 +733,28 @@ export class IncidentInterceptorService {
 
     // Verificar se já não existe uma intercorrência idêntica
     const existingIncident = await tenantClient.dailyRecord.findFirst({
-      where: {
-        residentId,
-        type: 'INTERCORRENCIA',
-        date,
-        incidentCategory: category,
-        ...(subtypeClinical && { incidentSubtypeClinical: subtypeClinical }),
-        ...(subtypeAssist && { incidentSubtypeAssist: subtypeAssist }),
-        deletedAt: null,
-      },
+      where: dedupeBySourceRecord
+        ? {
+            residentId,
+            type: 'INTERCORRENCIA',
+            incidentCategory: category,
+            ...(subtypeClinical && { incidentSubtypeClinical: subtypeClinical }),
+            ...(subtypeAssist && { incidentSubtypeAssist: subtypeAssist }),
+            data: {
+              path: ['registroOrigemId'],
+              equals: sourceRecordId,
+            },
+            deletedAt: null,
+          }
+        : {
+            residentId,
+            type: 'INTERCORRENCIA',
+            date,
+            incidentCategory: category,
+            ...(subtypeClinical && { incidentSubtypeClinical: subtypeClinical }),
+            ...(subtypeAssist && { incidentSubtypeAssist: subtypeAssist }),
+            deletedAt: null,
+          },
     });
 
     if (existingIncident) {
@@ -514,6 +800,7 @@ export class IncidentInterceptorService {
           acaoTomada: action,
           deteccaoAutomatica: true,
           registroOrigemId: sourceRecordId,
+          ...(additionalData || {}),
         },
         incidentCategory: category,
         incidentSubtypeClinical: subtypeClinical,
@@ -573,7 +860,7 @@ export class IncidentInterceptorService {
             severity: notificationSeverity,
             title: 'Intercorrência Detectada Automaticamente',
             message: `${resident.fullName}: ${formattedSubtype}`,
-            actionUrl: `/dashboard/registros-diarios`,
+            actionUrl: `/dashboard/intercorrencias/${residentId}`,
             entityType: 'DAILY_RECORD',
             entityId: incidentRecord.id,
             metadata: {

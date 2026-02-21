@@ -152,7 +152,7 @@ export class DailyRecordsService {
             severity: notificationSeverity,
             title: 'Intercorrência Registrada',
             message: `${resident.fullName}: ${description}`,
-            actionUrl: `/dashboard/registros-diarios`,
+            actionUrl: `/dashboard/intercorrencias/${dto.residentId}`,
             entityType: 'DAILY_RECORD',
             entityId: record.id,
             metadata: {

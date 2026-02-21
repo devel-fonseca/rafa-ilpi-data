@@ -515,9 +515,34 @@ export class VitalSignsService {
       );
       if (recipientIds.length === 0) return;
 
-      // Pressão Arterial Sistólica
-      if (data.systolicBloodPressure !== undefined && data.systolicBloodPressure !== null) {
-        if (data.systolicBloodPressure >= 160 || data.systolicBloodPressure < 80) {
+      // Pressão arterial (sistólica/diastólica)
+      const systolic =
+        data.systolicBloodPressure !== undefined && data.systolicBloodPressure !== null
+          ? data.systolicBloodPressure
+          : null;
+      const diastolic =
+        data.diastolicBloodPressure !== undefined && data.diastolicBloodPressure !== null
+          ? data.diastolicBloodPressure
+          : null;
+
+      if (systolic !== null || diastolic !== null) {
+        const hasCriticalPressure =
+          (systolic !== null && (systolic >= 160 || systolic < 80)) ||
+          (diastolic !== null && (diastolic >= 100 || diastolic < 50));
+        const hasWarningPressure =
+          (systolic !== null && (systolic >= 140 || systolic <= 90)) ||
+          (diastolic !== null && (diastolic >= 90 || diastolic < 60));
+        const isHighPressure =
+          (systolic !== null && systolic >= 140) ||
+          (diastolic !== null && diastolic >= 90);
+        const pressureValue =
+          systolic !== null && diastolic !== null
+            ? `${systolic}/${diastolic} mmHg`
+            : systolic !== null
+              ? `${systolic} mmHg`
+              : `${diastolic} mmHg`;
+
+        if (hasCriticalPressure) {
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -526,21 +551,18 @@ export class VitalSignsService {
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
             title: 'Pressão Arterial Crítica',
-            message: `Pressão arterial sistólica crítica detectada para ${residentName}: ${data.systolicBloodPressure} mmHg`,
+            message: `Pressão arterial crítica detectada para ${residentName}: ${pressureValue}`,
             actionUrl: `/dashboard/residentes/${residentId}`,
             entityType: 'VITAL_SIGN',
             entityId: vitalSignId,
-            metadata: { residentName, vitalType: 'Pressão Arterial', value: `${data.systolicBloodPressure} mmHg` },
+            metadata: { residentName, vitalType: 'Pressão Arterial', value: pressureValue },
           });
-          this.logger.warn('Notificação criada: PA Crítica', { residentName, value: data.systolicBloodPressure });
+          this.logger.warn('Notificação criada: PA Crítica', { residentName, value: pressureValue });
 
           // Criar alerta médico persistente
-          const alertType = data.systolicBloodPressure >= 160
+          const alertType = isHighPressure
             ? VitalSignAlertType.PRESSURE_HIGH
             : VitalSignAlertType.PRESSURE_LOW;
-          const valueStr = data.diastolicBloodPressure
-            ? `${data.systolicBloodPressure}/${data.diastolicBloodPressure} mmHg`
-            : `${data.systolicBloodPressure} mmHg`;
 
           await this.vitalSignAlertsService.create({
             residentId,
@@ -549,17 +571,17 @@ export class VitalSignsService {
             type: alertType,
             severity: AlertSeverity.CRITICAL,
             title: 'Pressão Arterial Crítica',
-            description: `Pressão arterial sistólica crítica: ${valueStr}. Valores normais: 90-140 mmHg.`,
-            value: valueStr,
+            description: `Pressão arterial crítica: ${pressureValue}. Faixa esperada aproximada: PAS 90-140 e PAD 60-90 mmHg.`,
+            value: pressureValue,
             metadata: {
-              threshold: data.systolicBloodPressure >= 160 ? '≥160 mmHg' : '<80 mmHg',
-              expectedRange: '90-140 mmHg',
+              threshold: isHighPressure ? 'PAS≥160 ou PAD≥100 mmHg' : 'PAS<80 ou PAD<50 mmHg',
+              expectedRange: 'PAS 90-140 mmHg / PAD 60-90 mmHg',
               detectedAt: new Date(),
-              systolic: data.systolicBloodPressure,
-              diastolic: data.diastolicBloodPressure,
+              systolic,
+              diastolic,
             },
           }, actorUserId);
-        } else if (data.systolicBloodPressure >= 140 || data.systolicBloodPressure < 90) {
+        } else if (hasWarningPressure) {
           const notification = await this.notificationsService.createDirectedNotification(
             this.tenantContext.tenantId,
             recipientIds,
@@ -568,21 +590,18 @@ export class VitalSignsService {
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
             title: 'Pressão Arterial Anormal',
-            message: `Pressão arterial sistólica anormal detectada para ${residentName}: ${data.systolicBloodPressure} mmHg`,
+            message: `Pressão arterial anormal detectada para ${residentName}: ${pressureValue}`,
             actionUrl: `/dashboard/residentes/${residentId}`,
             entityType: 'VITAL_SIGN',
             entityId: vitalSignId,
-            metadata: { residentName, vitalType: 'Pressão Arterial', value: `${data.systolicBloodPressure} mmHg` },
+            metadata: { residentName, vitalType: 'Pressão Arterial', value: pressureValue },
           });
-          this.logger.warn('Notificação criada: PA Anormal', { residentName, value: data.systolicBloodPressure });
+          this.logger.warn('Notificação criada: PA Anormal', { residentName, value: pressureValue });
 
           // Criar alerta médico persistente
-          const alertType = data.systolicBloodPressure >= 140
+          const alertType = isHighPressure
             ? VitalSignAlertType.PRESSURE_HIGH
             : VitalSignAlertType.PRESSURE_LOW;
-          const valueStr = data.diastolicBloodPressure
-            ? `${data.systolicBloodPressure}/${data.diastolicBloodPressure} mmHg`
-            : `${data.systolicBloodPressure} mmHg`;
 
           await this.vitalSignAlertsService.create({
             residentId,
@@ -591,14 +610,14 @@ export class VitalSignsService {
             type: alertType,
             severity: AlertSeverity.WARNING,
             title: 'Pressão Arterial Anormal',
-            description: `Pressão arterial sistólica elevada/baixa: ${valueStr}. Valores normais: 90-140 mmHg.`,
-            value: valueStr,
+            description: `Pressão arterial fora da faixa esperada: ${pressureValue}. Faixa esperada aproximada: PAS 90-140 e PAD 60-90 mmHg.`,
+            value: pressureValue,
             metadata: {
-              threshold: data.systolicBloodPressure >= 140 ? '≥140 mmHg' : '<90 mmHg',
-              expectedRange: '90-140 mmHg',
+              threshold: isHighPressure ? 'PAS≥140 ou PAD≥90 mmHg' : 'PAS≤90 ou PAD<60 mmHg',
+              expectedRange: 'PAS 90-140 mmHg / PAD 60-90 mmHg',
               detectedAt: new Date(),
-              systolic: data.systolicBloodPressure,
-              diastolic: data.diastolicBloodPressure,
+              systolic,
+              diastolic,
             },
           }, actorUserId);
         }

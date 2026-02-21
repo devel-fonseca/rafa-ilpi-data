@@ -16,6 +16,7 @@ import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
 import { VitalSignAlertsService } from './vital-sign-alerts.service'
 import {
   CreateVitalSignAlertDto,
+  DecideVitalSignAlertIncidentDto,
   UpdateVitalSignAlertDto,
   QueryVitalSignAlertsDto,
 } from './dto'
@@ -93,6 +94,34 @@ export class VitalSignAlertsController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.vitalSignAlertsService.update(id, dto, user.id)
+  }
+
+  /**
+   * POST /vital-sign-alerts/:id/confirm-incident
+   * Confirma que o alerta representa uma intercorrência e gera registro
+   */
+  @Post(':id/confirm-incident')
+  @AuditAction('UPDATE')
+  async confirmIncident(
+    @Param('id') id: string,
+    @Body() dto: DecideVitalSignAlertIncidentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.vitalSignAlertsService.confirmIncident(id, dto, user.id)
+  }
+
+  /**
+   * POST /vital-sign-alerts/:id/dismiss-incident
+   * Descarta a conversão para intercorrência e mantém somente o alerta
+   */
+  @Post(':id/dismiss-incident')
+  @AuditAction('UPDATE')
+  async dismissIncident(
+    @Param('id') id: string,
+    @Body() dto: DecideVitalSignAlertIncidentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.vitalSignAlertsService.dismissIncident(id, dto, user.id)
   }
 
   /**
