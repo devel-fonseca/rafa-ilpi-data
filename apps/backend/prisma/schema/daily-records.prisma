@@ -233,6 +233,18 @@ model IncidentMonthlyIndicator {
   numerator   Int // Casos identificados
   denominator Int // Total de residentes (média do mês)
   rate        Float // Taxa calculada (numerator/denominator * 100)
+  provisionalNumerator Int @default(0) // Numerador provisório (antes da revisão)
+  totalCandidates      Int @default(0) // Casos candidatos no período
+  pendingCount         Int @default(0) // Casos pendentes de decisão
+  confirmedCount       Int @default(0) // Casos confirmados na revisão
+  discardedCount       Int @default(0) // Casos descartados na revisão
+
+  populationReferenceDate DateTime? @db.Date // População do dia 15 (nota do anexo RDC)
+  periodStatus            String    @default("OPEN") @db.VarChar(20) // OPEN | CLOSED
+  periodClosedAt          DateTime? @db.Timestamptz(3)
+  periodClosedBy          String?   @db.VarChar(100) // Stored for reference, no FK (cross-schema)
+  periodClosedByName      String?   @db.VarChar(255)
+  periodCloseNote         String?   @db.Text
 
   incidentIds Json  @default("[]") // Array de UUIDs
   metadata    Json? @db.JsonB
@@ -240,13 +252,42 @@ model IncidentMonthlyIndicator {
   calculatedAt DateTime @default(now()) @db.Timestamptz(3)
   calculatedBy String?  @db.Uuid // Stored for reference, no FK (cross-schema)
 
+  reviews IncidentMonthlyIndicatorReview[]
+
   // Sem relações - ambos tenantId e calculatedBy são apenas para auditoria
   // Não podem ter FKs devido a cross-schema constraints
 
   @@unique([tenantId, year, month, indicatorType])
   @@index([tenantId, year(sort: Desc), month(sort: Desc)])
+  @@index([tenantId, year(sort: Desc), month(sort: Desc), periodStatus])
+  @@index([tenantId, periodStatus])
   @@index([indicatorType])
   @@map("incident_monthly_indicators")
+}
+
+model IncidentMonthlyIndicatorReview {
+  id          String @id @default(uuid()) @db.Uuid
+  tenantId    String @db.Uuid
+  indicatorId String @db.Uuid
+  incidentId  String @db.Uuid // daily_records.id
+
+  decision String @db.VarChar(20) // CONFIRMED | DISCARDED
+  reason   String? @db.Text
+
+  decidedAt     DateTime @db.Timestamptz(3)
+  decidedBy     String?  @db.VarChar(100) // Stored for reference, no FK (cross-schema)
+  decidedByName String?  @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  indicator IncidentMonthlyIndicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+
+  @@unique([indicatorId, incidentId])
+  @@index([tenantId, indicatorId])
+  @@index([tenantId, incidentId])
+  @@index([tenantId, decision])
+  @@map("incident_monthly_indicator_reviews")
 }
 
 // Rastreamento de notificações à vigilância (Eventos Sentinela)

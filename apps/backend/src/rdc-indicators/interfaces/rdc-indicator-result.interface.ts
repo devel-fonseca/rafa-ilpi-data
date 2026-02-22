@@ -10,6 +10,17 @@ export interface RdcIndicatorResult {
   incidentIds: string[];
   metadata: Prisma.JsonValue;
   calculatedAt: Date;
+  provisionalNumerator: number;
+  totalCandidates: number;
+  pendingCount: number;
+  confirmedCount: number;
+  discardedCount: number;
+  populationReferenceDate: string | null;
+  periodStatus: 'OPEN' | 'CLOSED';
+  periodClosedAt: string | null;
+  periodClosedBy: string | null;
+  periodClosedByName: string | null;
+  periodCloseNote: string | null;
 }
 
 /**
