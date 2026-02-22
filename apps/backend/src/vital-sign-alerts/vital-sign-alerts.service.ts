@@ -777,7 +777,17 @@ export class VitalSignAlertsService {
     }
   }
 
-  private mapAlertTypeToIncidentSubtype(type: VitalSignAlertType): IncidentSubtypeClinical {
+  private mapAlertTypeToIncidentSubtype(
+    type: VitalSignAlertType,
+    metadata: Record<string, unknown>,
+  ): IncidentSubtypeClinical {
+    if (
+      type === VitalSignAlertType.DIARRHEA_EPISODE_MONITORING &&
+      metadata.incidentSubtypeClinical === IncidentSubtypeClinical.DESIDRATACAO
+    ) {
+      return IncidentSubtypeClinical.DESIDRATACAO
+    }
+
     switch (type) {
       case VitalSignAlertType.GLUCOSE_HIGH:
         return IncidentSubtypeClinical.HIPERGLICEMIA
@@ -804,7 +814,14 @@ export class VitalSignAlertsService {
     }
   }
 
-  private mapAlertTypeToRdcIndicators(type: VitalSignAlertType): RdcIndicatorType[] {
+  private mapAlertTypeToRdcIndicators(
+    type: VitalSignAlertType,
+    metadata: Record<string, unknown>,
+  ): RdcIndicatorType[] {
+    if (metadata.rdcIndicator === RdcIndicatorType.DESIDRATACAO) {
+      return [RdcIndicatorType.DESIDRATACAO]
+    }
+
     switch (type) {
       case VitalSignAlertType.DIARRHEA_EPISODE_MONITORING:
         return [RdcIndicatorType.DIARREIA_AGUDA]
@@ -867,9 +884,9 @@ export class VitalSignAlertsService {
     dto: DecideVitalSignAlertIncidentDto,
     userId: string,
   ) {
-    const subtypeClinical = this.mapAlertTypeToIncidentSubtype(alert.type)
-    const incidentSeverity = this.mapAlertSeverityToIncidentSeverity(alert.severity)
     const metadata = this.getAlertMetadata(alert.metadata)
+    const subtypeClinical = this.mapAlertTypeToIncidentSubtype(alert.type, metadata)
+    const incidentSeverity = this.mapAlertSeverityToIncidentSeverity(alert.severity)
 
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: this.tenantContext.tenantId },
@@ -897,7 +914,7 @@ export class VitalSignAlertsService {
       dto.actionTaken?.trim() ||
       'Registrar conduta, manter monitoramento e reavaliar parâmetros em intervalo clínico adequado.'
 
-    const rdcIndicators = this.mapAlertTypeToRdcIndicators(alert.type)
+    const rdcIndicators = this.mapAlertTypeToRdcIndicators(alert.type, metadata)
 
     const incidentData: Record<string, unknown> = {
       descricao: description,

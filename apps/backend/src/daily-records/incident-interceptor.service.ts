@@ -227,13 +227,16 @@ export class IncidentInterceptorService {
       return count;
     }, 0);
 
-    // Regra clínica: episódio único ou duplo em 24h = alerta, sem abrir intercorrência automaticamente.
+    const dayKey = formatDateOnly(record.date);
+
+    // Regra clínica: episódio único ou duplo em 24h = alerta de monitoramento, sem abrir intercorrência automaticamente.
     if (diarreicEpisodesIn24h < 3) {
       await this.createAutoClinicalAlert({
         tenantId: record.tenantId,
         residentId: record.residentId,
         userId,
         sourceRecordId: record.id,
+        dedupeKey: `DIARRHEA_MONITORING_UNDER_THRESHOLD:${record.residentId}:${dayKey}`,
         title: 'Alerta clínico: evacuação diarreica',
         message: `${diarreicEpisodesIn24h}/3 episódios diarreicos nas últimas 24h. Manter monitoramento clínico.`,
         alertType: VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
@@ -243,6 +246,8 @@ export class IncidentInterceptorService {
           episodesIn24h: diarreicEpisodesIn24h,
           threshold: 3,
           consistencia: consistencia || 'não especificada',
+          rdcIndicatorCandidate: RdcIndicatorType.DIARREIA_AGUDA,
+          monitoringWindowHours: 24,
         },
       });
       return;
@@ -258,22 +263,30 @@ export class IncidentInterceptorService {
       tenantTimezone,
     });
 
+    // Regra atual: >=3 episódios em 24h gera ALERTA persistido e requer decisão RT/Admin.
     if (!diarreaIncidentExists) {
-      await this.createAutoIncident({
+      await this.createAutoClinicalAlert({
         tenantId: record.tenantId,
         residentId: record.residentId,
-        date: record.date,
-        time: record.time,
         userId,
-        recordedBy: record.recordedBy,
-        category: IncidentCategory.CLINICA,
-        subtypeClinical: IncidentSubtypeClinical.DOENCA_DIARREICA_AGUDA,
-        severity: IncidentSeverity.MODERADA,
-        description: 'Doença diarreica aguda detectada automaticamente (≥3 episódios em 24h)',
-        action:
-          'Monitorar hidratação, frequência das evacuações e sinais de desidratação. Comunicar enfermagem e avaliar necessidade de soro oral.',
-        rdcIndicators: [RdcIndicatorType.DIARREIA_AGUDA],
         sourceRecordId: record.id,
+        dedupeKey: `DIARRHEA_MONITORING_THRESHOLD_REACHED:${record.residentId}:${dayKey}`,
+        title: 'Suspeita de doença diarreica aguda',
+        message:
+          `${diarreicEpisodesIn24h} episódios diarreicos nas últimas 24h (limiar: 3). ` +
+          'Avaliar e confirmar se configura intercorrência clínica.',
+        alertType: VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
+        alertValue: `${diarreicEpisodesIn24h}/3 episódios em 24h`,
+        severity: NotificationSeverity.WARNING,
+        metadata: {
+          alertType: VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
+          episodesIn24h: diarreicEpisodesIn24h,
+          threshold: 3,
+          consistencia: consistencia || 'não especificada',
+          rdcIndicator: RdcIndicatorType.DIARREIA_AGUDA,
+          monitoringWindowHours: 24,
+          thresholdReached: true,
+        },
       });
     }
 
@@ -288,21 +301,30 @@ export class IncidentInterceptorService {
     });
 
     if (!dehydrationIncidentExists) {
-      await this.createAutoIncident({
+      await this.createAutoClinicalAlert({
         tenantId: record.tenantId,
         residentId: record.residentId,
-        date: record.date,
-        time: record.time,
         userId,
-        recordedBy: record.recordedBy,
-        category: IncidentCategory.CLINICA,
-        subtypeClinical: IncidentSubtypeClinical.DESIDRATACAO,
-        severity: IncidentSeverity.GRAVE,
-        description: 'Risco de desidratação detectado (≥3 episódios diarreicos em 24h)',
-        action:
-          'URGENTE: Avaliar sinais de desidratação (mucosas secas, turgor cutâneo, diurese). Iniciar reposição hídrica. Comunicar médico imediatamente.',
-        rdcIndicators: [RdcIndicatorType.DESIDRATACAO],
         sourceRecordId: record.id,
+        dedupeKey: `DEHYDRATION_RISK_THRESHOLD_REACHED:${record.residentId}:${dayKey}`,
+        title: 'Risco de desidratação associado à diarreia',
+        message:
+          `${diarreicEpisodesIn24h} episódios diarreicos nas últimas 24h. ` +
+          'Avaliar sinais de desidratação e confirmar intercorrência clínica se pertinente.',
+        alertType: VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
+        alertValue: `${diarreicEpisodesIn24h} episódios / 24h`,
+        severity: NotificationSeverity.CRITICAL,
+        metadata: {
+          alertType: VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
+          clinicalContext: 'DEHYDRATION_RISK',
+          incidentSubtypeClinical: IncidentSubtypeClinical.DESIDRATACAO,
+          episodesIn24h: diarreicEpisodesIn24h,
+          threshold: 3,
+          consistencia: consistencia || 'não especificada',
+          rdcIndicator: RdcIndicatorType.DESIDRATACAO,
+          monitoringWindowHours: 24,
+          thresholdReached: true,
+        },
       });
     }
   }

@@ -11,7 +11,12 @@ import { CreateClinicalNoteDto } from './dto/create-clinical-note.dto'
 import { UpdateClinicalNoteDto } from './dto/update-clinical-note.dto'
 import { QueryClinicalNoteDto } from './dto/query-clinical-note.dto'
 import { DeleteClinicalNoteDto } from './dto/delete-clinical-note.dto'
-import { ClinicalNote, Prisma } from '@prisma/client'
+import {
+  ClinicalNote,
+  IncidentSubtypeClinical,
+  Prisma,
+  RdcIndicatorType,
+} from '@prisma/client'
 import {
   ClinicalProfession,
   isAuthorizedForProfession,
@@ -927,10 +932,25 @@ export class ClinicalNotesService {
       }
     }
 
+    const alertMetadata =
+      alert.metadata && typeof alert.metadata === 'object' && !Array.isArray(alert.metadata)
+        ? (alert.metadata as Record<string, unknown>)
+        : {}
+    const isDehydrationContext =
+      alert.type === 'DIARRHEA_EPISODE_MONITORING' &&
+      (alertMetadata.clinicalContext === 'DEHYDRATION_RISK' ||
+        alertMetadata.incidentSubtypeClinical === IncidentSubtypeClinical.DESIDRATACAO ||
+        alertMetadata.rdcIndicator === RdcIndicatorType.DESIDRATACAO)
+
     if (alert.type === 'DIARRHEA_EPISODE_MONITORING') {
       suggestedTags.push('Gastrointestinal')
       suggestedTags.push('Risco de desidratação')
-      suggestedTags.push('Doença diarreica aguda')
+      if (isDehydrationContext) {
+        suggestedTags.push('Hidratação')
+        suggestedTags.push('Desidratação')
+      } else {
+        suggestedTags.push('Doença diarreica aguda')
+      }
     }
     if (alert.type === 'DESNUTRITION_RISK_MONITORING') {
       suggestedTags.push('Nutrição')
