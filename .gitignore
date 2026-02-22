@@ -58,6 +58,7 @@ $RECYCLE.BIN/
 # Prisma
 *.db
 *.db-journal
+apps/backend/prisma/schema-merged.prisma
 
 # Docker volumes
 docker-data/
