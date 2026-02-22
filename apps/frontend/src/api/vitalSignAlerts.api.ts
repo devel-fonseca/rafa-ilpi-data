@@ -11,6 +11,7 @@ export enum VitalSignAlertType {
   OXYGEN_LOW = 'OXYGEN_LOW',
   HEART_RATE_HIGH = 'HEART_RATE_HIGH',
   HEART_RATE_LOW = 'HEART_RATE_LOW',
+  DIARRHEA_EPISODE_MONITORING = 'DIARRHEA_EPISODE_MONITORING',
 }
 
 export enum AlertSeverity {
@@ -27,6 +28,20 @@ export enum AlertStatus {
   IGNORED = 'IGNORED',
 }
 
+const NON_VITAL_ALERT_TYPES = new Set<VitalSignAlertType>([
+  VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
+])
+
+export function isNonVitalClinicalAlertType(
+  type?: VitalSignAlertType | null,
+): boolean {
+  return !!type && NON_VITAL_ALERT_TYPES.has(type)
+}
+
+export function isVitalSignAlertType(type?: VitalSignAlertType | null): boolean {
+  return !!type && !NON_VITAL_ALERT_TYPES.has(type)
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // TYPES
 // ──────────────────────────────────────────────────────────────────────────────
@@ -35,7 +50,7 @@ export interface VitalSignAlert {
   id: string
   tenantId: string
   residentId: string
-  vitalSignId: string
+  vitalSignId?: string | null
   notificationId?: string
   type: VitalSignAlertType
   severity: AlertSeverity
@@ -110,7 +125,7 @@ export interface VitalSignAlert {
 
 export interface CreateVitalSignAlertDto {
   residentId: string
-  vitalSignId: string
+  vitalSignId?: string
   notificationId?: string
   type: VitalSignAlertType
   severity: AlertSeverity

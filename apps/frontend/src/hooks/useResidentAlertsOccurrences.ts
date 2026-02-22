@@ -6,6 +6,7 @@ import {
   AlertSeverity,
   AlertStatus,
   getVitalSignAlerts,
+  isVitalSignAlertType,
   type VitalSignAlert,
 } from '@/api/vitalSignAlerts.api'
 import type { DailyRecord } from '@/api/dailyRecords.api'
@@ -17,6 +18,7 @@ export interface ResidentClinicalEvent {
   id: string
   source: ResidentClinicalEventSource
   alertId?: string
+  alertScope?: 'VITAL' | 'CLINICAL'
   timestamp: string
   title: string
   description: string
@@ -128,17 +130,23 @@ export function useResidentAlertsOccurrences({
       (alert) => !isAlertConvertedToIncident(alert),
     )
 
-    const vitalAlertEvents: ResidentClinicalEvent[] = visibleVitalAlerts.map((alert) => ({
-      id: `vital-${alert.id}`,
-      source: 'VITAL_ALERT',
-      alertId: alert.id,
-      timestamp: String(alert.createdAt),
-      title: alert.title || 'Alerta de sinais vitais',
-      description: alert.description || 'Alerta clínico registrado',
-      severity: alert.severity,
-      status: alert.status,
-      value: alert.value,
-    }))
+    const vitalAlertEvents: ResidentClinicalEvent[] = visibleVitalAlerts.map((alert) => {
+      const isVitalAlert = isVitalSignAlertType(alert.type)
+      return {
+        id: `vital-${alert.id}`,
+        source: 'VITAL_ALERT',
+        alertId: alert.id,
+        alertScope: isVitalAlert ? 'VITAL' : 'CLINICAL',
+        timestamp: String(alert.createdAt),
+        title:
+          alert.title ||
+          (isVitalAlert ? 'Alerta de sinais vitais' : 'Alerta clínico'),
+        description: alert.description || 'Alerta clínico registrado',
+        severity: alert.severity,
+        status: alert.status,
+        value: alert.value,
+      }
+    })
 
     const intercurrenciaEvents: ResidentClinicalEvent[] = (intercurrenciasQuery.data ?? []).map((record) => ({
       id: `intercorrencia-${record.id}`,

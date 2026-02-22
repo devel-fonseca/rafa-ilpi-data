@@ -38,7 +38,12 @@ import {
 import { useVitalSignAlerts } from '@/hooks/useVitalSignAlerts'
 import { ManageAlertDialog } from './ManageAlertDialog'
 import type { VitalSignAlert } from '@/api/vitalSignAlerts.api'
-import { AlertStatus, AlertSeverity, VitalSignAlertType } from '@/api/vitalSignAlerts.api'
+import {
+  AlertStatus,
+  AlertSeverity,
+  VitalSignAlertType,
+  isVitalSignAlertType,
+} from '@/api/vitalSignAlerts.api'
 import { api } from '@/services/api'
 import { tenantKey } from '@/lib/query-keys'
 
@@ -179,6 +184,8 @@ function mapAlertTypeToTag(type?: VitalSignAlertType): string {
       return 'HR'
     case VitalSignAlertType.OXYGEN_LOW:
       return 'OXYGEN'
+    case VitalSignAlertType.DIARRHEA_EPISODE_MONITORING:
+      return 'GI'
     default:
       return 'GENERIC'
   }
@@ -325,7 +332,10 @@ export function VitalSignsAlerts({ residentId, periodDays = 7 }: VitalSignsAlert
     page: 1,
     limit: 100,
   })
-  const alerts = useMemo(() => alertsResponse?.data ?? [], [alertsResponse?.data])
+  const alerts = useMemo(
+    () => (alertsResponse?.data ?? []).filter((alert) => isVitalSignAlertType(alert.type)),
+    [alertsResponse?.data],
+  )
 
   const { data: recordsEvents = [], isLoading: isLoadingRecords, error: recordsError } = useQuery({
     queryKey: tenantKey('vital-signs', 'record-alerts', residentId, String(periodDays)),
@@ -682,6 +692,8 @@ export function VitalSignsAlerts({ residentId, periodDays = 7 }: VitalSignsAlert
       case VitalSignAlertType.GLUCOSE_HIGH:
       case VitalSignAlertType.GLUCOSE_LOW:
         return <TrendingUp className="h-4 w-4" />
+      case VitalSignAlertType.DIARRHEA_EPISODE_MONITORING:
+        return <AlertTriangle className="h-4 w-4" />
       default:
         return <AlertTriangle className="h-4 w-4" />
     }

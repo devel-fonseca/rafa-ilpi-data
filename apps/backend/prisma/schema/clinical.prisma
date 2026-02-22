@@ -86,7 +86,7 @@ model Allergy {
   severity  AllergySeverity?
 
   // Observações
-  notes String? @db.Text
+  notes             String? @db.Text
   contraindications String? @db.Text // Indicação de contraindicações assistenciais
 
   // Auditoria e Versionamento
@@ -150,9 +150,9 @@ model Condition {
   residentId String @db.Uuid
 
   // Dados do diagnóstico
-  condition String // Nome da condição
-  icdCode   String? @db.VarChar(10) // CID-10 (opcional)
-  notes     String? @db.Text // Observações clínicas
+  condition         String // Nome da condição
+  icdCode           String? @db.VarChar(10) // CID-10 (opcional)
+  notes             String? @db.Text // Observações clínicas
   contraindications String? @db.Text // Indicação de contraindicações assistenciais
 
   // Auditoria e Versionamento
@@ -216,10 +216,10 @@ model DietaryRestriction {
   residentId String @db.Uuid
 
   // Dados da restrição
-  restrictionType RestrictionType
-  description     String // Ex: "Sem glúten", "Dieta hipossódica"
-  notes           String?         @db.Text // Observações do nutricionista
-  contraindications String? @db.Text // Indicação de contraindicações assistenciais
+  restrictionType   RestrictionType
+  description       String // Ex: "Sem glúten", "Dieta hipossódica"
+  notes             String?         @db.Text // Observações do nutricionista
+  contraindications String?         @db.Text // Indicação de contraindicações assistenciais
 
   // Auditoria e Versionamento
   versionNumber Int       @default(1) // Número da versão atual (incrementa a cada UPDATE)

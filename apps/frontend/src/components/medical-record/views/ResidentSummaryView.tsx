@@ -341,7 +341,11 @@ export function ResidentSummaryView({
               <div key={event.id} className="rounded-md border px-3 py-2">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <Badge variant={event.source === 'VITAL_ALERT' ? 'danger' : 'warning'} className="text-xs">
-                    {event.source === 'VITAL_ALERT' ? 'Alerta vital' : 'Intercorrência'}
+                    {event.source === 'VITAL_ALERT'
+                      ? event.alertScope === 'VITAL'
+                        ? 'Alerta vital'
+                        : 'Alerta clínico'
+                      : 'Intercorrência'}
                   </Badge>
                   <span className="text-sm font-medium">{event.title}</span>
                 </div>

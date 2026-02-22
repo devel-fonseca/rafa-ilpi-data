@@ -26,9 +26,9 @@ export class CreateVitalSignAlertDto {
   @IsNotEmpty()
   residentId: string
 
+  @IsOptional()
   @IsUUID('4')
-  @IsNotEmpty()
-  vitalSignId: string
+  vitalSignId?: string
 
   @IsOptional()
   @IsUUID('4')

@@ -2,6 +2,7 @@ import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
+  AlertSeverity,
   DailyRecord,
   IncidentCategory,
   IncidentSubtypeClinical,
@@ -11,10 +12,12 @@ import {
   NotificationCategory,
   NotificationSeverity,
   SystemNotificationType,
+  VitalSignAlertType,
 } from '@prisma/client';
 import { subDays } from 'date-fns';
 import { formatIncidentSubtype } from './utils/incident-formatters';
 import { DEFAULT_TIMEZONE, formatDateOnly, localToUTC } from '../utils/date.helpers';
+import { VitalSignAlertsService } from '../vital-sign-alerts/vital-sign-alerts.service';
 
 interface TenantClientForIncidentWindowCheck {
   dailyRecord: {
@@ -46,6 +49,7 @@ export class IncidentInterceptorService {
     private readonly prisma: PrismaService, // Para tabelas SHARED e obter tenant client
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
+    private readonly vitalSignAlertsService: VitalSignAlertsService,
   ) {}
 
   /**
@@ -232,8 +236,10 @@ export class IncidentInterceptorService {
         sourceRecordId: record.id,
         title: 'Alerta clínico: evacuação diarreica',
         message: `${diarreicEpisodesIn24h}/3 episódios diarreicos nas últimas 24h. Manter monitoramento clínico.`,
+        alertType: VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
+        alertValue: `${diarreicEpisodesIn24h}/3 episódios em 24h`,
         metadata: {
-          alertType: 'DIARRHEA_EPISODE_MONITORING',
+          alertType: VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
           episodesIn24h: diarreicEpisodesIn24h,
           threshold: 3,
           consistencia: consistencia || 'não especificada',
@@ -627,6 +633,8 @@ export class IncidentInterceptorService {
     sourceRecordId: string;
     title: string;
     message: string;
+    alertType: VitalSignAlertType;
+    alertValue?: string;
     severity?: NotificationSeverity;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
@@ -637,6 +645,8 @@ export class IncidentInterceptorService {
       sourceRecordId,
       title,
       message,
+      alertType,
+      alertValue,
       severity = NotificationSeverity.WARNING,
       metadata,
     } = params;
@@ -652,13 +662,29 @@ export class IncidentInterceptorService {
         return;
       }
 
+      const existingAlert = await tenantClient.vitalSignAlert.findFirst({
+        where: {
+          residentId,
+          type: alertType,
+          metadata: {
+            path: ['sourceRecordId'],
+            equals: sourceRecordId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (existingAlert) {
+        return;
+      }
+
       const recipientIds =
         await this.notificationsService.getIncidentNotificationRecipients(
           tenantId,
           userId,
         );
 
-      await this.notificationsService.createDirectedNotification(
+      const notification = await this.notificationsService.createDirectedNotification(
         tenantId,
         recipientIds,
         {
@@ -674,9 +700,30 @@ export class IncidentInterceptorService {
             residentId,
             residentName: resident.fullName,
             alertOnly: true,
+            alertType,
+            sourceRecordId,
             ...metadata,
           },
         },
+      );
+
+      await this.vitalSignAlertsService.create(
+        {
+          residentId,
+          notificationId: notification.id,
+          type: alertType,
+          severity: this.mapNotificationSeverityToAlertSeverity(severity),
+          title,
+          description: message,
+          value: alertValue || message,
+          metadata: {
+            detectedAt: new Date().toISOString(),
+            sourceRecordId,
+            source: 'DAILY_RECORD_INTERCEPTOR',
+            ...metadata,
+          },
+        },
+        userId,
       );
     } catch (error) {
       this.logger.error('Erro ao criar alerta clínico automático', {
@@ -685,6 +732,20 @@ export class IncidentInterceptorService {
         tenantId,
         residentId,
       });
+    }
+  }
+
+  private mapNotificationSeverityToAlertSeverity(
+    severity: NotificationSeverity,
+  ): AlertSeverity {
+    switch (severity) {
+      case NotificationSeverity.CRITICAL:
+        return AlertSeverity.CRITICAL;
+      case NotificationSeverity.INFO:
+        return AlertSeverity.INFO;
+      case NotificationSeverity.WARNING:
+      default:
+        return AlertSeverity.WARNING;
     }
   }
 

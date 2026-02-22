@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { AlertStatus } from '@/api/vitalSignAlerts.api'
+import { AlertStatus, isVitalSignAlertType } from '@/api/vitalSignAlerts.api'
 import {
   Dialog,
   DialogContent,
@@ -123,11 +123,14 @@ export function ManageAlertDialog({
     incidentDecision !== 'CONFIRMED' &&
     incidentDecision !== 'DISMISSED' &&
     !incidentRecordId
+  const alertContextLabel = alert?.type && isVitalSignAlertType(alert.type)
+    ? 'alerta de sinais vitais'
+    : 'alerta clínico'
 
   const suggestedMedicalNotes = useMemo(
     () =>
-      `Intercorrência confirmada a partir de alerta de sinais vitais: ${alert?.value || 'valor alterado'}.`,
-    [alert?.value],
+      `Intercorrência confirmada a partir de ${alertContextLabel}: ${alert?.value || 'valor alterado'}.`,
+    [alert?.value, alertContextLabel],
   )
 
   const suggestedActionTaken = useMemo(

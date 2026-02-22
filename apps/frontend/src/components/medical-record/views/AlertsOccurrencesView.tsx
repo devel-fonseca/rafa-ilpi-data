@@ -94,7 +94,7 @@ export function AlertsOccurrencesView({
           <CardContent className="p-4 h-full flex flex-col">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Alertas de Sinais Vitais
+                Alertas Clínicos
               </h3>
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-danger/10">
                 <HeartPulse className="h-5 w-5 text-danger" />
@@ -157,7 +157,7 @@ export function AlertsOccurrencesView({
                 : 'bg-background hover:bg-muted'
             } ${!canLoadVitalSignAlerts ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Alertas
+            Alertas clínicos
           </button>
           <button
             type="button"
@@ -204,7 +204,11 @@ export function AlertsOccurrencesView({
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant={event.source === 'VITAL_ALERT' ? 'danger' : 'warning'}>
-                        {event.source === 'VITAL_ALERT' ? 'Alerta vital' : 'Intercorrência'}
+                        {event.source === 'VITAL_ALERT'
+                          ? event.alertScope === 'VITAL'
+                            ? 'Alerta vital'
+                            : 'Alerta clínico'
+                          : 'Intercorrência'}
                       </Badge>
                       {event.severity && (
                         <Badge variant={ALERT_SEVERITY_VARIANTS[event.severity]}>

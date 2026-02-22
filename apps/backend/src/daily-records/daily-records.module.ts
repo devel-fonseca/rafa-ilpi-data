@@ -13,6 +13,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuthModule } from '../auth/auth.module';
 import { CareShiftsModule } from '../care-shifts/care-shifts.module';
+import { VitalSignAlertsModule } from '../vital-sign-alerts/vital-sign-alerts.module';
+import { VitalSignAlertsService } from '../vital-sign-alerts/vital-sign-alerts.service';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { CareShiftsModule } from '../care-shifts/care-shifts.module';
     EventEmitterModule,
     forwardRef(() => EventsModule),
     forwardRef(() => NotificationsModule),
+    VitalSignAlertsModule,
     AuthModule,
     CareShiftsModule,
   ],
@@ -31,11 +34,15 @@ import { CareShiftsModule } from '../care-shifts/care-shifts.module';
     DailyRecordsService,
     {
       provide: IncidentInterceptorService,
-      useFactory: (prisma, notificationsService) => {
-        const service = new IncidentInterceptorService(prisma, notificationsService);
+      useFactory: (prisma, notificationsService, vitalSignAlertsService) => {
+        const service = new IncidentInterceptorService(
+          prisma,
+          notificationsService,
+          vitalSignAlertsService,
+        );
         return service;
       },
-      inject: [PrismaService, NotificationsService],
+      inject: [PrismaService, NotificationsService, VitalSignAlertsService],
     },
   ],
   exports: [DailyRecordsService],

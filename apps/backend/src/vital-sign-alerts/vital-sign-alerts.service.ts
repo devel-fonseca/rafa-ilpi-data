@@ -51,18 +51,20 @@ export class VitalSignAlertsService {
     createdBy?: string,
   ) {
     this.logger.log(
-      `Criando alerta médico: ${dto.type} para residente ${dto.residentId}`,
+      `Criando alerta clínico: ${dto.type} para residente ${dto.residentId}`,
     )
 
     // Garantir usuário válido para trilha/auditoria (UUID obrigatório no histórico)
     const alertCreatorId =
       createdBy ||
-      (
-        await this.tenantContext.client.vitalSign.findUnique({
-          where: { id: dto.vitalSignId },
-          select: { userId: true },
-        })
-      )?.userId
+      (dto.vitalSignId
+        ? (
+            await this.tenantContext.client.vitalSign.findUnique({
+              where: { id: dto.vitalSignId },
+              select: { userId: true },
+            })
+          )?.userId
+        : null)
 
     if (!alertCreatorId) {
       throw new NotFoundException(
@@ -786,6 +788,8 @@ export class VitalSignAlertsService {
         return IncidentSubtypeClinical.HIPOTERMIA
       case VitalSignAlertType.OXYGEN_LOW:
         return IncidentSubtypeClinical.DISPNEIA
+      case VitalSignAlertType.DIARRHEA_EPISODE_MONITORING:
+        return IncidentSubtypeClinical.DOENCA_DIARREICA_AGUDA
       case VitalSignAlertType.PRESSURE_HIGH:
       case VitalSignAlertType.PRESSURE_LOW:
       case VitalSignAlertType.HEART_RATE_HIGH:

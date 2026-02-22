@@ -810,25 +810,27 @@ export class ClinicalNotesService {
     const vitalSign = alert.vitalSign
     const objectiveParts: string[] = []
 
-    if (vitalSign.systolicBloodPressure || vitalSign.diastolicBloodPressure) {
+    if (vitalSign?.systolicBloodPressure || vitalSign?.diastolicBloodPressure) {
       objectiveParts.push(
         `PA: ${vitalSign.systolicBloodPressure || '?'}/${vitalSign.diastolicBloodPressure || '?'} mmHg`,
       )
     }
-    if (vitalSign.heartRate) {
+    if (vitalSign?.heartRate) {
       objectiveParts.push(`FC: ${vitalSign.heartRate} bpm`)
     }
-    if (vitalSign.temperature) {
+    if (vitalSign?.temperature) {
       objectiveParts.push(`Tax: ${vitalSign.temperature}°C`)
     }
-    if (vitalSign.oxygenSaturation) {
+    if (vitalSign?.oxygenSaturation) {
       objectiveParts.push(`SpO₂: ${vitalSign.oxygenSaturation}%`)
     }
-    if (vitalSign.bloodGlucose) {
+    if (vitalSign?.bloodGlucose) {
       objectiveParts.push(`Glicemia: ${vitalSign.bloodGlucose} mg/dL`)
     }
 
-    const objective = `Sinais vitais aferidos em ${new Date(vitalSign.timestamp).toLocaleString('pt-BR')}:\n${objectiveParts.join('\n')}\n\nAlerta: ${alert.title}\n${alert.description}`
+    const objective = vitalSign
+      ? `Sinais vitais aferidos em ${new Date(vitalSign.timestamp).toLocaleString('pt-BR')}:\n${objectiveParts.join('\n')}\n\nAlerta: ${alert.title}\n${alert.description}`
+      : `Alerta clínico registrado em ${new Date(alert.createdAt).toLocaleString('pt-BR')}:\nValor observado: ${alert.value}\n\nAlerta: ${alert.title}\n${alert.description}`
 
     // Construir avaliação (A) baseada no tipo e severidade do alerta
     let assessment = `${alert.title} - Severidade: ${alert.severity}\n\n`
@@ -852,6 +854,8 @@ export class ClinicalNotesService {
         'Taquicardia detectada. Avaliar ansiedade, dor, febre, desidratação.',
       HEART_RATE_LOW:
         'Bradicardia detectada. Avaliar uso de medicações, sintomas associados.',
+      DIARRHEA_EPISODE_MONITORING:
+        'Episódios diarreicos em monitoramento. Avaliar frequência evacuatória, consistência das fezes, hidratação e sinais sistêmicos.',
     }
 
     assessment += alertTypeMessages[alert.type] || 'Avaliar quadro clínico geral.'
@@ -917,6 +921,12 @@ export class ClinicalNotesService {
       } else {
         suggestedTags.push('Bradicardia')
       }
+    }
+
+    if (alert.type === 'DIARRHEA_EPISODE_MONITORING') {
+      suggestedTags.push('Gastrointestinal')
+      suggestedTags.push('Risco de desidratação')
+      suggestedTags.push('Doença diarreica aguda')
     }
 
     // Tags gerais de contexto geriátrico
