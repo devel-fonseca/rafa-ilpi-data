@@ -1,5 +1,10 @@
 # Plano de Portabilidade - Módulo Financeiro Operacional (Tenant)
 
+> **Documento complementar (não canônico)**
+> Referência principal de implementação:
+> - [financial-operations](./financial-operations.md)
+> Uso: plano histórico de implantação/portabilidade.
+
 ## 1. Objetivo
 Portar o módulo de **Financeiro Operacional da ILPI** (transações, categorias, contas, conciliação e analytics operacionais) para o projeto atual, sem conflitar com o módulo de **billing SaaS** (superadmin/assinaturas/faturas da plataforma).
 

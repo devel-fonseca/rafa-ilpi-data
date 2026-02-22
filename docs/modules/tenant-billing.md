@@ -1,5 +1,12 @@
 # Tenant Billing - Sistema de Gerenciamento de Planos Self-Service
 
+> **Documento complementar (não canônico)**
+> Referências principais de implementação:
+> - [plans](./plans.md)
+> - [payments](./payments.md)
+> - [tenant-profile](./tenant-profile.md)
+> Uso: documentação de produto/self-service de cobrança do tenant.
+
 ## 📋 Visão Geral
 
 O módulo **Tenant Billing** permite que administradores de tenants (ADMIN e MANAGER) gerenciem suas próprias assinaturas, planos e faturas de forma autônoma, sem depender de intervenção do SuperAdmin para operações básicas como upgrade de plano e visualização de faturas.

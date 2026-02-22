@@ -1,5 +1,11 @@
 # Sistema de Feature Gating por Plano
 
+> **Documento complementar (não canônico)**
+> Referências principais de implementação:
+> - [plans](./plans.md)
+> - [permissions](./permissions.md)
+> Uso: detalhamento transversal (frontend/backend) de controle por feature.
+
 ## Visão Geral
 
 Sistema que controla o acesso a funcionalidades do sistema baseado nas features incluídas no plano de assinatura de cada tenant. Implementa validação tanto no frontend (UX) quanto no backend (segurança).

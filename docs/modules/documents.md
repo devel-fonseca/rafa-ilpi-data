@@ -1,5 +1,10 @@
 # Módulo: Documentos Institucionais
 
+> **Documento complementar (não canônico)**
+> Referência principal de implementação:
+> - [institutional-profile](./institutional-profile.md)
+> Uso: documentação histórica do fluxo de documentos antes da unificação do módulo.
+
 **Status:** ✅ Implementado
 **Versão:** 2.0.0
 **Última atualização:** 09/12/2025

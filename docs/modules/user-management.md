@@ -1,5 +1,12 @@
 # Módulo: Gestão de Usuários (User Management)
 
+> **Documento complementar (não canônico)**
+> Referências principais de implementação:
+> - [admin](./admin.md)
+> - [user-profiles](./user-profiles.md)
+> - [permissions](./permissions.md)
+> Uso: documentação histórica da implementação anterior de gestão de usuários.
+
 **Status:** ✅ Implementado
 **Versão:** 2.0.0
 **Última atualização:** 23/12/2025

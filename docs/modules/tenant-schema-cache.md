@@ -1,5 +1,11 @@
 # Tenant Schema Cache
 
+> **Documento complementar (não canônico)**
+> Referências principais de implementação:
+> - [cache](./cache.md)
+> - [prisma](./prisma.md)
+> Uso: deep-dive técnico de cache para resolução `tenantId -> schemaName`.
+
 ## Visão Geral
 
 Sistema de cache Redis para resolver `tenantId → schemaName` em arquitetura multi-tenant PostgreSQL com schema-per-tenant.

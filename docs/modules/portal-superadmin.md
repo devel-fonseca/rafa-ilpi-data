@@ -1,5 +1,10 @@
 # Portal SuperAdmin
 
+> **Documento complementar (não canônico)**
+> Referência principal de implementação:
+> - [superadmin](./superadmin.md)
+> Uso: documentação histórica/funcional com nomenclatura antiga.
+
 **Status:** ✅ Implementado
 **Última atualização:** 20/12/2024
 **Responsável:** Rafa Labs

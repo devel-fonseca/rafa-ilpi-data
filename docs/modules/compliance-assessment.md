@@ -1,5 +1,10 @@
 # Módulo: Autodiagnóstico RDC 502/2021
 
+> **Documento complementar (não canônico)**
+> Referência principal de implementação:
+> - [compliance-assessments](./compliance-assessments.md)
+> Uso: alias legado e conteúdo histórico detalhado.
+
 ## Visão Geral
 
 O módulo de **Autodiagnóstico RDC 502/2021** permite que instituições de longa permanência para idosos (ILPIs) realizem avaliações periódicas de conformidade regulatória baseadas no Roteiro Objetivo de Inspeção da ANVISA.

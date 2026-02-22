@@ -1,5 +1,11 @@
 # Contratos + Integração com Financeiro Operacional
 
+> **Documento complementar (não canônico)**
+> Referências principais de implementação:
+> - [contracts](./contracts.md)
+> - [financial-operations](./financial-operations.md)
+> Uso: nota de integração entre módulos.
+
 **Status:** ✅ Implementado (Fase 1 + Fase 2)
 **Versão:** 1.0.0
 **Última atualização:** 12/02/2026

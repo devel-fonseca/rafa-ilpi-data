@@ -1,5 +1,10 @@
 # Conformidade Multi-Tenant - Módulo Care Shifts
 
+> **Documento complementar (não canônico)**
+> Referência principal de implementação:
+> - [care-shifts](./care-shifts.md)
+> Uso: relatório de validação arquitetural multi-tenant específico do módulo.
+
 **Módulo:** Escala de Cuidados (Care Shifts)
 **Data de Validação:** 22/01/2026
 **Status:** ✅ CONFORME

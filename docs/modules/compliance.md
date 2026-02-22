@@ -1,5 +1,12 @@
 # Módulo: Sistema de Conformidade Regulatória
 
+> **Documento complementar (não canônico)**
+> Referências principais de implementação:
+> - [rdc-indicators](./rdc-indicators.md)
+> - [sentinel-events](./sentinel-events.md)
+> - [compliance-assessments](./compliance-assessments.md)
+> Uso: visão macro consolidada de conformidade regulatória.
+
 **Status:** ✅ Implementado e em Expansão
 **Versão:** 1.0.0
 **Última atualização:** 10/01/2026

@@ -1,5 +1,11 @@
 # Módulo de Agenda (Schedule)
 
+> **Documento complementar (não canônico)**
+> Referências principais de implementação:
+> - [resident-schedule](./resident-schedule.md)
+> - [care-shifts](./care-shifts.md)
+> Uso: documentação histórica da agenda antes da separação de domínios.
+
 **Versão:** 1.0.0
 **Data:** 11/01/2025
 **Autor:** Rafa Labs - Sistema ILPI

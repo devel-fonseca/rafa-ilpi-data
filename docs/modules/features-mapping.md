@@ -1,5 +1,10 @@
 # Sistema de Mapeamento de Features
 
+> **Documento complementar (não canônico)**
+> Referência principal de implementação:
+> - [plans](./plans.md)
+> Uso: detalhamento técnico do mapeamento frontend de features.
+
 ## Visão Geral
 
 O sistema de mapeamento de features é uma solução centralizada para gerenciar a conversão entre representações técnicas (chaves do banco de dados) e representações humanizadas (labels de interface) das funcionalidades dos planos.
