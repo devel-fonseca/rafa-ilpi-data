@@ -1,14 +1,26 @@
 # Módulo: Registros Diários (Daily Records)
 
 **Status:** ✅ Refatorado e Otimizado
-**Versão:** 2.0.0
-**Última atualização:** 11/01/2026
+**Versão:** 2.1.0
+**Última atualização:** 22/02/2026
 
 ---
 
 ## 📋 Visão Geral
 
 Sistema completo de registros diários de cuidados com residentes, com suporte a **13 tipos diferentes de registro**, **versionamento completo com auditoria**, **detecção automática de intercorrências**, **integração com Eventos Sentinela** e **sincronização automática com sinais vitais**. Implementa compliance total com **RDC 502/2021 da ANVISA** para ILPIs.
+
+### Atualização Técnica (22/02/2026)
+
+As regras abaixo refletem a implementação atual e **prevalecem** sobre fluxos antigos descritos neste documento:
+
+- Registros de **MONITORAMENTO anormal** não criam intercorrência automática.
+  - O sistema gera alerta persistido e Admin/RT decide confirmar ou descartar intercorrência.
+- O `IncidentInterceptorService` agora aplica fluxo híbrido:
+  - **alerta clínico persistido** para sinais de baixa/média certeza (ex.: episódios diarreicos < 3/24h, risco de desnutrição, suspeita de lesão cutânea);
+  - **alerta clínico persistido com limiar atingido** para cenários que exigem decisão de RT/Admin (ex.: diarreia >= 3 episódios/24h e risco de desidratação associado);
+  - **intercorrência automática** somente para regras operacionais diretas (ex.: recusa alimentar, engasgo, alterações comportamentais críticas, suspeita de úlcera por observação).
+- Alertas clínicos não-vitais são persistidos em `vital_sign_alerts` com `vitalSignId` opcional.
 
 ---
 
@@ -18,7 +30,7 @@ Sistema completo de registros diários de cuidados com residentes, com suporte a
 
 - ✅ **13 tipos de registro** (HIGIENE, ALIMENTACAO, HIDRATACAO, MONITORAMENTO, ELIMINACAO, COMPORTAMENTO, HUMOR, SONO, PESO, INTERCORRENCIA, ATIVIDADES, VISITA, OUTROS)
 - ✅ **Versionamento completo** - Histórico imutável de todas as alterações com auditoria granular
-- ✅ **Detecção automática de intercorrências** - IncidentInterceptorService analisa padrões e cria intercorrências automaticamente
+- ✅ **Detecção clínica automática** - IncidentInterceptorService analisa padrões e decide entre alerta persistido ou intercorrência automática conforme regra
 - ✅ **Integração com Eventos Sentinela** - Rastreamento obrigatório de quedas com lesão e tentativas de suicídio
 - ✅ **Sincronização com Sinais Vitais** - Registros de MONITORAMENTO criam/atualizam VitalSign automaticamente
 - ✅ **Compliance RDC 502/2021** - Campos obrigatórios para indicadores mensais (mortalidade, doenças, úlceras, desnutrição)
@@ -379,26 +391,31 @@ async findConsolidatedVitalSigns(residentId: string, tenantId: string)
 ```
 DailyRecordsService.create()
   └─> IncidentInterceptorService.analyzeAndCreateIncidents()
-       ├─> checkEliminacao() - Detecta diarreia, desidratação
+       ├─> checkEliminacao() - Detecta episódios diarreicos e risco de desidratação
+       │    └─> createAutoClinicalAlert() - Cria alerta persistido (sem intercorrência automática)
        ├─> checkAlimentacao() - Detecta recusa alimentar, desnutrição, vômito
        ├─> checkComportamento() - Detecta agitação, agressividade
        └─> checkHigiene() - Detecta úlceras de decúbito
-            └─> createAutoIncident() - Cria intercorrência se padrão detectado
+            └─> createAutoIncident() - Cria intercorrência automática quando a regra exige ação imediata
 ```
 
 #### Regras de Detecção
 
-**1. ELIMINACAO → Diarreia (Indicador RDC)**
+**1. ELIMINACAO → Episódio diarreico em monitoramento**
 
 - **Critério:** Consistência = "diarréica" OU "líquida"
-- **Ação:** Cria intercorrência `DOENCA_DIARREICA_AGUDA` (severidade: MODERADA)
-- **Indicador RDC:** `DIARREIA_AGUDA`
+- **Ação:** Cria alerta persistido `DIARRHEA_EPISODE_MONITORING` com deduplicação diária
+- **Decisão clínica:** Admin/RT confirma ou descarta intercorrência a partir do alerta
+- **Indicador RDC:** candidato a `DIARREIA_AGUDA` (confirmação posterior)
 
-**2. ELIMINACAO → Desidratação (Indicador RDC)**
+**2. ELIMINACAO → Limiar atingido (>= 3 episódios/24h)**
 
 - **Critério:** ≥ 3 evacuações diarreicas no mesmo dia
-- **Ação:** Cria intercorrência `DESIDRATACAO` (severidade: GRAVE)
-- **Indicador RDC:** `DESIDRATACAO`
+- **Ação:** Cria dois alertas persistidos:
+  - Suspeita de DDA (`DIARRHEA_EPISODE_MONITORING`, severidade WARNING)
+  - Risco de desidratação associado (`DIARRHEA_EPISODE_MONITORING`, severidade CRITICAL, `clinicalContext: DEHYDRATION_RISK`)
+- **Decisão clínica:** Admin/RT confirma ou descarta intercorrência
+- **Indicadores RDC:** candidatos a `DIARREIA_AGUDA` e/ou `DESIDRATACAO` conforme confirmação
 
 **3. ALIMENTACAO → Recusa Alimentar**
 
@@ -929,7 +946,7 @@ A RDC 502/2021 da ANVISA exige que ILPIs calculem e reportem mensalmente **6 ind
 
 2. **Taxa de Incidência de Doença Diarréica Aguda** (`DIARREIA_AGUDA`)
    - Fórmula: (Nº de casos novos / Média de residentes) × 100
-   - Trigger: Detectado automaticamente em `checkEliminacao()`
+   - Trigger: Alerta clínico de diarreia confirmado por Admin/RT (ou inclusão manual no fluxo de revisão)
 
 3. **Taxa de Incidência de Escabiose** (`ESCABIOSE`)
    - Fórmula: (Nº de casos novos / Média de residentes) × 100
@@ -937,7 +954,7 @@ A RDC 502/2021 da ANVISA exige que ILPIs calculem e reportem mensalmente **6 ind
 
 4. **Taxa de Incidência de Desidratação** (`DESIDRATACAO`)
    - Fórmula: (Nº de casos novos / Média de residentes) × 100
-   - Trigger: Detectado automaticamente em `checkEliminacao()` (≥3 evacuações diarreicas)
+   - Trigger: Alerta clínico de risco de desidratação confirmado por Admin/RT (ou inclusão manual no fluxo de revisão)
 
 5. **Taxa de Prevalência de Úlcera de Decúbito** (`ULCERA_DECUBITO`)
    - Fórmula: (Nº de residentes com úlcera / Total de residentes) × 100

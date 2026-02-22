@@ -1,20 +1,39 @@
 # Módulo: Alertas Médicos de Sinais Vitais
 
 **Status:** ✅ Implementado
-**Versão:** 1.0.0
-**Última atualização:** 02/01/2026
+**Versão:** 1.1.0
+**Última atualização:** 22/02/2026
 
 ## Visão Geral
 
 Sistema completo de alertas médicos persistentes para sinais vitais anormais, integrado com evoluções clínicas (SOAP). Diferente das notificações broadcast (temporárias), os alertas são **registros médicos permanentes** que permitem rastreamento, atribuição e gerenciamento de condutas.
 
+## Atualização Técnica (22/02/2026)
+
+As regras abaixo refletem a implementação atual e **prevalecem** sobre exemplos antigos deste documento:
+
+- O módulo passou a consolidar **alertas vitais e alertas clínicos não-vitais** em uma trilha única de gestão.
+- Tipos não-vitais persistidos atualmente:
+  - `DIARRHEA_EPISODE_MONITORING`
+  - `DESNUTRITION_RISK_MONITORING`
+  - `SKIN_LESION_MONITORING`
+- Em diarreia, o sistema reutiliza `DIARRHEA_EPISODE_MONITORING` com contexto por metadata:
+  - contexto DDA (`rdcIndicator: DIARREIA_AGUDA`);
+  - contexto risco de desidratação (`clinicalContext: DEHYDRATION_RISK`, `incidentSubtypeClinical: DESIDRATACAO`, `rdcIndicator: DESIDRATACAO`).
+- Fluxo operacional:
+  - registro diário gera alerta persistido;
+  - Admin/RT decide no gerenciamento do alerta se confirma ou descarta intercorrência;
+  - ao confirmar, a intercorrência é criada e vinculada ao alerta.
+- `vitalSignId` em `VitalSignAlert` é opcional para suportar alertas clínicos sem vínculo direto em `vital_signs`.
+
 ## Funcionalidades Principais
 
 - ✅ **Criação Automática**: Alertas gerados automaticamente quando sinais vitais anormais são detectados
-- ✅ **9 Tipos de Alertas**: PA alta/baixa, glicemia alta/baixa, temperatura alta/baixa, SpO₂ baixa, FC alta/baixa
+- ✅ **12 Tipos de Alertas**: 9 vitais + 3 clínicos não-vitais persistidos
 - ✅ **Severidade Dupla**: CRITICAL (≥160 PA, ≥250 glicemia) e WARNING (≥140 PA, ≥180 glicemia)
 - ✅ **Sistema de Prioridades**: Cálculo automático 0-5 (hipoglicemia/hipóxia = 5)
 - ✅ **Gerenciamento de Status**: ACTIVE → IN_TREATMENT → MONITORING → RESOLVED/IGNORED
+- ✅ **Decisão de Intercorrência**: confirmação/descartes de intercorrência feitos por Admin/RT
 - ✅ **Atribuição de Profissionais**: Designar responsável por cada alerta
 - ✅ **Notas Médicas**: Documentação de observações e ações tomadas
 - ✅ **Integração com Clinical Notes**: Criar evoluções SOAP pré-preenchidas a partir de alertas
@@ -47,8 +66,8 @@ Sistema completo de alertas médicos persistentes para sinais vitais anormais, i
 **React Query Hooks:**
 - `apps/frontend/src/hooks/useVitalSignAlerts.ts` - 5 hooks otimizados
 
-**Components:** (Implementação futura)
-- `apps/frontend/src/components/vital-signs/VitalSignsAlerts.tsx` - Atualizar para API real
+**Components:** (Implementação ativa)
+- `apps/frontend/src/components/vital-signs/VitalSignsAlerts.tsx` - Listagem/gestão de alertas vitais
 - `apps/frontend/src/components/vital-signs/ManageAlertDialog.tsx` - Gerenciar alerta
 - `apps/frontend/src/components/vital-signs/CreateEvolutionFromAlertDialog.tsx` - Criar evolução
 
@@ -61,7 +80,7 @@ model VitalSignAlert {
   id             String   @id @default(uuid())
   tenantId       String   @db.Uuid
   residentId     String   @db.Uuid
-  vitalSignId    String   @db.Uuid
+  vitalSignId    String?  @db.Uuid
   notificationId String?  @db.Uuid
 
   // Tipo e severidade
@@ -93,7 +112,7 @@ model VitalSignAlert {
   // Relacionamentos
   tenant         Tenant
   resident       Resident
-  vitalSign      VitalSign
+  vitalSign      VitalSign?
   notification   Notification?
   clinicalNotes  ClinicalNote[]     // 1:N - Um alerta pode gerar múltiplas evoluções
   assignedUser   User?
@@ -114,6 +133,9 @@ enum VitalSignAlertType {
   OXYGEN_LOW         // SpO₂ <92% (WARNING) ou <90% (CRITICAL)
   HEART_RATE_HIGH    // FC >100 (WARNING) ou >120 (CRITICAL)
   HEART_RATE_LOW     // FC <60 (WARNING) ou <50 (CRITICAL)
+  DIARRHEA_EPISODE_MONITORING    // Episódios diarreicos (DDA e risco de desidratação via metadata)
+  DESNUTRITION_RISK_MONITORING   // Risco de desnutrição por padrão alimentar
+  SKIN_LESION_MONITORING         // Possível lesão/úlcera detectada em observação
 }
 
 enum AlertStatus {
@@ -179,14 +201,22 @@ Response: {
 
 ## Fluxo Automático de Criação
 
-1. **Registro de Sinal Vital**: Profissional registra sinais vitais via modal Monitoramento
-2. **Detecção de Anomalia**: `VitalSignsService.detectAndNotifyAnomalies()` identifica valor anormal
+1. **Registro clínico de origem**:
+   - Monitoramento (sinais vitais) via `VitalSignsService`
+   - Regras clínicas não-vitais via `IncidentInterceptorService` (ex.: diarreia <3/24h, diarreia >=3/24h com suspeita DDA/risco de desidratação, risco de desnutrição, lesão cutânea suspeita)
+2. **Detecção de anomalia/regra clínica**:
+   - `VitalSignsService.detectAndNotifyAnomalies()` para parâmetros vitais
+   - `IncidentInterceptorService.createAutoClinicalAlert()` para alertas clínicos não-vitais
 3. **Criação Dupla**:
    - **Notification** (broadcast temporária) → Enviada para todos os usuários
    - **VitalSignAlert** (registro médico permanente) → Criado com metadata estruturada
-4. **Linking Bidirecional**: `notification.id` → `alert.notificationId` e vice-versa
-5. **Cálculo de Prioridade**: Automático baseado em severidade + tipo
-6. **Status Inicial**: ACTIVE (aguardando conduta)
+4. **Tomada de decisão clínica (Admin/RT)**:
+   - confirmar intercorrência (gera `DailyRecord` de `INTERCORRENCIA` vinculado)
+   - ou descartar intercorrência (mantém rastreabilidade do alerta)
+   - na confirmação, o subtipo/indicador pode ser derivado da metadata (ex.: `DESIDRATACAO` em alerta de diarreia com contexto de desidratação)
+5. **Linking Bidirecional**: `notification.id` → `alert.notificationId` e vice-versa
+6. **Cálculo de Prioridade**: Automático baseado em severidade + tipo
+7. **Status Inicial**: ACTIVE (aguardando conduta)
 
 ## Exemplo de Metadata
 

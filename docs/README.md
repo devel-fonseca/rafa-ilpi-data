@@ -1,184 +1,54 @@
 # Documentação Técnica - Rafa ILPI Data
 
-**Versão do Projeto:** 1.0.0
-**Última atualização:** 27/01/2026
+**Versão do Projeto:** 1.0.0  
+**Última atualização:** 22/02/2026
 
-Bem-vindo à documentação técnica completa do sistema Rafa ILPI Data - plataforma de gestão para Instituições de Longa Permanência para Idosos (ILPIs).
+Documentação técnica central do sistema Rafa ILPI Data (ILPI), com foco em backend modular, multi-tenant e padrões operacionais.
 
----
+## Índice Rápido
 
-## 📚 Índice Geral
+### Catálogo de módulos
 
-### 📋 Módulos Funcionais
+- Catálogo técnico completo dos módulos backend: [modules/README.md](modules/README.md)
 
-Documentação detalhada de cada módulo do sistema:
+Cobertura atual (sincronização 22/02/2026):
 
-| Módulo | Status | Versão | Descrição |
-|--------|--------|--------|-----------|
-| [Registros Diários](modules/daily-records.md) | ✅ | 1.0.0 | Sistema completo com 10 tipos de registros, versionamento e auditoria |
-| [Agenda do Residente](modules/resident-schedule.md) | ✅ | 1.0.0 | Registros obrigatórios recorrentes e agendamentos pontuais |
-| [POPs](modules/pops.md) | ✅ | 1.1.0 | Procedimentos Operacionais Padrão com categorias editáveis |
-| [Documentos Institucionais](modules/documents.md) | ✅ | 2.0.0 | Upload S3, versionamento e alertas configuráveis |
-| [Evoluções Clínicas](modules/clinical-notes.md) | ✅ | 1.1.0 | SOAP + Documentos Tiptap com PDF |
-| [Notificações](modules/notifications.md) | ✅ | 1.0.0 | Sistema completo com cron job automático |
-| [Permissões RBAC](modules/permissions.md) | ✅ | 1.0.0 | 45 permissões por cargo |
-| [Gestão de Usuários](modules/user-management.md) | ✅ | 2.0.0 | Criação inteligente com recomendação de roles e validações contextuais |
-| [Prescrições Médicas](modules/prescriptions.md) | ✅ | 1.0.0 | Gerenciamento de prescrições |
-| [Vacinação](modules/vaccinations.md) | ✅ | 1.0.0 | Registro com upload de comprovantes |
-| [Residentes](modules/residents.md) | ✅ | 1.0.0 | Cadastro completo com prontuário |
-| [Sinais Vitais](modules/vital-signs.md) | ✅ | 1.0.0 | PA, FC, Temp, SpO2, Glicemia |
-| [Portal SuperAdmin](modules/portal-superadmin.md) | ✅ | 1.0.0 | Gestão de tenants, planos, faturas e analytics |
-| [Mapeamento de Features](modules/features-mapping.md) | ✅ | 1.0.0 | Sistema centralizado de features com mapeamento bidirecional |
+- **59 módulos NestJS** detectados em `apps/backend/src` (diretórios com `*module.ts`)
+- **59 documentos de módulo** correspondentes em `docs/modules`
+- **14 documentos extras** em `docs/modules` para fluxos transversais, port plans e aliases históricos
+  - sendo **13 documentos temáticos** + `docs/modules/README.md` (índice)
+  - classificação e referência canônica em `docs/modules/README.md` (seção "Documentos extras")
 
-### 🏗️ Arquitetura
+### Arquitetura
 
-Documentação de arquitetura e infraestrutura:
+- Multi-tenancy: [architecture/multi-tenancy.md](architecture/multi-tenancy.md)
+- Storage de arquivos: [architecture/file-storage.md](architecture/file-storage.md)
+- Schema do banco: [architecture/database-schema.md](architecture/database-schema.md)
+- Autenticação: [architecture/authentication.md](architecture/authentication.md)
 
-| Tópico | Arquivo |
-|--------|---------|
-| **Multi-Tenancy** | [multi-tenancy.md](architecture/multi-tenancy.md) |
-| **Storage de Arquivos** | [file-storage.md](architecture/file-storage.md) |
-| **Schema do Banco** | [database-schema.md](architecture/database-schema.md) |
-| **Autenticação** | [authentication.md](architecture/authentication.md) |
+### Padrões e normas
 
-### 💳 Integrações
+- Padrão de data/hora: [standards/DATETIME_STANDARD.md](standards/DATETIME_STANDARD.md)
 
-Documentação de integrações com serviços externos:
+### Operação e fluxos
 
-| Serviço | Arquivo | Descrição |
-|---------|---------|-----------|
-| **Asaas** | [INTEGRACAO-ASAAS.md](INTEGRACAO-ASAAS.md) | Gateway de pagamentos recorrentes (subscriptions) |
+- Runbook backup/restore superadmin: [flows/SUPERADMIN-BACKUP-RESTORE-RUNBOOK.md](flows/SUPERADMIN-BACKUP-RESTORE-RUNBOOK.md)
+- Changelog: [../CHANGELOG.md](../CHANGELOG.md)
+- TODO técnico: [../TODO.md](../TODO.md)
 
-### 📝 Outros Documentos
+## Como navegar
 
-| Documento | Descrição |
-|-----------|-----------|
-| [CHANGELOG.md](../CHANGELOG.md) | Histórico cronológico de todas as mudanças |
-| [TODO.md](../TODO.md) | Tarefas ativas e pendentes |
-| [CLINICAL-NOTE-DOCUMENTS.md](CLINICAL-NOTE-DOCUMENTS.md) | Documentação detalhada dos documentos Tiptap |
-| [SUPERADMIN-BACKUP-RESTORE-RUNBOOK.md](flows/SUPERADMIN-BACKUP-RESTORE-RUNBOOK.md) | Runbook operacional de backup/restore (portal + CLI) |
+1. Para entender o sistema por domínio, comece por `docs/modules/README.md`.
+2. Para decisões estruturais, use primeiro `docs/architecture/*`.
+3. Para regras sensíveis (tempo, multi-tenant, auditoria), siga os padrões em `docs/standards/*`.
+4. Para comportamento detalhado, prevalece sempre o código fonte em `apps/backend/src`.
 
----
+## Regras de manutenção da documentação
 
-## 🚀 Início Rápido
+- Ao alterar módulo backend, atualizar o arquivo correspondente em `docs/modules/<modulo>.md`.
+- Ao criar módulo novo (`*module.ts`), criar documentação de módulo no mesmo ciclo.
+- Quando houver divergência entre documento antigo e implementação atual, considerar o código como fonte de verdade e ajustar a documentação.
 
-### Para Desenvolvedores
-
-1. **Explorar a arquitetura:**
-   - Comece por [Multi-Tenancy](architecture/multi-tenancy.md)
-   - Depois [Schema do Banco](architecture/database-schema.md)
-   - Por fim [Autenticação](architecture/authentication.md)
-
-2. **Entender um módulo específico:**
-   - Escolha o módulo na tabela acima
-   - Leia a documentação completa
-   - Veja exemplos no [CHANGELOG](../CHANGELOG.md)
-
-3. **Implementar nova feature:**
-   - Consulte módulos similares
-   - Siga os padrões estabelecidos
-   - Atualize o CHANGELOG ao finalizar
-
-### Para Product Owners
-
-- **Visão geral das features:** Veja a tabela de módulos acima
-- **Roadmap:** Consulte [TODO.md](../TODO.md)
-- **Histórico de entregas:** Veja [CHANGELOG.md](../CHANGELOG.md)
-
----
-
-## 🔍 Busca Rápida
-
-### Por Funcionalidade
-
-- **Registros de Cuidados Diários:** [daily-records.md](modules/daily-records.md)
-- **Documentos PDF:** [documents.md](modules/documents.md) | [clinical-notes.md](modules/clinical-notes.md)
-- **Prontuário Médico:** [residents.md](modules/residents.md) | [vital-signs.md](modules/vital-signs.md)
-- **Gestão Institucional:** [pops.md](modules/pops.md) | [documents.md](modules/documents.md)
-- **Alertas e Notificações:** [notifications.md](modules/notifications.md)
-
-### Por Tecnologia
-
-- **Prisma/PostgreSQL:** [database-schema.md](architecture/database-schema.md)
-- **MinIO/S3:** [file-storage.md](architecture/file-storage.md)
-- **JWT/Auth:** [authentication.md](architecture/authentication.md)
-- **Tiptap/PDF:** [clinical-notes.md](modules/clinical-notes.md)
-
----
-
-## 📊 Estatísticas do Projeto
-
-### Módulos Implementados
-
-- ✅ **14 módulos** principais completamente funcionais
-- ✅ **30+ features** documentadas no CHANGELOG
-- ✅ **3.200+ linhas** de histórico de implementação (agora organizado)
-- ✅ **50+ arquivos** de documentação técnica
-
-### Stack Tecnológico
-
-**Backend:**
-- NestJS 10
-- Prisma ORM 5.22
-- PostgreSQL 14+
-- MinIO (S3-compatible)
-
-**Frontend:**
-- React 18
-- TanStack Query
-- Tailwind CSS
-- shadcn/ui
-
----
-
-## 🤝 Contribuindo
-
-### Fluxo de Documentação
-
-1. **Durante desenvolvimento:**
-   - Use `TodoWrite` para tracking
-   - Não edite Markdown durante implementação
-
-2. **Ao completar feature:**
-   - Adicione entrada no [CHANGELOG.md](../CHANGELOG.md)
-   - Se feature grande: crie/atualize doc em `docs/modules/`
-   - Atualize `docs/README.md` se necessário
-
-3. **Ao final da sessão:**
-   - Limpe [TODO.md](../TODO.md) (remova concluídos)
-   - Adicione novos TODOs identificados
-
-### Padrão de Documentação
-
-Cada módulo deve seguir a estrutura:
-
-```markdown
-# Módulo: [Nome]
-
-## Visão Geral
-## Funcionalidades Principais
-## Arquitetura
-## Modelos de Dados
-## Endpoints da API
-## Regras de Negócio
-## Referências
-```
-
----
-
-## 📞 Suporte
-
-- **Issues:** [GitHub Issues](https://github.com/rafa-labs/rafa-ilpi-data/issues)
-- **Documentação:** Este diretório (`docs/`)
-- **Histórico:** [CHANGELOG.md](../CHANGELOG.md)
-
----
-
-## 📜 Licença
+## Licença
 
 Propriedade de Rafa Labs Desenvolvimento e Tecnologia.
-
----
-
-**Desenvolvedor:** Emanuel (Dr. E.) + Claude Sonnet 4.5
-**Última revisão:** 27/01/2026
