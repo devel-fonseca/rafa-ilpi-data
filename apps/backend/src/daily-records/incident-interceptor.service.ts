@@ -310,7 +310,7 @@ export class IncidentInterceptorService {
   /**
    * Verifica registros de ALIMENTACAO para detectar:
    * - Recusa alimentar (Intercorrência Assistencial: RECUSA_ALIMENTACAO)
-   * - Desnutrição (Indicador RDC: DESNUTRICAO - requer análise de padrão)
+   * - Risco de desnutrição (alerta clínico não-vital para decisão do RT/Admin)
    */
   private async checkAlimentacao(
     record: DailyRecord,
@@ -357,8 +357,8 @@ export class IncidentInterceptorService {
       });
 
       if (recusasNoDia >= 2) {
-        // Verificar se já não criamos um alerta de desnutrição hoje
-        const desnutricaoExiste = await tenantClient.dailyRecord.findFirst({
+        // Se já existir intercorrência confirmada de desnutrição no dia, não abre novo alerta
+        const desnutricaoConfirmadaNoDia = await tenantClient.dailyRecord.findFirst({
           where: {
             residentId: record.residentId,
             type: 'INTERCORRENCIA',
@@ -369,22 +369,26 @@ export class IncidentInterceptorService {
           },
         });
 
-        if (!desnutricaoExiste) {
-          await this.createAutoIncident({
+        if (!desnutricaoConfirmadaNoDia) {
+          const dayKey = formatDateOnly(record.date);
+          await this.createAutoClinicalAlert({
             tenantId: record.tenantId,
             residentId: record.residentId,
-            date: record.date,
-            time: record.time,
             userId,
-            recordedBy: record.recordedBy,
-            category: IncidentCategory.CLINICA,
-            subtypeClinical: IncidentSubtypeClinical.DESNUTRICAO,
-            severity: IncidentSeverity.GRAVE,
-            description: `Risco de desnutrição detectado (≥2 recusas alimentares no dia)`,
-            action:
-              'URGENTE: Avaliar sinais de desnutrição (perda de peso, IMC, albumina). Avaliar necessidade de suplementação. Comunicar nutricionista e médico.',
-            rdcIndicators: [RdcIndicatorType.DESNUTRICAO],
             sourceRecordId: record.id,
+            dedupeKey: `DESNUTRITION_RISK:${record.residentId}:${dayKey}`,
+            title: 'Alerta clínico: risco de desnutrição',
+            message: `${recusasNoDia} recusas alimentares no dia ${dayKey}. Confirmar se configura intercorrência clínica.`,
+            alertType: VitalSignAlertType.DESNUTRITION_RISK_MONITORING,
+            alertValue: `${recusasNoDia} recusas no dia`,
+            severity: NotificationSeverity.WARNING,
+            metadata: {
+              alertType: VitalSignAlertType.DESNUTRITION_RISK_MONITORING,
+              recusasNoDia,
+              threshold: 2,
+              rdcIndicator: RdcIndicatorType.DESNUTRICAO,
+              recordDate: dayKey,
+            },
           });
         }
       }
@@ -494,7 +498,8 @@ export class IncidentInterceptorService {
 
   /**
    * Verifica registros de HIGIENE para detectar:
-   * - Úlcera de decúbito (Indicador RDC: ULCERA_DECUBITO)
+   * - Possível lesão/úlcera de decúbito em observação assistencial
+   *   (alerta clínico não-vital para confirmação pelo RT/Admin).
    */
   private async checkHigiene(
     record: DailyRecord,
@@ -523,21 +528,29 @@ export class IncidentInterceptorService {
     );
 
     if (encontrouLesao) {
-      await this.createAutoIncident({
+      const matchedKeywords = keywords.filter((keyword) =>
+        observacoes.includes(keyword),
+      );
+
+      await this.createAutoClinicalAlert({
         tenantId: record.tenantId,
         residentId: record.residentId,
-        date: record.date,
-        time: record.time,
         userId,
-        recordedBy: record.recordedBy,
-        category: IncidentCategory.CLINICA,
-        subtypeClinical: IncidentSubtypeClinical.ULCERA_DECUBITO,
-        severity: IncidentSeverity.GRAVE,
-        description: `Possível lesão de pele/úlcera detectada durante higiene`,
-        action:
-          'URGENTE: Avaliar lesão (localização, estágio, tamanho). Documentar com foto. Iniciar protocolo de prevenção/tratamento. Comunicar enfermagem e médico.',
-        rdcIndicators: [RdcIndicatorType.ULCERA_DECUBITO],
         sourceRecordId: record.id,
+        title: 'Alerta clínico: possível lesão de pele',
+        message:
+          'Observações de higiene sugerem lesão/úlcera de decúbito. Confirmar avaliação clínica antes de abrir intercorrência.',
+        alertType: VitalSignAlertType.SKIN_LESION_MONITORING,
+        alertValue:
+          matchedKeywords.length > 0
+            ? matchedKeywords.join(', ')
+            : 'Possível lesão de pele',
+        severity: NotificationSeverity.WARNING,
+        metadata: {
+          alertType: VitalSignAlertType.SKIN_LESION_MONITORING,
+          keywordsMatched: matchedKeywords,
+          rdcIndicator: RdcIndicatorType.ULCERA_DECUBITO,
+        },
       });
     }
   }
@@ -631,6 +644,7 @@ export class IncidentInterceptorService {
     residentId: string;
     userId: string;
     sourceRecordId: string;
+    dedupeKey?: string;
     title: string;
     message: string;
     alertType: VitalSignAlertType;
@@ -643,6 +657,7 @@ export class IncidentInterceptorService {
       residentId,
       userId,
       sourceRecordId,
+      dedupeKey,
       title,
       message,
       alertType,
@@ -666,10 +681,24 @@ export class IncidentInterceptorService {
         where: {
           residentId,
           type: alertType,
-          metadata: {
-            path: ['sourceRecordId'],
-            equals: sourceRecordId,
-          },
+          OR: [
+            {
+              metadata: {
+                path: ['sourceRecordId'],
+                equals: sourceRecordId,
+              },
+            },
+            ...(dedupeKey
+              ? [
+                  {
+                    metadata: {
+                      path: ['dedupeKey'],
+                      equals: dedupeKey,
+                    },
+                  },
+                ]
+              : []),
+          ],
         },
         select: { id: true },
       });
@@ -702,6 +731,7 @@ export class IncidentInterceptorService {
             alertOnly: true,
             alertType,
             sourceRecordId,
+            dedupeKey,
             ...metadata,
           },
         },
@@ -719,6 +749,7 @@ export class IncidentInterceptorService {
           metadata: {
             detectedAt: new Date().toISOString(),
             sourceRecordId,
+            dedupeKey,
             source: 'DAILY_RECORD_INTERCEPTOR',
             ...metadata,
           },

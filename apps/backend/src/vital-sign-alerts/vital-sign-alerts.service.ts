@@ -25,6 +25,7 @@ import {
   NotificationSeverity,
   PositionCode,
   Prisma,
+  RdcIndicatorType,
   SystemNotificationType,
   VitalSignAlertType,
 } from '@prisma/client'
@@ -790,6 +791,10 @@ export class VitalSignAlertsService {
         return IncidentSubtypeClinical.DISPNEIA
       case VitalSignAlertType.DIARRHEA_EPISODE_MONITORING:
         return IncidentSubtypeClinical.DOENCA_DIARREICA_AGUDA
+      case VitalSignAlertType.DESNUTRITION_RISK_MONITORING:
+        return IncidentSubtypeClinical.DESNUTRICAO
+      case VitalSignAlertType.SKIN_LESION_MONITORING:
+        return IncidentSubtypeClinical.ULCERA_DECUBITO
       case VitalSignAlertType.PRESSURE_HIGH:
       case VitalSignAlertType.PRESSURE_LOW:
       case VitalSignAlertType.HEART_RATE_HIGH:
@@ -797,6 +802,28 @@ export class VitalSignAlertsService {
       default:
         return IncidentSubtypeClinical.OUTRA_CLINICA
     }
+  }
+
+  private mapAlertTypeToRdcIndicators(type: VitalSignAlertType): RdcIndicatorType[] {
+    switch (type) {
+      case VitalSignAlertType.DIARRHEA_EPISODE_MONITORING:
+        return [RdcIndicatorType.DIARREIA_AGUDA]
+      case VitalSignAlertType.DESNUTRITION_RISK_MONITORING:
+        return [RdcIndicatorType.DESNUTRICAO]
+      case VitalSignAlertType.SKIN_LESION_MONITORING:
+        return [RdcIndicatorType.ULCERA_DECUBITO]
+      default:
+        return []
+    }
+  }
+
+  private isVitalSignType(type: VitalSignAlertType): boolean {
+    const nonVitalTypes = new Set<VitalSignAlertType>([
+      VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
+      VitalSignAlertType.DESNUTRITION_RISK_MONITORING,
+      VitalSignAlertType.SKIN_LESION_MONITORING,
+    ])
+    return !nonVitalTypes.has(type)
   }
 
   private async assertCanDecideIncident(userId: string) {
@@ -864,11 +891,13 @@ export class VitalSignAlertsService {
 
     const description =
       dto.medicalNotes?.trim() ||
-      `Intercorrência confirmada a partir de alerta de sinais vitais: ${alert.value}`
+      `Intercorrência confirmada a partir de ${this.isVitalSignType(alert.type) ? 'alerta de sinais vitais' : 'alerta clínico'}: ${alert.value}`
 
     const actionTaken =
       dto.actionTaken?.trim() ||
       'Registrar conduta, manter monitoramento e reavaliar parâmetros em intervalo clínico adequado.'
+
+    const rdcIndicators = this.mapAlertTypeToRdcIndicators(alert.type)
 
     const incidentData: Record<string, unknown> = {
       descricao: description,
@@ -903,7 +932,7 @@ export class VitalSignAlertsService {
         incidentSeverity,
         isEventoSentinela: false,
         isDoencaNotificavel: false,
-        rdcIndicators: [] as Prisma.InputJsonValue,
+        rdcIndicators: rdcIndicators as Prisma.InputJsonValue,
         data: incidentData as Prisma.InputJsonValue,
       },
     })

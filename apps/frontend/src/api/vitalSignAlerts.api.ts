@@ -12,6 +12,8 @@ export enum VitalSignAlertType {
   HEART_RATE_HIGH = 'HEART_RATE_HIGH',
   HEART_RATE_LOW = 'HEART_RATE_LOW',
   DIARRHEA_EPISODE_MONITORING = 'DIARRHEA_EPISODE_MONITORING',
+  DESNUTRITION_RISK_MONITORING = 'DESNUTRITION_RISK_MONITORING',
+  SKIN_LESION_MONITORING = 'SKIN_LESION_MONITORING',
 }
 
 export enum AlertSeverity {
@@ -30,6 +32,8 @@ export enum AlertStatus {
 
 const NON_VITAL_ALERT_TYPES = new Set<VitalSignAlertType>([
   VitalSignAlertType.DIARRHEA_EPISODE_MONITORING,
+  VitalSignAlertType.DESNUTRITION_RISK_MONITORING,
+  VitalSignAlertType.SKIN_LESION_MONITORING,
 ])
 
 export function isNonVitalClinicalAlertType(

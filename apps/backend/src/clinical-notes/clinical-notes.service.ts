@@ -856,6 +856,10 @@ export class ClinicalNotesService {
         'Bradicardia detectada. Avaliar uso de medicações, sintomas associados.',
       DIARRHEA_EPISODE_MONITORING:
         'Episódios diarreicos em monitoramento. Avaliar frequência evacuatória, consistência das fezes, hidratação e sinais sistêmicos.',
+      DESNUTRITION_RISK_MONITORING:
+        'Risco de desnutrição em monitoramento. Avaliar padrão alimentar, perda ponderal e necessidade de conduta multiprofissional.',
+      SKIN_LESION_MONITORING:
+        'Possível lesão cutânea/úlcera em monitoramento. Avaliar integridade da pele e risco de lesão por pressão.',
     }
 
     assessment += alertTypeMessages[alert.type] || 'Avaliar quadro clínico geral.'
@@ -927,6 +931,16 @@ export class ClinicalNotesService {
       suggestedTags.push('Gastrointestinal')
       suggestedTags.push('Risco de desidratação')
       suggestedTags.push('Doença diarreica aguda')
+    }
+    if (alert.type === 'DESNUTRITION_RISK_MONITORING') {
+      suggestedTags.push('Nutrição')
+      suggestedTags.push('Risco de desnutrição')
+      suggestedTags.push('Avaliação nutricional')
+    }
+    if (alert.type === 'SKIN_LESION_MONITORING') {
+      suggestedTags.push('Integridade cutânea')
+      suggestedTags.push('Lesão por pressão')
+      suggestedTags.push('Prevenção de úlcera')
     }
 
     // Tags gerais de contexto geriátrico

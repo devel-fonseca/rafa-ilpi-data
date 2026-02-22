@@ -74,6 +74,8 @@ enum VitalSignAlertType {
   HEART_RATE_HIGH // Taquicardia
   HEART_RATE_LOW // Bradicardia
   DIARRHEA_EPISODE_MONITORING // Monitoramento de episódios diarreicos (alerta clínico não-vital)
+  DESNUTRITION_RISK_MONITORING // Risco de desnutrição por padrão alimentar
+  SKIN_LESION_MONITORING // Possível lesão/úlcera detectada em observação assistencial
 }
 
 enum AlertStatus {
