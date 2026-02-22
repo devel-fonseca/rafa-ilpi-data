@@ -499,6 +499,15 @@ export class VitalSignAlertsService {
   ) {
     await this.assertCanDecideIncident(userId)
 
+    const medicalNotesInput = dto.medicalNotes?.trim() ?? ''
+    const actionTakenInput = dto.actionTaken?.trim() ?? ''
+
+    if (!medicalNotesInput || !actionTakenInput) {
+      throw new BadRequestException(
+        'Para confirmar intercorrência, preencha "Notas médicas" e "Ações tomadas".',
+      )
+    }
+
     const alert = await this.findOne(id)
     const metadata = this.getAlertMetadata(alert.metadata)
     const decision = this.getIncidentDecision(metadata)
@@ -511,7 +520,15 @@ export class VitalSignAlertsService {
 
     const incidentRecord =
       existingIncident ||
-      (await this.createIncidentFromAlert(alert, dto, userId))
+      (await this.createIncidentFromAlert(
+        alert,
+        {
+          ...dto,
+          medicalNotes: medicalNotesInput,
+          actionTaken: actionTakenInput,
+        },
+        userId,
+      ))
 
     const mergedMetadata: Prisma.InputJsonValue = {
       ...metadata,
@@ -523,15 +540,8 @@ export class VitalSignAlertsService {
       incidentConfirmedAt: new Date().toISOString(),
     }
 
-    const medicalNotes =
-      dto.medicalNotes?.trim() ||
-      alert.medicalNotes ||
-      'Intercorrência confirmada a partir de alerta de sinais vitais.'
-
-    const actionTaken =
-      dto.actionTaken?.trim() ||
-      alert.actionTaken ||
-      'Registro de intercorrência gerado para acompanhamento clínico.'
+    const medicalNotes = medicalNotesInput
+    const actionTaken = actionTakenInput
 
     await this.tenantContext.client.$transaction(async (prisma) => {
       const updatedAlert = await prisma.vitalSignAlert.update({

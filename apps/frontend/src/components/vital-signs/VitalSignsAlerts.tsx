@@ -8,6 +8,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  getAlertStatusBadge,
+  getClinicalSeverityBadge,
+  getContextBadge,
+  getOriginBadge,
+  getPriorityBadge,
+  getSentinelBadge,
+  type ClinicalBadgeConfig,
+} from '@/components/clinical-events/clinicalEventBadges'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -51,6 +60,7 @@ interface DailyRecordWithIncident {
   incidentCategory?: string | null
   incidentSeverity?: string | null
   incidentSubtypeClinical?: string | null
+  isEventoSentinela?: boolean | null
 }
 
 type UnifiedAlert = {
@@ -72,6 +82,7 @@ type UnifiedAlert = {
   medicalNotes?: string | null
   actionTaken?: string | null
   linkedAlertId?: string
+  isSentinel?: boolean
 }
 
 const VITAL_RELATED_SUBTYPES = new Set([
@@ -408,6 +419,7 @@ export function VitalSignsAlerts({ residentId, periodDays = 7 }: VitalSignsAlert
             tags,
             recordedBy: record.recordedBy,
             linkedAlertId,
+            isSentinel: !!record.isEventoSentinela,
           }
         })
 
@@ -675,47 +687,17 @@ export function VitalSignsAlerts({ residentId, periodDays = 7 }: VitalSignsAlert
     }
   }
 
-  const getSeverityVariant = (severity: AlertSeverity) => {
-    switch (severity) {
-      case AlertSeverity.CRITICAL:
-        return 'destructive'
-      case AlertSeverity.WARNING:
-        return 'warning'
-      case AlertSeverity.INFO:
-        return 'secondary'
-      default:
-        return 'default'
+  const getEventTypeBadge = (alert: UnifiedAlert): ClinicalBadgeConfig => {
+    if (alert.source === 'VITAL_ALERT') {
+      return { label: 'Alerta de sinais vitais', variant: 'info' }
     }
-  }
-
-  const getSeverityLabel = (severity: AlertSeverity) => {
-    switch (severity) {
-      case AlertSeverity.CRITICAL:
-        return 'Crítico'
-      case AlertSeverity.WARNING:
-        return 'Atenção'
-      case AlertSeverity.INFO:
-        return 'Info'
-      default:
-        return severity
+    if (alert.title.toLowerCase().includes('intercorrência')) {
+      return { label: 'Intercorrência clínica', variant: 'info' }
     }
-  }
-
-  const getStatusLabel = (status: AlertStatus) => {
-    switch (status) {
-      case AlertStatus.ACTIVE:
-        return 'Ativo'
-      case AlertStatus.IN_TREATMENT:
-        return 'Em Tratamento'
-      case AlertStatus.MONITORING:
-        return 'Monitorando'
-      case AlertStatus.RESOLVED:
-        return 'Resolvido'
-      case AlertStatus.IGNORED:
-        return 'Ignorado'
-      default:
-        return status
+    if (alert.title.toLowerCase().includes('monitoramento')) {
+      return { label: 'Monitoramento anormal', variant: 'info' }
     }
+    return { label: 'Evento clínico', variant: 'info' }
   }
 
   const handleManageAlert = (alert: UnifiedAlert) => {
@@ -837,107 +819,106 @@ export function VitalSignsAlerts({ residentId, periodDays = 7 }: VitalSignsAlert
             </AlertDescription>
           </Alert>
         ) : (
-          filteredAlerts.map((alert) => (
-            <Alert key={alert.id} className="relative">
-              <div className="flex items-start gap-4">
-                <div className="mt-1">{getIcon(alert.type)}</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <AlertTitle className="mb-0">{alert.title}</AlertTitle>
-                    <Badge variant={getSeverityVariant(alert.severity)}>
-                      {getSeverityLabel(alert.severity)}
-                    </Badge>
-                    {alert.value && <Badge variant="outline">{alert.value}</Badge>}
-                    <Badge
-                      variant={
-                        alert.status === AlertStatus.RESOLVED
-                          ? 'secondary'
-                          : alert.status === AlertStatus.IN_TREATMENT
-                            ? 'default'
-                            : 'outline'
-                      }
-                    >
-                      {getStatusLabel(alert.status)}
-                    </Badge>
-                    <Badge variant={alert.source === 'RECORD' ? 'default' : 'secondary'}>
-                      {alert.source === 'RECORD' ? (
-                        <>
-                          <FileText className="h-3 w-3 mr-1" />
-                          Registro diário
-                        </>
-                      ) : (
-                        'Alerta vital'
+          filteredAlerts.map((alert) => {
+            const typeBadge = getEventTypeBadge(alert)
+            const severityBadge = getClinicalSeverityBadge(alert.severity)
+            const statusBadge = getAlertStatusBadge(alert.status)
+            const contextBadge = getContextBadge(alert.value)
+            const originBadge = getOriginBadge(alert.source)
+            const priorityBadge = getPriorityBadge(alert.priority)
+            const sentinelBadge = getSentinelBadge(alert.isSentinel)
+
+            return (
+              <Alert key={alert.id} className="relative">
+                <div className="flex items-start gap-4">
+                  <div className="mt-1">{getIcon(alert.type)}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <AlertTitle className="mb-0">{alert.title}</AlertTitle>
+                      <Badge variant={typeBadge.variant}>{typeBadge.label}</Badge>
+                      {severityBadge && (
+                        <Badge variant={severityBadge.variant}>{severityBadge.label}</Badge>
                       )}
-                    </Badge>
-                    {alert.priority >= 4 && (
-                      <Badge variant="destructive" className="text-xs">
-                        Prioridade {alert.priority}
-                      </Badge>
+                      {statusBadge && (
+                        <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+                      )}
+                      {contextBadge && (
+                        <Badge variant={contextBadge.variant}>{contextBadge.label}</Badge>
+                      )}
+                      <Badge variant={originBadge.variant}>{originBadge.label}</Badge>
+                      {priorityBadge && (
+                        <Badge variant={priorityBadge.variant} className="text-xs">
+                          {priorityBadge.label}
+                        </Badge>
+                      )}
+                      {sentinelBadge && (
+                        <Badge variant={sentinelBadge.variant}>{sentinelBadge.label}</Badge>
+                      )}
+                    </div>
+                    <AlertDescription className="mb-2">
+                      {alert.description}
+                    </AlertDescription>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                          {formatAlertDateTime(alert.createdAt)}
+                        </p>
+                        {alert.recordedBy && (
+                          <p className="text-xs text-muted-foreground">
+                            Registrado por: <strong>{alert.recordedBy}</strong>
+                          </p>
+                        )}
+                        {alert.assignedUser && (
+                          <p className="text-xs text-muted-foreground">
+                            Atribuído para: <strong>{alert.assignedUser.name}</strong>
+                          </p>
+                        )}
+                        {alert.clinicalNotes && alert.clinicalNotes.length > 0 && (
+                          <p className="text-xs text-primary">
+                            📋 {alert.clinicalNotes.length} evolução(ões) vinculada(s)
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {alert.source === 'RECORD' && !alert.manageableAlert && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/dashboard/residentes/${residentId}?section=clinical-notes`)
+                            }
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Criar evolução
+                          </Button>
+                        )}
+                        {alert.manageableAlert && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleManageAlert(alert)}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Gerenciar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {alert.medicalNotes && (
+                      <div className="mt-2 p-2 bg-muted rounded text-sm">
+                        <strong>Notas Médicas:</strong> {alert.medicalNotes}
+                      </div>
+                    )}
+                    {alert.actionTaken && (
+                      <div className="mt-2 p-2 bg-primary/5 dark:bg-primary/95 rounded text-sm">
+                        <strong>Ações Tomadas:</strong> {alert.actionTaken}
+                      </div>
                     )}
                   </div>
-                  <AlertDescription className="mb-2">
-                    {alert.description}
-                  </AlertDescription>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        {formatAlertDateTime(alert.createdAt)}
-                      </p>
-                      {alert.recordedBy && (
-                        <p className="text-xs text-muted-foreground">
-                          Registrado por: <strong>{alert.recordedBy}</strong>
-                        </p>
-                      )}
-                      {alert.assignedUser && (
-                        <p className="text-xs text-muted-foreground">
-                          Atribuído para: <strong>{alert.assignedUser.name}</strong>
-                        </p>
-                      )}
-                      {alert.clinicalNotes && alert.clinicalNotes.length > 0 && (
-                        <p className="text-xs text-primary">
-                          📋 {alert.clinicalNotes.length} evolução(ões) vinculada(s)
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {alert.source === 'RECORD' && !alert.manageableAlert && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/dashboard/residentes/${residentId}?section=clinical-notes`)
-                          }
-                        >
-                          <FileText className="h-3 w-3 mr-1" />
-                          Criar evolução
-                        </Button>
-                      )}
-                      {alert.manageableAlert && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleManageAlert(alert)}
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Gerenciar
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {alert.medicalNotes && (
-                    <div className="mt-2 p-2 bg-muted rounded text-sm">
-                      <strong>Notas Médicas:</strong> {alert.medicalNotes}
-                    </div>
-                  )}
-                  {alert.actionTaken && (
-                    <div className="mt-2 p-2 bg-primary/5 dark:bg-primary/95 rounded text-sm">
-                      <strong>Ações Tomadas:</strong> {alert.actionTaken}
-                    </div>
-                  )}
                 </div>
-              </div>
-            </Alert>
-          ))
+              </Alert>
+            )
+          })
         )}
       </div>
 

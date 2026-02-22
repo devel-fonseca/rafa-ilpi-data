@@ -7,6 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+  getAlertStatusBadge,
+  getClinicalSeverityBadge,
+  getContextBadge,
+  getIncidentTypeBadge,
+  getOriginBadge,
+  getPriorityBadge,
+  getSentinelBadge,
+} from '@/components/clinical-events/clinicalEventBadges'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -25,8 +34,6 @@ import type { DailyRecord } from '@/api/dailyRecords.api'
 import {
   IncidentCategory,
   IncidentSeverity,
-  INCIDENT_CATEGORY_LABELS,
-  INCIDENT_SEVERITY_LABELS,
   getSubtypeLabel,
 } from '@/types/incidents'
 import {
@@ -102,12 +109,6 @@ function getIncidentAction(record: IncidentRecord): string | null {
   )
 }
 
-function severityVariant(severity: IncidentSeverity | null | undefined): 'secondary' | 'warning' | 'danger' {
-  if (severity === IncidentSeverity.LEVE) return 'secondary'
-  if (severity === IncidentSeverity.MODERADA) return 'warning'
-  return 'danger'
-}
-
 function getLinkedAlertId(record: IncidentRecord): string | null {
   const data = (record.data ?? {}) as Record<string, unknown>
   const alertId = data.alertaVitalId
@@ -136,6 +137,18 @@ function normalizeAlertForIncidentManagement(alert: VitalSignAlert | null): Vita
   return alert
 }
 
+function getAlertForIncidentRecord(
+  record: IncidentRecord,
+  alertsById: Map<string, VitalSignAlert>,
+  alertsByIncidentRecordId: Map<string, VitalSignAlert>,
+): VitalSignAlert | null {
+  const linkedAlertId = getLinkedAlertId(record)
+  if (linkedAlertId && alertsById.has(linkedAlertId)) {
+    return alertsById.get(linkedAlertId) ?? null
+  }
+  return alertsByIncidentRecordId.get(record.id) ?? null
+}
+
 export default function ResidentIncidentsPage() {
   const { residentId } = useParams<{ residentId: string }>()
   const navigate = useNavigate()
@@ -161,10 +174,31 @@ export default function ResidentIncidentsPage() {
   const { hasPermission } = usePermissions()
   const canManageAlerts = canManageVitalSignAlerts(user)
   const canDeleteRecords = hasPermission(PermissionType.DELETE_DAILY_RECORDS)
+  const normalizedResidentAlerts = useMemo(
+    () =>
+      allResidentAlerts
+        .map((alert) => normalizeAlertForIncidentManagement(alert))
+        .filter((alert): alert is VitalSignAlert => !!alert),
+    [allResidentAlerts],
+  )
+
   const alertsById = useMemo(() => {
-    const entries = allResidentAlerts.map((alert) => [alert.id, alert] as const)
+    const entries = normalizedResidentAlerts.map((alert) => [alert.id, alert] as const)
     return new Map<string, VitalSignAlert>(entries)
-  }, [allResidentAlerts])
+  }, [normalizedResidentAlerts])
+
+  const alertsByIncidentRecordId = useMemo(() => {
+    const map = new Map<string, VitalSignAlert>()
+    normalizedResidentAlerts.forEach((alert) => {
+      const metadata = (alert.metadata ?? {}) as Record<string, unknown>
+      const incidentRecordId = metadata.incidentRecordId
+      if (typeof incidentRecordId === 'string' && incidentRecordId.trim().length > 0) {
+        map.set(incidentRecordId, alert)
+      }
+    })
+    return map
+  }, [normalizedResidentAlerts])
+
   const selectedAlert = normalizeAlertForIncidentManagement(
     selectedAlertId ? alertsById.get(selectedAlertId) ?? null : null,
   )
@@ -242,9 +276,9 @@ export default function ResidentIncidentsPage() {
   }
 
   const handleManageRecord = (record: IncidentRecord) => {
-    const alertId = getLinkedAlertId(record)
-    if (!alertId) return
-    setSelectedAlertId(alertId)
+    const linkedAlert = getAlertForIncidentRecord(record, alertsById, alertsByIncidentRecordId)
+    if (!linkedAlert) return
+    setSelectedAlertId(linkedAlert.id)
   }
 
   const handleDeleteSuccess = () => {
@@ -402,6 +436,14 @@ export default function ResidentIncidentsPage() {
               const subtypeLabel = getIncidentSubtypeLabel(record)
               const description = getIncidentDescription(record)
               const actionTaken = getIncidentAction(record)
+              const linkedAlert = getAlertForIncidentRecord(record, alertsById, alertsByIncidentRecordId)
+              const categoryBadge = getIncidentTypeBadge(record.incidentCategory)
+              const severityBadge = getClinicalSeverityBadge(record.incidentSeverity)
+              const statusBadge = linkedAlert ? getAlertStatusBadge(linkedAlert.status) : null
+              const contextBadge = getContextBadge(subtypeLabel)
+              const originBadge = getOriginBadge(automatic ? 'automatic' : 'manual')
+              const priorityBadge = linkedAlert ? getPriorityBadge(linkedAlert.priority) : null
+              const sentinelBadge = getSentinelBadge(record.isEventoSentinela)
 
               return (
                 <Card key={record.id}>
@@ -411,26 +453,24 @@ export default function ResidentIncidentsPage() {
                         <Badge variant="outline">
                           {formatDateOnlySafe(record.date)} • {record.time}
                         </Badge>
-                        {record.incidentCategory && (
-                          <Badge variant="info">
-                            {INCIDENT_CATEGORY_LABELS[record.incidentCategory]}
-                          </Badge>
+                        {categoryBadge && (
+                          <Badge variant={categoryBadge.variant}>{categoryBadge.label}</Badge>
                         )}
-                        {record.incidentSeverity && (
-                          <Badge variant={severityVariant(record.incidentSeverity)}>
-                            {INCIDENT_SEVERITY_LABELS[record.incidentSeverity]}
-                          </Badge>
+                        {severityBadge && (
+                          <Badge variant={severityBadge.variant}>{severityBadge.label}</Badge>
                         )}
-                        {subtypeLabel && <Badge variant="warning">{subtypeLabel}</Badge>}
-                        {automatic ? (
-                          <Badge variant="secondary">Detecção automática</Badge>
-                        ) : (
-                          <Badge variant="secondary">Registro manual</Badge>
+                        {statusBadge && <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>}
+                        {contextBadge && (
+                          <Badge variant={contextBadge.variant}>{contextBadge.label}</Badge>
                         )}
-                        {record.isEventoSentinela && (
-                          <Badge variant="danger">
+                        <Badge variant={originBadge.variant}>{originBadge.label}</Badge>
+                        {priorityBadge && (
+                          <Badge variant={priorityBadge.variant}>{priorityBadge.label}</Badge>
+                        )}
+                        {sentinelBadge && (
+                          <Badge variant={sentinelBadge.variant}>
                             <ShieldAlert className="h-3.5 w-3.5 mr-1" />
-                            Evento sentinela
+                            {sentinelBadge.label}
                           </Badge>
                         )}
                       </div>
@@ -459,9 +499,9 @@ export default function ResidentIncidentsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleManageRecord(record)}
-                              disabled={!getLinkedAlertId(record)}
+                              disabled={!linkedAlert}
                               title={
-                                getLinkedAlertId(record)
+                                linkedAlert
                                   ? 'Gerenciar alerta vinculado à intercorrência'
                                   : 'Sem alerta vital vinculado'
                               }

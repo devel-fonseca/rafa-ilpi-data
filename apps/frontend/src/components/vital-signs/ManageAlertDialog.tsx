@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { AlertStatus } from '@/api/vitalSignAlerts.api'
 import {
   Dialog,
@@ -10,6 +11,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -41,6 +51,8 @@ import {
   ChevronDown,
   ChevronUp,
   History,
+  Copy,
+  Sparkles,
 } from 'lucide-react'
 import {
   useUpdateAlert,
@@ -84,8 +96,10 @@ export function ManageAlertDialog({
   const dismissIncidentMutation = useDismissAlertIncident()
   const [showCreateEvolution, setShowCreateEvolution] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [showRequiredFieldsDialog, setShowRequiredFieldsDialog] = useState(false)
+  const [missingFields, setMissingFields] = useState<string[]>([])
 
-  const { control, register, handleSubmit, reset, watch } =
+  const { control, register, handleSubmit, reset, watch, setValue } =
     useForm<ManageAlertFormData>({
       defaultValues: {
         status: alert?.status || AlertStatus.ACTIVE,
@@ -109,6 +123,18 @@ export function ManageAlertDialog({
     incidentDecision !== 'CONFIRMED' &&
     incidentDecision !== 'DISMISSED' &&
     !incidentRecordId
+
+  const suggestedMedicalNotes = useMemo(
+    () =>
+      `Intercorrência confirmada a partir de alerta de sinais vitais: ${alert?.value || 'valor alterado'}.`,
+    [alert?.value],
+  )
+
+  const suggestedActionTaken = useMemo(
+    () =>
+      'Registrar conduta, manter monitoramento e reavaliar parâmetros em intervalo clínico adequado.',
+    [],
+  )
 
   // Atualizar formulário quando alerta mudar
   useEffect(() => {
@@ -145,12 +171,25 @@ export function ManageAlertDialog({
     if (!alert) return
 
     const values = watch()
+    const medicalNotes = values.medicalNotes?.trim() || ''
+    const actionTaken = values.actionTaken?.trim() || ''
+    const currentMissingFields: string[] = []
+
+    if (!medicalNotes) currentMissingFields.push('Notas médicas')
+    if (!actionTaken) currentMissingFields.push('Ações tomadas')
+
+    if (currentMissingFields.length > 0) {
+      setMissingFields(currentMissingFields)
+      setShowRequiredFieldsDialog(true)
+      return
+    }
+
     try {
       await confirmIncidentMutation.mutateAsync({
         id: alert.id,
         data: {
-          medicalNotes: values.medicalNotes || undefined,
-          actionTaken: values.actionTaken || undefined,
+          medicalNotes,
+          actionTaken,
         },
       })
 
@@ -168,8 +207,8 @@ export function ManageAlertDialog({
       await dismissIncidentMutation.mutateAsync({
         id: alert.id,
         data: {
-          medicalNotes: values.medicalNotes || undefined,
-          actionTaken: values.actionTaken || undefined,
+          medicalNotes: values.medicalNotes?.trim() || undefined,
+          actionTaken: values.actionTaken?.trim() || undefined,
         },
       })
 
@@ -181,6 +220,19 @@ export function ManageAlertDialog({
 
   const handleCreateEvolution = () => {
     setShowCreateEvolution(true)
+  }
+
+  const applySuggestion = (field: 'medicalNotes' | 'actionTaken', text: string) => {
+    setValue(field, text, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
+  }
+
+  const copySuggestion = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('Sugestão copiada')
+    } catch {
+      toast.error('Não foi possível copiar a sugestão')
+    }
   }
 
   const handleEvolutionSuccess = async () => {
@@ -476,8 +528,40 @@ export function ManageAlertDialog({
                   className="resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Observações clínicas importantes sobre este alerta
+                  Observações clínicas importantes sobre este alerta. Obrigatório para confirmar intercorrência.
                 </p>
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-xs text-muted-foreground">
+                      <div className="font-medium text-foreground mb-1 flex items-center gap-1">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Sugestão
+                      </div>
+                      {suggestedMedicalNotes}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => applySuggestion('medicalNotes', suggestedMedicalNotes)}
+                      >
+                        Usar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => copySuggestion(suggestedMedicalNotes)}
+                        title="Copiar sugestão"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Ações Tomadas */}
@@ -491,8 +575,40 @@ export function ManageAlertDialog({
                   className="resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Documentar condutas médicas ou de enfermagem realizadas
+                  Documentar condutas médicas ou de enfermagem realizadas. Obrigatório para confirmar intercorrência.
                 </p>
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-xs text-muted-foreground">
+                      <div className="font-medium text-foreground mb-1 flex items-center gap-1">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Sugestão
+                      </div>
+                      {suggestedActionTaken}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => applySuggestion('actionTaken', suggestedActionTaken)}
+                      >
+                        Usar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => copySuggestion(suggestedActionTaken)}
+                        title="Copiar sugestão"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -562,7 +678,11 @@ export function ManageAlertDialog({
                 ) : null}
 
                 {canShowIncidentDecisionActions && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Para confirmar intercorrência, preencha primeiro <strong>Notas médicas</strong> e <strong>Ações tomadas</strong>.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
                       variant="default"
@@ -579,6 +699,7 @@ export function ManageAlertDialog({
                     >
                       {dismissIncidentMutation.isPending ? 'Descartando...' : 'Descartar intercorrência'}
                     </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -631,6 +752,24 @@ export function ManageAlertDialog({
           onSuccess={handleEvolutionSuccess}
         />
       )}
+
+      <AlertDialog open={showRequiredFieldsDialog} onOpenChange={setShowRequiredFieldsDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Preencha os campos obrigatórios</AlertDialogTitle>
+            <AlertDialogDescription>
+              Para confirmar a intercorrência, complete os campos abaixo:
+              {missingFields.length > 0 ? ` ${missingFields.join(' e ')}.` : ''}
+              {' '}Você pode usar ou copiar as sugestões mostradas no formulário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowRequiredFieldsDialog(false)}>
+              Entendi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
