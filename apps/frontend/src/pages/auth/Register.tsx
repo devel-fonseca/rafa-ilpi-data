@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuthStore } from '../../stores/auth.store'
@@ -73,10 +73,11 @@ export default function Register() {
   const [privacyPolicy, setPrivacyPolicy] = useState<PrivacyPolicyResponse | null>(null)
   const [loadingPrivacyPolicy, setLoadingPrivacyPolicy] = useState(false)
 
-  // Timers de leitura
-  const [privacyReadTime, setPrivacyReadTime] = useState(0)
-  const [termsReadTime, setTermsReadTime] = useState(0)
-  const [readingStarted, setReadingStarted] = useState(false)
+  // Controle de leitura por rolagem (>= 98%)
+  const [privacyScrolledToEnd, setPrivacyScrolledToEnd] = useState(false)
+  const [termsScrolledToEnd, setTermsScrolledToEnd] = useState(false)
+  const privacyContentRef = useRef<HTMLDivElement | null>(null)
+  const termsContentRef = useRef<HTMLDivElement | null>(null)
 
   const [formData, setFormData] = useState({
     // ILPI Data
@@ -167,40 +168,35 @@ export default function Register() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, formData.planId])
 
-  // Timer de leitura da Política de Privacidade (step 5)
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-    if (currentStep === 5 && readingStarted) {
-      interval = setInterval(() => {
-        setPrivacyReadTime(prev => prev + 1)
-      }, 1000)
-    }
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [currentStep, readingStarted])
+  const hasScrolledToEnd = (element: HTMLDivElement): boolean => {
+    const { scrollTop, clientHeight, scrollHeight } = element
+    if (scrollHeight <= clientHeight) return true
+    return (scrollTop + clientHeight) / scrollHeight >= 0.98
+  }
 
-  // Timer de leitura do Termo de Uso (step 6)
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-    if (currentStep === 6 && readingStarted) {
-      interval = setInterval(() => {
-        setTermsReadTime(prev => prev + 1)
-      }, 1000)
+  const handlePrivacyScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (hasScrolledToEnd(event.currentTarget)) {
+      setPrivacyScrolledToEnd(true)
     }
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [currentStep, readingStarted])
+  }
 
-  // Iniciar timer ao entrar nos steps 5 ou 6
-  useEffect(() => {
-    if (currentStep === 5 || currentStep === 6) {
-      setReadingStarted(true)
-    } else {
-      setReadingStarted(false)
+  const handleTermsScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (hasScrolledToEnd(event.currentTarget)) {
+      setTermsScrolledToEnd(true)
     }
-  }, [currentStep])
+  }
+
+  useEffect(() => {
+    if (currentStep === 5 && privacyContentRef.current) {
+      setPrivacyScrolledToEnd(hasScrolledToEnd(privacyContentRef.current))
+    }
+  }, [currentStep, privacyPolicy])
+
+  useEffect(() => {
+    if (currentStep === 6 && termsContentRef.current) {
+      setTermsScrolledToEnd(hasScrolledToEnd(termsContentRef.current))
+    }
+  }, [currentStep, currentTerms])
 
 
   const loadActiveTerms = async () => {
@@ -343,8 +339,8 @@ export default function Register() {
         break
 
       case 5: // Privacy Policy
-        if (privacyReadTime < 3) {
-          newErrors.privacyPolicy = 'Você deve ler a Política de Privacidade por pelo menos 3 segundos antes de aceitar'
+        if (!privacyScrolledToEnd) {
+          newErrors.privacyPolicy = 'Role a Política de Privacidade até o final para habilitar o aceite'
         }
         if (!formData.privacyPolicyAccepted) {
           newErrors.privacyPolicyAccepted = 'Você deve aceitar a Política de Privacidade para continuar'
@@ -352,8 +348,8 @@ export default function Register() {
         break
 
       case 6: // Terms of Service
-        if (termsReadTime < 3) {
-          newErrors.terms = 'Você deve ler o Termo de Uso por pelo menos 3 segundos antes de aceitar'
+        if (!termsScrolledToEnd) {
+          newErrors.terms = 'Role o Termo de Uso até o final para habilitar o aceite'
         }
         if (!formData.termsAccepted) {
           newErrors.termsAccepted = 'Você deve aceitar o Termo de Uso para continuar'
@@ -1071,20 +1067,20 @@ export default function Register() {
     <div className="space-y-6">
       <Alert className="bg-primary/5 border-primary/30">
         <AlertDescription>
-          Leia atentamente a Política de Privacidade antes de continuar. <strong>Tempo mínimo de leitura: 30 segundos.</strong>
+          Leia atentamente a Política de Privacidade antes de continuar. <strong>Role o conteúdo até o final para habilitar o aceite.</strong>
         </AlertDescription>
       </Alert>
 
-      {/* Timer de leitura */}
+      {/* Status de leitura por rolagem */}
       <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-primary/30">
         <span className="text-sm font-medium text-primary/95">
-          {privacyReadTime >= 3 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Política de Privacidade...'}
+          {privacyScrolledToEnd ? '✅ Leitura concluída' : '⬇️ Role até o final da Política de Privacidade'}
         </span>
         <span className={cn(
           "text-lg font-bold",
-          privacyReadTime >= 3 ? "text-success" : "text-primary"
+          privacyScrolledToEnd ? "text-success" : "text-primary"
         )}>
-          {privacyReadTime}s / 3s
+          {privacyScrolledToEnd ? '100%' : '<98%'}
         </span>
       </div>
 
@@ -1093,7 +1089,11 @@ export default function Register() {
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
         </div>
       ) : privacyPolicy ? (
-        <Card className="p-6 max-h-96 overflow-y-auto border-2">
+        <Card
+          ref={privacyContentRef}
+          onScroll={handlePrivacyScroll}
+          className="p-6 max-h-96 overflow-y-auto border-2"
+        >
           <div className="prose prose-sm max-w-none">
             <ReactMarkdown>{privacyPolicy.content}</ReactMarkdown>
           </div>
@@ -1110,7 +1110,7 @@ export default function Register() {
         <Checkbox
           id="privacyPolicyAccepted"
           checked={formData.privacyPolicyAccepted}
-          disabled={privacyReadTime < 3}
+          disabled={!privacyScrolledToEnd}
           onCheckedChange={(checked) =>
             setFormData(prev => ({ ...prev, privacyPolicyAccepted: !!checked }))
           }
@@ -1119,7 +1119,7 @@ export default function Register() {
           htmlFor="privacyPolicyAccepted"
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            privacyReadTime < 3 && "text-muted-foreground/70 cursor-not-allowed"
+            !privacyScrolledToEnd && "text-muted-foreground/70 cursor-not-allowed"
           )}
         >
           Li e aceito a Política de Privacidade da plataforma RAFA ILPI
@@ -1147,20 +1147,20 @@ export default function Register() {
     <div className="space-y-6">
       <Alert className="bg-primary/5 border-primary/30">
         <AlertDescription>
-          Leia atentamente o Termos de Uso antes de continuar. <strong>Tempo mínimo de leitura: 60 segundos.</strong>
+          Leia atentamente os Termos de Uso antes de continuar. <strong>Role o conteúdo até o final para habilitar o aceite.</strong>
         </AlertDescription>
       </Alert>
 
-      {/* Timer de leitura */}
+      {/* Status de leitura por rolagem */}
       <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-primary/30">
         <span className="text-sm font-medium text-primary/95">
-          {termsReadTime >= 3 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Termo de Uso...'}
+          {termsScrolledToEnd ? '✅ Leitura concluída' : '⬇️ Role até o final dos Termos de Uso'}
         </span>
         <span className={cn(
           "text-lg font-bold",
-          termsReadTime >= 3 ? "text-success" : "text-primary"
+          termsScrolledToEnd ? "text-success" : "text-primary"
         )}>
-          {termsReadTime}s / 3s
+          {termsScrolledToEnd ? '100%' : '<98%'}
         </span>
       </div>
 
@@ -1169,7 +1169,11 @@ export default function Register() {
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
         </div>
       ) : currentTerms ? (
-        <Card className="p-6 max-h-96 overflow-y-auto border-2">
+        <Card
+          ref={termsContentRef}
+          onScroll={handleTermsScroll}
+          className="p-6 max-h-96 overflow-y-auto border-2"
+        >
           <div dangerouslySetInnerHTML={{ __html: currentTerms.content }} />
         </Card>
       ) : null}
@@ -1184,7 +1188,7 @@ export default function Register() {
         <Checkbox
           id="termsAccepted"
           checked={formData.termsAccepted}
-          disabled={termsReadTime < 3}
+          disabled={!termsScrolledToEnd}
           onCheckedChange={(checked) =>
             setFormData(prev => ({ ...prev, termsAccepted: !!checked }))
           }
@@ -1193,7 +1197,7 @@ export default function Register() {
           htmlFor="termsAccepted"
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            termsReadTime < 3 && "text-muted-foreground/70 cursor-not-allowed"
+            !termsScrolledToEnd && "text-muted-foreground/70 cursor-not-allowed"
           )}
         >
           Li e aceito os Termos de Uso da plataforma RAFA ILPI
