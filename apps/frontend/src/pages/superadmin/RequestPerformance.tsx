@@ -351,15 +351,16 @@ export function RequestPerformancePage() {
 
             {data.alerts.hasAny && (
               <div className="grid gap-4 lg:grid-cols-2">
-                <Card className="border-warning/40 bg-warning/95">
+                <Card className="border-warning/40 bg-warning/10">
                   <CardHeader>
-                    <CardTitle className="text-sm text-warning">
+                    <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
                       Endpoints acima do p95 esperado
+                      <Badge className="bg-warning text-white">Atenção</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {data.alerts.endpointP95Breaches.length === 0 && (
-                      <p className="text-sm text-warning/80">Nenhum endpoint acima do limite.</p>
+                      <p className="text-sm text-slate-600">Nenhum endpoint acima do limite.</p>
                     )}
                     {data.alerts.endpointP95Breaches.map((breach) => (
                       <div
@@ -377,15 +378,16 @@ export function RequestPerformancePage() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-danger/30 bg-danger/95">
+                <Card className="border-danger/30 bg-danger/10">
                   <CardHeader>
-                    <CardTitle className="text-sm text-danger">
+                    <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
                       Tenants com taxa 5xx acima do limite
+                      <Badge className="bg-danger text-white">Crítico</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {data.alerts.tenant5xxBreaches.length === 0 && (
-                      <p className="text-sm text-danger/60">Nenhum tenant acima do limite.</p>
+                      <p className="text-sm text-slate-600">Nenhum tenant acima do limite.</p>
                     )}
                     {data.alerts.tenant5xxBreaches.map((breach) => (
                       <div
