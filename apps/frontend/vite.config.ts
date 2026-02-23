@@ -32,7 +32,6 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return
 
-          if (id.includes('/react/') || id.includes('/react-dom/')) return 'vendor-react'
           if (id.includes('@radix-ui/')) return 'vendor-radix'
           if (id.includes('@tiptap/')) return 'vendor-tiptap'
           if (id.includes('@tensorflow/') || id.includes('@tensorflow-models/')) return 'vendor-tf'

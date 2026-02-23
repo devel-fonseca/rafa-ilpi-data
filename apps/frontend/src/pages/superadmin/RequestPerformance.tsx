@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -22,7 +24,11 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRequestPerformanceMetrics } from '@/hooks/useSuperAdminMetrics'
-import type { RequestPerformanceFilters } from '@/api/superadmin.api'
+import type {
+  RequestPerformanceEndpointItem,
+  RequestPerformanceFilters,
+  RequestPerformanceSummary,
+} from '@/api/superadmin.api'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
 
 const DEFAULT_WINDOW_MINUTES = 15
@@ -35,6 +41,32 @@ function formatMs(value: number): string {
 
 function formatPercent(value: number): string {
   return `${value.toFixed(2)}%`
+}
+
+function normalizeTenantLabel(tenantId: string): string {
+  const normalized = tenantId.trim().toLowerCase()
+  if (!normalized || normalized === 'unknown') {
+    return 'public/system'
+  }
+  return tenantId
+}
+
+function getEndpointHealthStatus(
+  item: RequestPerformanceEndpointItem,
+  thresholds: RequestPerformanceSummary['alerts']['thresholds'],
+): { label: string; className: string } {
+  const hasHigh5xx = item.errorRate5xx >= thresholds.error5xxRatePercent
+  const hasHighP95 = item.p95 >= thresholds.p95Ms
+
+  if (hasHigh5xx) {
+    return { label: 'Crítico', className: 'bg-danger text-white' }
+  }
+
+  if (hasHighP95) {
+    return { label: 'Atenção', className: 'bg-warning text-white' }
+  }
+
+  return { label: 'Saudável', className: 'bg-success text-white' }
 }
 
 function buildFilters(input: {
@@ -65,6 +97,7 @@ export function RequestPerformancePage() {
   const [draftTop, setDraftTop] = useState(String(DEFAULT_TOP))
   const [draftTenantId, setDraftTenantId] = useState('')
   const [draftEndpointContains, setDraftEndpointContains] = useState('')
+  const [showOnlyEndpointBreaches, setShowOnlyEndpointBreaches] = useState(false)
 
   const [filters, setFilters] = useState<RequestPerformanceFilters>({
     windowMinutes: DEFAULT_WINDOW_MINUTES,
@@ -76,6 +109,17 @@ export function RequestPerformancePage() {
   const hasExtraFilters = useMemo(() => {
     return Boolean(filters.tenantId || filters.endpointContains)
   }, [filters.endpointContains, filters.tenantId])
+
+  const endpointRows = useMemo(() => {
+    if (!data) return []
+    if (!showOnlyEndpointBreaches) return data.byEndpoint
+
+    return data.byEndpoint.filter((item) => {
+      const p95Breached = item.p95 >= data.alerts.thresholds.p95Ms
+      const rateBreached = item.errorRate5xx >= data.alerts.thresholds.error5xxRatePercent
+      return p95Breached || rateBreached
+    })
+  }, [data, showOnlyEndpointBreaches])
 
   const handleApplyFilters = () => {
     setFilters(
@@ -189,6 +233,19 @@ export function RequestPerformancePage() {
                 filtro avançado ativo
               </Badge>
             )}
+            <div className="ml-auto flex items-center gap-2 rounded-md border border-slate-200 bg-slate-100 px-3 py-2">
+              <Switch
+                id="show-only-endpoint-breaches"
+                checked={showOnlyEndpointBreaches}
+                onCheckedChange={setShowOnlyEndpointBreaches}
+              />
+              <Label
+                htmlFor="show-only-endpoint-breaches"
+                className="cursor-pointer text-sm text-slate-700"
+              >
+                Somente endpoints acima do limite
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -336,7 +393,7 @@ export function RequestPerformancePage() {
                         className="rounded-md border border-danger/30 bg-white px-3 py-2"
                       >
                         <p className="break-all text-sm font-medium text-slate-900">
-                          {breach.tenantId}
+                          {normalizeTenantLabel(breach.tenantId)}
                         </p>
                         <p className="text-xs text-slate-500">
                           5xx {formatPercent(breach.errorRate5xx)} • {breach.count} requisições
@@ -350,13 +407,18 @@ export function RequestPerformancePage() {
 
             <Card className="border-slate-200 bg-white">
               <CardHeader>
-                <CardTitle className="text-slate-900">Top Endpoints</CardTitle>
+                <CardTitle className="text-slate-900">
+                  Top Endpoints
+                  {showOnlyEndpointBreaches ? ' acima do limite' : ''}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                {data.byEndpoint.length === 0 ? (
+                {endpointRows.length === 0 ? (
                   <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-100 p-4 text-sm text-slate-500">
                     <CheckCircle2 className="h-4 w-4 text-success" />
-                    Sem eventos para os filtros selecionados.
+                    {showOnlyEndpointBreaches
+                      ? 'Nenhum endpoint acima dos thresholds para os filtros selecionados.'
+                      : 'Sem eventos para os filtros selecionados.'}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -364,6 +426,7 @@ export function RequestPerformancePage() {
                       <TableHeader>
                         <TableRow className="border-slate-200 hover:bg-slate-100/50">
                           <TableHead className="text-slate-500">Endpoint</TableHead>
+                          <TableHead className="text-slate-500">Status</TableHead>
                           <TableHead className="text-right text-slate-500">Req.</TableHead>
                           <TableHead className="text-right text-slate-500">p50</TableHead>
                           <TableHead className="text-right text-slate-500">p95</TableHead>
@@ -375,10 +438,14 @@ export function RequestPerformancePage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {data.byEndpoint.map((item) => {
+                        {endpointRows.map((item) => {
                           const p95Breached = item.p95 >= data.alerts.thresholds.p95Ms
                           const rateBreached =
                             item.errorRate5xx >= data.alerts.thresholds.error5xxRatePercent
+                          const health = getEndpointHealthStatus(
+                            item,
+                            data.alerts.thresholds,
+                          )
                           return (
                             <TableRow
                               key={item.endpoint}
@@ -386,6 +453,9 @@ export function RequestPerformancePage() {
                             >
                               <TableCell className="max-w-[420px] break-all text-slate-900">
                                 {item.endpoint}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={health.className}>{health.label}</Badge>
                               </TableCell>
                               <TableCell className="text-right text-slate-700">{item.count}</TableCell>
                               <TableCell className="text-right text-slate-700">{formatMs(item.p50)}</TableCell>
@@ -446,7 +516,7 @@ export function RequestPerformancePage() {
                               className="border-slate-200 hover:bg-slate-100/30"
                             >
                               <TableCell className="max-w-[320px] break-all text-slate-900">
-                                {item.tenantId}
+                                {normalizeTenantLabel(item.tenantId)}
                               </TableCell>
                               <TableCell className="text-right text-slate-700">{item.count}</TableCell>
                               <TableCell className="text-right text-slate-700">{formatMs(item.p50)}</TableCell>
