@@ -7,19 +7,45 @@ import { createEncryptionMiddleware } from './middleware/encryption.middleware';
 import { createCpfSyncMiddleware } from './middleware/cpf-sync.middleware';
 import { createQueryLoggerMiddleware } from './middleware/query-logger.middleware';
 import { PrismaQueryLoggerMiddleware } from './prisma-query-logger.middleware';
+import {
+  buildPrismaDatabaseUrl,
+  getPrismaConnectionOptionsForLog,
+  readPrismaConnectionOptionsFromEnv,
+} from './database-url-options.util';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private tenantClients: Map<string, PrismaClient> = new Map();
   private readonly multiTenantQueryLogger = new PrismaQueryLoggerMiddleware();
+  private readonly connectionOptions = readPrismaConnectionOptionsFromEnv(process.env);
+  private readonly baseDatabaseUrl = process.env.DATABASE_URL;
 
   constructor(
     private readonly configService: ConfigService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly winstonLogger: WinstonLogger,
   ) {
+    const configuredUrl = process.env.DATABASE_URL
+      ? buildPrismaDatabaseUrl(process.env.DATABASE_URL, {
+          options: readPrismaConnectionOptionsFromEnv(process.env),
+        })
+      : undefined;
+
     super({
+      datasources: configuredUrl
+        ? {
+            db: { url: configuredUrl },
+          }
+        : undefined,
       log: process.env.NODE_ENV === 'test' ? ['error'] : ['query', 'error', 'warn'],
     });
+
+    const connectionLogData = getPrismaConnectionOptionsForLog(this.connectionOptions);
+    if (Object.keys(connectionLogData).length > 0) {
+      this.winstonLogger.info('Prisma connection options carregadas', {
+        context: 'PrismaService',
+        ...connectionLogData,
+      });
+    }
 
     // Registrar middlewares
     this.registerQueryLoggerMiddleware();
@@ -95,15 +121,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   getTenantClient(schemaName: string): PrismaClient {
     if (!this.tenantClients.has(schemaName)) {
       // Extrai a connection string base
-      const baseUrl = process.env.DATABASE_URL;
+      const baseUrl = this.baseDatabaseUrl || process.env.DATABASE_URL;
 
       if (!baseUrl) {
         throw new Error('DATABASE_URL environment variable is not defined');
       }
 
-      // Adiciona o schema ao connection string
-      // Ex: postgresql://user:pass@host:5432/db?schema=tenant_abc123
-      const tenantUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}schema=${schemaName}`;
+      const tenantUrl = buildPrismaDatabaseUrl(baseUrl, {
+        schemaName,
+        options: this.connectionOptions,
+      });
 
       const tenantClient = new PrismaClient({
         datasources: {

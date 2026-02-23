@@ -13,6 +13,7 @@ import { tap } from 'rxjs/operators'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Logger } from 'winston'
 import { requestContext } from '../context/request-context'
+import { RequestPerformanceMetricsService } from '../../observability/request-performance-metrics.service'
 
 /**
  * Interceptor global que registra todas as requisições HTTP
@@ -26,7 +27,26 @@ import { requestContext } from '../context/request-context'
 export class HttpLoggerInterceptor implements NestInterceptor {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    private readonly requestMetrics: RequestPerformanceMetricsService,
   ) {}
+
+  private resolveEndpointLabel(request: {
+    method?: string
+    url?: string
+    baseUrl?: string
+    route?: { path?: string }
+  }): string {
+    const method = request.method || 'UNKNOWN'
+    const routePath = request.route?.path
+
+    if (routePath) {
+      const baseUrl = request.baseUrl || ''
+      return `${method} ${baseUrl}${routePath}`
+    }
+
+    const cleanUrl = (request.url || 'unknown').split('?')[0]
+    return `${method} ${cleanUrl}`
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest()
@@ -36,6 +56,7 @@ export class HttpLoggerInterceptor implements NestInterceptor {
     const requestId = (request as any).requestId
     const tenantId = user?.tenantId
     const userId = user?.id
+    const endpoint = this.resolveEndpointLabel(request)
 
     // Completar o store do AsyncLocalStorage com tenantId e userId
     const store = requestContext.getStore()
@@ -51,6 +72,13 @@ export class HttpLoggerInterceptor implements NestInterceptor {
         next: () => {
           const durationMs = Date.now() - startTime
           const statusCode = response.statusCode
+
+          this.requestMetrics.recordRequest({
+            tenantId,
+            endpoint,
+            statusCode,
+            durationMs,
+          })
 
           // Log estruturado sem duplicar metadata
           this.logger.info('http_request', {
@@ -68,6 +96,13 @@ export class HttpLoggerInterceptor implements NestInterceptor {
         error: (error: Error) => {
           const durationMs = Date.now() - startTime
           const statusCode = response.statusCode || 500
+
+          this.requestMetrics.recordRequest({
+            tenantId,
+            endpoint,
+            statusCode,
+            durationMs,
+          })
 
           // Log de erro estruturado
           this.logger.error('http_request_error', {

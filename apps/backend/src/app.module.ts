@@ -51,6 +51,7 @@ import { EmailLogsModule } from './email-logs/email-logs.module';
 import { TenantMessagesModule } from './tenant-messages/tenant-messages.module';
 import { MessagesModule } from './messages/messages.module';
 import { CacheModule } from './cache/cache.module';
+import { ObservabilityModule } from './observability/observability.module';
 import { InstitutionalEventsModule } from './institutional-events/institutional-events.module';
 import { SentinelEventsModule } from './sentinel-events/sentinel-events.module';
 import { RdcIndicatorsModule } from './rdc-indicators/rdc-indicators.module';
@@ -105,6 +106,9 @@ import { HttpLoggerInterceptor } from './common/interceptors/http-logger.interce
 
     // Cache (Redis)
     CacheModule,
+
+    // Observabilidade operacional (métricas de requisição por tenant/endpoint)
+    ObservabilityModule,
 
     // Módulos da aplicação
     AuthModule,

@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { addDays, endOfDay, startOfDay } from 'date-fns';
 import { AlertStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers';
 import { ResidentScheduleTasksService } from '../resident-schedule/resident-schedule-tasks.service';
+import { CacheService } from '../cache/cache.service';
 import {
   DailyComplianceResponseDto,
   ResidentsGrowthResponseDto,
@@ -20,11 +21,31 @@ import {
 
 @Injectable()
 export class AdminDashboardService {
+  private readonly logger = new Logger(AdminDashboardService.name);
+  private readonly overviewCacheTtlSeconds = this.getOverviewCacheTtlSeconds();
+
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly residentScheduleTasksService: ResidentScheduleTasksService,
+    private readonly cacheService: CacheService,
   ) {}
+
+  private getOverviewCacheTtlSeconds(): number {
+    const raw = process.env.ADMIN_DASHBOARD_OVERVIEW_CACHE_TTL_SECONDS;
+    if (!raw) return 60;
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 60;
+    }
+
+    return Math.floor(parsed);
+  }
+
+  private getOverviewCacheKey(userId: string): string {
+    return `admin-dashboard:overview:${this.tenantContext.tenantId}:${userId}`;
+  }
 
   private async getTenantTimezone(): Promise<string> {
     const tenant = await this.prisma.tenant.findUnique({
@@ -621,6 +642,19 @@ export class AdminDashboardService {
   }
 
   async getOverview(userId: string) {
+    const cacheKey = this.getOverviewCacheKey(userId);
+    const cached = await this.cacheService.get<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      this.logger.debug(
+        `[overview-cache] hit tenant=${this.tenantContext.tenantId} user=${userId}`,
+      );
+      return cached;
+    }
+
+    this.logger.debug(
+      `[overview-cache] miss tenant=${this.tenantContext.tenantId} user=${userId}`,
+    );
+
     const timezone = await this.getTenantTimezone();
     const todayStr = getCurrentDateInTz(timezone);
     const { start: today, end: tomorrow } = getDayRangeInTz(todayStr, timezone);
@@ -665,7 +699,7 @@ export class AdminDashboardService {
       this.getRecentActivities(50),
     ]);
 
-    return {
+    const overview = {
       timezone,
       generatedAt: new Date().toISOString(),
       dailySummary,
@@ -682,5 +716,13 @@ export class AdminDashboardService {
         totalPrescriptions,
       },
     };
+
+    await this.cacheService.set(
+      cacheKey,
+      overview,
+      this.overviewCacheTtlSeconds,
+    );
+
+    return overview;
   }
 }

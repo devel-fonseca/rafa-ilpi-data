@@ -23,6 +23,10 @@ import { TenantStatus, Prisma, PositionCode, FinancialCategoryType } from '@pris
 import { addDays } from 'date-fns';
 import { execSync } from 'child_process';
 import { normalizeFeatureRecord } from '../common/utils/feature-keys.util';
+import {
+  buildPrismaDatabaseUrl,
+  readPrismaConnectionOptionsFromEnv,
+} from '../prisma/database-url-options.util';
 
 @Injectable()
 export class TenantsService {
@@ -883,7 +887,10 @@ export class TenantsService {
         );
       }
 
-      const tenantUrl = `${DATABASE_URL}?schema=${schemaName}`;
+      const tenantUrl = buildPrismaDatabaseUrl(DATABASE_URL, {
+        schemaName,
+        options: readPrismaConnectionOptionsFromEnv(process.env),
+      });
 
       this.logger.log(
         `Executando migrations do Prisma no schema ${schemaName}...`,

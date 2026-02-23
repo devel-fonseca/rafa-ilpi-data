@@ -42,6 +42,7 @@ import { parseDateOnly } from '../utils/date.helpers'
 import { BackupAdminService } from './services/backup-admin.service'
 import type { Response } from 'express'
 import { readFile } from 'fs/promises'
+import { RequestPerformanceMetricsService } from '../observability/request-performance-metrics.service'
 
 /**
  * SuperAdminController
@@ -82,6 +83,7 @@ export class SuperAdminController {
     private readonly trialConversionJob: TrialToActiveConversionJob,
     private readonly asaasSyncJob: AsaasSyncJob,
     private readonly backupAdminService: BackupAdminService,
+    private readonly requestPerformanceMetrics: RequestPerformanceMetricsService,
   ) {}
 
   /**
@@ -140,6 +142,38 @@ export class SuperAdminController {
   async getTrends(@Query('months') months?: string) {
     const monthsNum = months ? parseInt(months, 10) : 12
     return this.metricsService.getTrends(monthsNum)
+  }
+
+  /**
+   * GET /superadmin/operations/request-performance
+   *
+   * Retorna métricas operacionais por tenant e endpoint:
+   * - p50/p95/p99
+   * - taxa de erro 4xx/5xx
+   * - alertas de threshold configurado
+   */
+  @Get('operations/request-performance')
+  async getRequestPerformance(
+    @Query('windowMinutes') windowMinutes?: string,
+    @Query('top') top?: string,
+    @Query('tenantId') tenantId?: string,
+    @Query('endpointContains') endpointContains?: string,
+  ) {
+    const parsedWindowRaw = windowMinutes ? parseInt(windowMinutes, 10) : undefined
+    const parsedTopRaw = top ? parseInt(top, 10) : undefined
+
+    return this.requestPerformanceMetrics.getSummary({
+      windowMinutes:
+        typeof parsedWindowRaw === 'number' && Number.isFinite(parsedWindowRaw)
+          ? parsedWindowRaw
+          : undefined,
+      top:
+        typeof parsedTopRaw === 'number' && Number.isFinite(parsedTopRaw)
+          ? parsedTopRaw
+          : undefined,
+      tenantId,
+      endpointContains,
+    })
   }
 
   // ========================================
