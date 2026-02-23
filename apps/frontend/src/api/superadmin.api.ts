@@ -202,6 +202,66 @@ export interface RestoreFullResult {
   durationMs: number
 }
 
+export interface RequestPerformanceFilters {
+  windowMinutes?: number
+  top?: number
+  tenantId?: string
+  endpointContains?: string
+}
+
+export interface RequestPerformanceAggregate {
+  count: number
+  avgMs: number
+  minMs: number
+  maxMs: number
+  p50: number
+  p95: number
+  p99: number
+  errors4xx: number
+  errors5xx: number
+  errorRate4xx: number
+  errorRate5xx: number
+}
+
+export interface RequestPerformanceEndpointItem extends RequestPerformanceAggregate {
+  endpoint: string
+}
+
+export interface RequestPerformanceTenantItem extends RequestPerformanceAggregate {
+  tenantId: string
+}
+
+export interface RequestPerformanceSummary {
+  generatedAt: string
+  windowMinutes: number
+  filters: {
+    tenantId: string | null
+    endpointContains: string | null
+  }
+  retainedEvents: number
+  analyzedEvents: number
+  totals: RequestPerformanceAggregate
+  byEndpoint: RequestPerformanceEndpointItem[]
+  byTenant: RequestPerformanceTenantItem[]
+  alerts: {
+    thresholds: {
+      p95Ms: number
+      error5xxRatePercent: number
+    }
+    hasAny: boolean
+    endpointP95Breaches: Array<{
+      endpoint: string
+      p95: number
+      count: number
+    }>
+    tenant5xxBreaches: Array<{
+      tenantId: string
+      errorRate5xx: number
+      count: number
+    }>
+  }
+}
+
 // ============================================
 // API METHODS
 // ============================================
@@ -240,6 +300,35 @@ export const getTrends = async (months: number = 12): Promise<TrendsResponse> =>
   const response = await api.get<TrendsResponse>(
     `/superadmin/metrics/trends?months=${months}`,
   )
+  return response.data
+}
+
+/**
+ * Busca métricas operacionais de performance por endpoint e tenant
+ */
+export const getRequestPerformance = async (
+  filters: RequestPerformanceFilters = {},
+): Promise<RequestPerformanceSummary> => {
+  const params = new URLSearchParams()
+
+  if (typeof filters.windowMinutes === 'number') {
+    params.set('windowMinutes', String(filters.windowMinutes))
+  }
+  if (typeof filters.top === 'number') {
+    params.set('top', String(filters.top))
+  }
+  if (filters.tenantId?.trim()) {
+    params.set('tenantId', filters.tenantId.trim())
+  }
+  if (filters.endpointContains?.trim()) {
+    params.set('endpointContains', filters.endpointContains.trim())
+  }
+
+  const queryString = params.toString()
+  const url = queryString
+    ? `/superadmin/operations/request-performance?${queryString}`
+    : '/superadmin/operations/request-performance'
+  const response = await api.get<RequestPerformanceSummary>(url)
   return response.data
 }
 

@@ -1,10 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   getOverviewMetrics,
+  getRequestPerformance,
   getRevenueMetrics,
   getTenantMetrics,
   getTrends,
   type OverviewMetrics,
+  type RequestPerformanceFilters,
+  type RequestPerformanceSummary,
   type RevenueMetrics,
   type TenantMetrics,
   type TrendsResponse,
@@ -66,5 +69,27 @@ export function useTrendsMetrics(months: number = 12) {
     queryFn: () => getTrends(months),
     refetchInterval: FIVE_MINUTES,
     staleTime: FIVE_MINUTES,
+  })
+}
+
+/**
+ * Hook para buscar performance operacional de requisições
+ */
+export function useRequestPerformanceMetrics(
+  filters: RequestPerformanceFilters = {},
+) {
+  return useQuery<RequestPerformanceSummary>({
+    queryKey: [
+      'superadmin',
+      'operations',
+      'request-performance',
+      filters.windowMinutes ?? null,
+      filters.top ?? null,
+      filters.tenantId ?? '',
+      filters.endpointContains ?? '',
+    ],
+    queryFn: () => getRequestPerformance(filters),
+    refetchInterval: 60 * 1000,
+    staleTime: 30 * 1000,
   })
 }

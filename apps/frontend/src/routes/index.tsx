@@ -205,6 +205,9 @@ const TenantMessageView = lazy(() => import('@/pages/superadmin/TenantMessageVie
 const SystemSettings = lazy(() =>
   import('@/pages/superadmin/SystemSettings').then((m) => ({ default: m.SystemSettings })),
 )
+const RequestPerformancePage = lazy(() =>
+  import('@/pages/superadmin/RequestPerformance').then((m) => ({ default: m.RequestPerformancePage })),
+)
 
 export const router = createBrowserRouter([
   {
@@ -859,6 +862,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: withSuspense(<SystemSettings />),
+      },
+      {
+        path: 'operations/performance',
+        element: withSuspense(<RequestPerformancePage />),
       },
     ],
   },

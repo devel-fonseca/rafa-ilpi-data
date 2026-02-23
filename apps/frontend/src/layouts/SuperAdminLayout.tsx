@@ -13,6 +13,7 @@ import {
   Mail,
   Settings,
   Database,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUnreadCount } from '@/hooks/useAlerts'
@@ -74,6 +75,11 @@ export function SuperAdminLayout() {
       to: '/superadmin/analytics',
       label: 'Analytics',
       icon: BarChart3,
+    },
+    {
+      to: '/superadmin/operations/performance',
+      label: 'Performance',
+      icon: Activity,
     },
     {
       to: '/superadmin/plans',
