@@ -234,7 +234,7 @@ export class ResidentContractsService {
           isIndefinite: false,
           rescindedAt: null,
           endDate: { lt: today },
-          status: { notIn: [ContractDocumentStatus.VENCIDO, ContractDocumentStatus.RESCINDIDO] },
+          status: { not: ContractDocumentStatus.VENCIDO },
         },
         data: { status: ContractDocumentStatus.VENCIDO },
       });
@@ -246,7 +246,7 @@ export class ResidentContractsService {
           isIndefinite: false,
           rescindedAt: null,
           endDate: { gte: today, lte: expiringThreshold },
-          status: { notIn: [ContractDocumentStatus.VENCENDO_EM_30_DIAS, ContractDocumentStatus.RESCINDIDO] },
+          status: { not: ContractDocumentStatus.VENCENDO_EM_30_DIAS },
         },
         data: { status: ContractDocumentStatus.VENCENDO_EM_30_DIAS },
       });
@@ -263,7 +263,7 @@ export class ResidentContractsService {
               endDate: { gt: expiringThreshold },
             },
           ],
-          status: { notIn: [ContractDocumentStatus.VIGENTE, ContractDocumentStatus.RESCINDIDO] },
+          status: { not: ContractDocumentStatus.VIGENTE },
         },
         data: { status: ContractDocumentStatus.VIGENTE },
       });

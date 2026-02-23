@@ -1,14 +1,29 @@
 -- Add RESCINDIDO to ContractDocumentStatus enum (idempotent)
 DO $$
+DECLARE
+  target_schema TEXT := current_schema();
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE t.typname = 'ContractDocumentStatus'
+      AND n.nspname = target_schema
+  ) AND NOT EXISTS (
     SELECT 1
     FROM pg_enum e
-    JOIN pg_type t ON e.enumtypid = t.oid
+    JOIN pg_type t ON t.oid = e.enumtypid
+    JOIN pg_namespace n ON n.oid = t.typnamespace
     WHERE t.typname = 'ContractDocumentStatus'
+      AND n.nspname = target_schema
       AND e.enumlabel = 'RESCINDIDO'
   ) THEN
-    ALTER TYPE "ContractDocumentStatus" ADD VALUE 'RESCINDIDO';
+    EXECUTE format(
+      'ALTER TYPE %I.%I ADD VALUE %L',
+      target_schema,
+      'ContractDocumentStatus',
+      'RESCINDIDO'
+    );
   END IF;
 END $$;
 
