@@ -90,7 +90,7 @@ const VIEW_OPTIONS = [
 // ========== COMPONENT ==========
 
 export default function ResidentPanelPage() {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('recent')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active')
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<ViewType>('basic')
 

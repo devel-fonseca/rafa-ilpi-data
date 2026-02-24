@@ -335,7 +335,10 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                               <div className="px-4 pb-3 space-y-2">
                                 {floor.rooms && floor.rooms.length > 0 ? (
                                   floor.rooms.map((room) => (
-                                    <Card key={room.id} className="bg-background">
+                                    <Card
+                                      key={room.id}
+                                      className="bg-background border-border/70 transition-colors hover:bg-muted/20 dark:bg-[#0B1730] dark:border-[#1C2F4E] dark:hover:bg-[#102042]"
+                                    >
                                       <Accordion
                                         type="multiple"
                                         className="w-full"
@@ -352,7 +355,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                           value={room.id}
                                           className="border-none"
                                         >
-                                          <AccordionTrigger className="px-3 hover:no-underline">
+                                          <AccordionTrigger className="px-3 hover:no-underline dark:hover:bg-[#12284d]">
                                             <div className="flex items-center gap-2 flex-1">
                                               <DoorOpen className="h-4 w-4 text-severity-warning dark:text-severity-warning/40" />
                                               <div className="flex-1 text-left">
@@ -363,7 +366,10 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                                   {room.occupiedBeds || 0}/{room.totalBeds || 0} ocupados
                                                 </div>
                                               </div>
-                                              <Badge variant="secondary" className="text-xs">
+                                              <Badge
+                                                variant="secondary"
+                                                className="text-xs dark:bg-[#1C2F4E] dark:text-slate-200 dark:border-[#2B456E]"
+                                              >
                                                 {room.roomNumber}
                                               </Badge>
                                             </div>

@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
   Calendar,
+  ClipboardCheck,
   ClipboardList,
   FileText,
   LayoutGrid,
@@ -116,9 +117,9 @@ const DASHBOARD_QUICK_ACTIONS: Record<
     },
     {
       id: 'prescriptions',
-      title: 'Prescrições',
-      description: 'Painel de Prescrições',
-      icon: Pill,
+      title: 'Monitoramento de Prescrições',
+      description: 'Acompanhar validade e revisão das prescrições',
+      icon: ClipboardCheck,
       to: '/dashboard/prescricoes/painel',
       visibleFor: [PositionCode.TECHNICAL_MANAGER],
     },

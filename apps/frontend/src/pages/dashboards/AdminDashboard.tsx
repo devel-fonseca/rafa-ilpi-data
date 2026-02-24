@@ -83,7 +83,7 @@ export function AdminDashboard() {
           context="admin"
           positionCode={user?.profile?.positionCode}
           mode="toolbar"
-          className="lg:shrink-0"
+          className="lg:shrink-0 rounded-lg border border-border bg-card/70 p-1"
         />
         <UniversalSearch
           variant="plain"
