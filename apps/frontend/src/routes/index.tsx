@@ -126,6 +126,9 @@ const ConformidadeRDCPage = lazy(() =>
 const EventosSentinelaPage = lazy(() =>
   import('@/pages/dashboards/EventosSentinelaPage').then((m) => ({ default: m.EventosSentinelaPage })),
 )
+const AdminDataAnalysisPage = lazy(() =>
+  import('@/pages/dashboards/AdminDataAnalysisPage').then((m) => ({ default: m.AdminDataAnalysisPage })),
+)
 const DocumentComplianceDashboard = lazy(() => import('@/pages/compliance/DocumentComplianceDashboard'))
 const InstitutionalDocumentManagement = lazy(() => import('@/pages/compliance/InstitutionalDocumentManagement'))
 const VitalSignsPage = lazy(() =>
@@ -279,6 +282,10 @@ export const router = createBrowserRouter([
       {
         path: 'painel-residente',
         element: <ResidentPanelPage />,
+      },
+      {
+        path: 'analise-dados',
+        element: withSuspense(<AdminDataAnalysisPage />),
       },
       {
         path: 'residentes/new',

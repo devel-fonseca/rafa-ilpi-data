@@ -7,10 +7,6 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities, type PendingItem } from '@/components/dashboard/PendingActivities'
 import { TodayShiftsInfo } from '@/components/dashboard/TodayShiftsInfo'
 import { DashboardQuickActions } from '@/components/dashboard/DashboardQuickActions'
-import { ResidentsGrowthChart } from '@/components/admin/ResidentsGrowthChart'
-import { MedicationAdministrationChart } from '@/components/admin/MedicationAdministrationChart'
-import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
-import { OccupancyRateChart } from '@/components/admin/OccupancyRateChart'
 import { useAdminDashboardOverview } from '@/hooks/useAdminDashboard'
 import { useAdminDashboardRealtime } from '@/hooks/useAdminDashboardRealtime'
 import { useResidentAlerts } from '@/hooks/useResidentAlerts'
@@ -22,10 +18,6 @@ export function AdminDashboard() {
   const { data: overview, isLoading } = useAdminDashboardOverview()
 
   const complianceStats = overview?.dailySummary
-  const residentsGrowth = overview?.residentsGrowth || []
-  const medicationsHistory = overview?.medicationsHistory || []
-  const recordsHistory = overview?.scheduledRecordsHistory || []
-  const occupancyRate = overview?.occupancyRate
   const pendingActivities = useMemo(
     () => overview?.pendingActivities ?? [],
     [overview?.pendingActivities],
@@ -96,35 +88,6 @@ export function AdminDashboard() {
         stats={complianceStats}
         isLoading={isLoading}
       />
-
-      {/* Gráficos de Análise */}
-      <CollapsibleSection
-        id="admin-analysis-charts"
-        title="Análise de Dados"
-        defaultCollapsed={false}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ResidentsGrowthChart
-            data={residentsGrowth}
-            isLoading={isLoading}
-          />
-          <OccupancyRateChart
-            data={occupancyRate?.data || []}
-            hasBedsConfigured={occupancyRate?.hasBedsConfigured}
-            capacityDeclared={occupancyRate?.capacityDeclared}
-            capacityLicensed={occupancyRate?.capacityLicensed}
-            isLoading={isLoading}
-          />
-          <MandatoryRecordsChart
-            data={recordsHistory}
-            isLoading={isLoading}
-          />
-          <MedicationAdministrationChart
-            data={medicationsHistory}
-            isLoading={isLoading}
-          />
-        </div>
-      </CollapsibleSection>
 
       {/* Atividades Recentes e Pendentes */}
       <CollapsibleSection

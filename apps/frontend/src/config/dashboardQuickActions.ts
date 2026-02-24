@@ -50,6 +50,14 @@ const DASHBOARD_QUICK_ACTIONS: Record<
       visibleFor: [PositionCode.ADMINISTRATOR],
     },
     {
+      id: 'data_analysis',
+      title: 'Análise de Dados',
+      description: 'Indicadores operacionais e tendências assistenciais',
+      icon: Activity,
+      to: '/dashboard/analise-dados',
+      visibleFor: [PositionCode.ADMINISTRATOR],
+    },
+    {
       id: 'reports',
       title: 'Relatórios',
       description: 'Central de relatórios e documentos',
