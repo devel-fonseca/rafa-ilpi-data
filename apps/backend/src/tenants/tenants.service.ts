@@ -94,8 +94,21 @@ export class TenantsService {
       );
     }
 
-    // Buscar Política de Privacidade atual para snapshot
-    const privacyPolicyData = await this.privacyPolicyService.getCurrentPolicy();
+    // Buscar Política de Privacidade atual para snapshot (fail-fast com mensagem explícita)
+    let privacyPolicyData: Awaited<
+      ReturnType<PrivacyPolicyService['getCurrentPolicy']>
+    >;
+    try {
+      privacyPolicyData = await this.privacyPolicyService.getCurrentPolicy();
+    } catch (error) {
+      this.logger.error(
+        'Falha ao carregar Política de Privacidade durante cadastro de tenant',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Política de Privacidade indisponível no momento. Tente novamente em instantes.',
+      );
+    }
 
     // Validar se CNPJ já existe
     if (cnpj) {

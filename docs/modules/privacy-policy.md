@@ -15,6 +15,8 @@ Documentação técnica gerada a partir da implementação atual do módulo no b
   - `apps/backend/src/privacy-policy/privacy-policy.controller.ts`
 - Services:
   - `apps/backend/src/privacy-policy/privacy-policy.service.ts`
+- Asset canônico do documento:
+  - `apps/backend/src/assets/legal/POLITICA-DE-PRIVACIDADE.md`
 - DTOs: não aplicável
 
 ## Endpoints HTTP

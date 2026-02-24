@@ -474,7 +474,7 @@ Risco = Probabilidade × Impacto × Ameaça
 #### 6.2.1. Políticas e Procedimentos
 
 **Documentação:**
-- ✅ Política de Privacidade (docs/POLITICA-DE-PRIVACIDADE.md) - v2.0
+- ✅ Política de Privacidade (apps/backend/src/assets/legal/POLITICA-DE-PRIVACIDADE.md) - v1.2
 - ✅ RIPD - Relatório de Impacto (docs/RIPD-RELATORIO-DE-IMPACTO.md) - v1.0
 - ✅ Plano de Segurança LGPD (docs/LGPD-DATA-SECURITY-IMPLEMENTATION.md)
 - 🔄 Termo de Confidencialidade (NDA) para profissionais - (recomendado)
@@ -719,7 +719,7 @@ Este RIPD foi revisado e aprovado por:
 
 **Anexos:**
 
-1. [Política de Privacidade v2.0](POLITICA-DE-PRIVACIDADE.md)
+1. [Política de Privacidade v1.2](../apps/backend/src/assets/legal/POLITICA-DE-PRIVACIDADE.md)
 2. [Plano de Segurança LGPD](LGPD-DATA-SECURITY-IMPLEMENTATION.md)
 3. [Documentação Técnica de Criptografia](LGPD-DATA-SECURITY-IMPLEMENTATION.md#camada-3-database-layer)
 4. [Relatório de Testes de Criptografia](../apps/backend/test-encryption.ts)

@@ -16,9 +16,9 @@ export class PrivacyPolicyController {
     description: 'Política de Privacidade retornada com sucesso',
     schema: {
       properties: {
-        version: { type: 'string', example: '2.1' },
-        effectiveDate: { type: 'string', example: '24/12/2025' },
-        lastUpdated: { type: 'string', example: '24/12/2025' },
+        version: { type: 'string', example: '1.2' },
+        effectiveDate: { type: 'string', example: '06/01/2026' },
+        lastUpdated: { type: 'string', example: '06/01/2026' },
         content: { type: 'string', description: 'Conteúdo Markdown da política' },
       },
     },

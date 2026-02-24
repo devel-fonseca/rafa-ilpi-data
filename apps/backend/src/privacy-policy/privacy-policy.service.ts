@@ -1,37 +1,41 @@
-import { Injectable } from '@nestjs/common';
-import { readFileSync } from 'fs';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 
 @Injectable()
 export class PrivacyPolicyService {
+  private readonly policyFileName = 'POLITICA-DE-PRIVACIDADE.md';
+
+  private resolvePolicyPath(): string {
+    const candidatePaths = [
+      resolve(__dirname, '..', 'assets', 'legal', this.policyFileName),
+      resolve(process.cwd(), 'src', 'assets', 'legal', this.policyFileName),
+      resolve(
+        process.cwd(),
+        'apps',
+        'backend',
+        'src',
+        'assets',
+        'legal',
+        this.policyFileName,
+      ),
+    ];
+
+    const policyPath = candidatePaths.find((path) => existsSync(path));
+    if (!policyPath) {
+      throw new InternalServerErrorException(
+        `Arquivo de política de privacidade não encontrado. Caminhos verificados: ${candidatePaths.join(', ')}`,
+      );
+    }
+
+    return policyPath;
+  }
+
   /**
    * Retorna a Política de Privacidade atual do arquivo Markdown
    */
   async getCurrentPolicy() {
-    // Em desenvolvimento, usar caminho do source; em produção, do dist
-    // Como usamos Webpack, o arquivo precisa estar no src/assets
-    const policyPath = resolve(
-      __dirname,
-      '..',
-      'assets',
-      'legal',
-      'POLITICA-DE-PRIVACIDADE.md',
-    );
-
-    let content: string;
-    try {
-      content = readFileSync(policyPath, 'utf8');
-    } catch (_error) {
-      // Fallback: tentar caminho do source em desenvolvimento
-      const devPath = resolve(
-        process.cwd(),
-        'src',
-        'assets',
-        'legal',
-        'POLITICA-DE-PRIVACIDADE.md',
-      );
-      content = readFileSync(devPath, 'utf8');
-    }
+    const content = readFileSync(this.resolvePolicyPath(), 'utf8');
 
     // Extrair metadados do cabeçalho
     const versionMatch = content.match(/\*\*Versão:\*\* (.+)/);

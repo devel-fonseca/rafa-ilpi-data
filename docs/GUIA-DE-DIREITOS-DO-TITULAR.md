@@ -496,4 +496,4 @@ Equipe de saúde precisa acessar dados para cuidar do residente com segurança. 
 
 ---
 
-*Este guia foi elaborado em conformidade com a LGPD (Lei nº 13.709/2018) e busca usar linguagem simples e acessível para idosos e familiares. Para a versão técnica completa, consulte a [Política de Privacidade](POLITICA-DE-PRIVACIDADE.md).*
+*Este guia foi elaborado em conformidade com a LGPD (Lei nº 13.709/2018) e busca usar linguagem simples e acessível para idosos e familiares. Para a versão técnica completa, consulte a [Política de Privacidade](../apps/backend/src/assets/legal/POLITICA-DE-PRIVACIDADE.md).*

@@ -26,7 +26,17 @@ export class AsaasService implements IPaymentGateway {
 
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('ASAAS_API_KEY') || ''
-    const environment = this.configService.get<string>('ASAAS_ENVIRONMENT') || 'sandbox'
+    const rawEnvironment = this.configService
+      .get<string>('ASAAS_ENVIRONMENT')
+      ?.toLowerCase()
+      .trim()
+    const nodeEnv = this.configService.get<string>('NODE_ENV')?.toLowerCase()
+    const environment =
+      rawEnvironment === 'production' || rawEnvironment === 'sandbox'
+        ? rawEnvironment
+        : nodeEnv === 'production'
+          ? 'production'
+          : 'sandbox'
 
     // Sandbox: https://sandbox.asaas.com/api/v3
     // Production: https://api.asaas.com/v3
@@ -34,6 +44,12 @@ export class AsaasService implements IPaymentGateway {
       environment === 'production'
         ? 'https://api.asaas.com/v3'
         : 'https://sandbox.asaas.com/api/v3'
+
+    if (!rawEnvironment) {
+      this.logger.warn(
+        `ASAAS_ENVIRONMENT não definido. Usando fallback '${environment}' baseado no NODE_ENV='${nodeEnv || 'undefined'}'.`,
+      )
+    }
 
     this.client = axios.create({
       baseURL: this.apiUrl,
