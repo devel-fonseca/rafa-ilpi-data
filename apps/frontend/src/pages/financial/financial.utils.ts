@@ -67,6 +67,16 @@ export function parsePtBrDecimalToApi(value: string): string {
   return parsePtBrDecimalToNumber(value).toFixed(2)
 }
 
+export function formatMonthLabel(competenceMonth: string): string {
+  try {
+    const date = new Date(`${extractDateOnly(competenceMonth)}T12:00:00`)
+    return format(date, "MMM/yy", { locale: ptBR })
+      .replace(/^./, (c) => c.toUpperCase())
+  } catch {
+    return competenceMonth
+  }
+}
+
 export function formatDateOnly(value: string): string {
   try {
     return format(new Date(`${extractDateOnly(value)}T12:00:00`), 'dd/MM/yyyy', { locale: ptBR })

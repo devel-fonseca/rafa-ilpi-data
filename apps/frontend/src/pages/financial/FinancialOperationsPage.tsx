@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-syntax */
 import { useEffect, useMemo, useState } from 'react'
-import { CircleHelp, CreditCard, Landmark, Plus, Scale, Tags, Wallet, X } from 'lucide-react'
+import { CircleHelp, CreditCard, Landmark, LayoutDashboard, Plus, Scale, Tags, Wallet, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSearchParams } from 'react-router-dom'
 import { Page, PageHeader } from '@/design-system/components'
@@ -74,6 +74,7 @@ import { PaymentMethodsSection } from './components/PaymentMethodsSection'
 import { ReconciliationDetailsDialog } from './components/ReconciliationDetailsDialog'
 import { ReconciliationsSection } from './components/ReconciliationsSection'
 import { UnreconciledPaidTransactionsSection } from './components/UnreconciledPaidTransactionsSection'
+import { DashboardSection } from './components/DashboardSection'
 import { TransactionsSection } from './components/TransactionsSection'
 import {
   accountTypeLabel,
@@ -102,8 +103,9 @@ export default function FinancialOperationsPage() {
   const canManageTransactions = hasPermission(PermissionType.MANAGE_FINANCIAL_TRANSACTIONS)
   const canManageAccounts = hasPermission(PermissionType.MANAGE_FINANCIAL_ACCOUNTS)
   const canManageReconciliation = hasPermission(PermissionType.MANAGE_FINANCIAL_RECONCILIATION)
+  const canViewDashboard = hasPermission(PermissionType.VIEW_FINANCIAL_DASHBOARD)
 
-  const [tab, setTab] = useState<'transactions' | 'categories' | 'accounts' | 'payment-methods' | 'reconciliations'>('transactions')
+  const [tab, setTab] = useState<'dashboard' | 'transactions' | 'categories' | 'accounts' | 'payment-methods' | 'reconciliations'>(canViewDashboard ? 'dashboard' : 'transactions')
   const [showTransactionsUsageGuide, setShowTransactionsUsageGuide] = useState(false)
   const [showReconciliationsUsageGuide, setShowReconciliationsUsageGuide] = useState(false)
   const [showAccountsUsageGuide, setShowAccountsUsageGuide] = useState(false)
@@ -233,6 +235,17 @@ export default function FinancialOperationsPage() {
       toDate: reconciliationForm.endDate || undefined,
     },
   )
+  const dashboardTransactionsQuery = useFinancialTransactions(
+    {
+      dueDateFrom: (() => {
+        const d = new Date()
+        d.setMonth(d.getMonth() - 6)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+      })(),
+      limit: 100,
+    },
+    { enabled: tab === 'dashboard' },
+  )
   const paymentMethodsQuery = useFinancialPaymentMethods(true)
   const bankAccountsQuery = useFinancialBankAccounts(true)
 
@@ -338,6 +351,7 @@ export default function FinancialOperationsPage() {
   useEffect(() => {
     const tabParam = searchParams.get('tab')
     if (
+      tabParam === 'dashboard' ||
       tabParam === 'transactions' ||
       tabParam === 'categories' ||
       tabParam === 'accounts' ||
@@ -817,7 +831,11 @@ export default function FinancialOperationsPage() {
 
   const totalPages = pagination?.totalPages || 1
   const reconciliationTotalPages = reconciliationPagination?.totalPages || 1
+  const dashboardTransactions = useMemo(() => dashboardTransactionsQuery.data?.items ?? [], [dashboardTransactionsQuery.data?.items])
+  const dashboardTotal = dashboardTransactionsQuery.data?.pagination?.total ?? 0
+
   const pageCountLabelByTab: Record<typeof tab, string> = {
+    dashboard: 'Transações no dashboard',
     transactions: 'Transações exibidas na página',
     reconciliations: 'Fechamentos exibidos na página',
     'payment-methods': 'Métodos exibidos na página',
@@ -825,6 +843,7 @@ export default function FinancialOperationsPage() {
     categories: 'Categorias exibidas na página',
   }
   const pageCountValueByTab: Record<typeof tab, number> = {
+    dashboard: dashboardTotal,
     transactions: transactions.length,
     reconciliations: reconciliations.length,
     'payment-methods': paymentMethodsCatalog.length,
@@ -1003,12 +1022,12 @@ export default function FinancialOperationsPage() {
               <Plus className="h-4 w-4 mr-2" />
               Nova conta
             </Button>
-          ) : (
+          ) : tab === 'categories' ? (
             <Button onClick={openCreateCategoryDialog} disabled={!canManageCategories}>
               <Plus className="h-4 w-4 mr-2" />
               Nova categoria
             </Button>
-          )
+          ) : null
         }
       />
 
@@ -1033,8 +1052,13 @@ export default function FinancialOperationsPage() {
         </Card>
       </div>
 
-      <Tabs value={tab} onValueChange={(value) => setTab(value as 'transactions' | 'categories' | 'accounts' | 'payment-methods' | 'reconciliations')}>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
         <TabsList>
+          {canViewDashboard && (
+            <TabsTrigger value="dashboard" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
+            </TabsTrigger>
+          )}
           <TabsTrigger value="transactions" className="gap-2">
             <Wallet className="h-4 w-4" /> Transações
           </TabsTrigger>
@@ -1051,6 +1075,18 @@ export default function FinancialOperationsPage() {
             <Tags className="h-4 w-4" /> Categorias
           </TabsTrigger>
         </TabsList>
+
+        {canViewDashboard && (
+          <TabsContent value="dashboard" className="mt-6">
+            <DashboardSection
+              transactions={dashboardTransactions}
+              categories={categories}
+              isLoading={dashboardTransactionsQuery.isLoading}
+              totalTransactions={dashboardTotal}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="transactions" className="mt-6">
           {showTransactionsUsageGuide ? (
