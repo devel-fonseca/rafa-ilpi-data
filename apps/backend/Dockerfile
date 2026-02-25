@@ -60,6 +60,7 @@ COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nestjs:nodejs /app/src/assets/legal ./dist/assets/legal
+COPY --from=builder --chown=nestjs:nodejs /app/src/assets/legal ./assets/legal
 
 # Regenerar Prisma Client no ambiente de produção (Alpine com OpenSSL 3.0)
 RUN rm -rf node_modules/.prisma && npx prisma generate

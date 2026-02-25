@@ -9,6 +9,8 @@ export class PrivacyPolicyService {
   private resolvePolicyPath(): string {
     const candidatePaths = [
       resolve(__dirname, '..', 'assets', 'legal', this.policyFileName),
+      resolve(process.cwd(), 'assets', 'legal', this.policyFileName),
+      resolve(process.cwd(), 'dist', 'assets', 'legal', this.policyFileName),
       resolve(process.cwd(), 'src', 'assets', 'legal', this.policyFileName),
       resolve(
         process.cwd(),
