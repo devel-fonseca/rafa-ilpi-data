@@ -560,11 +560,20 @@ export function VitalSignsAlerts({ residentId, periodDays = 7 }: VitalSignsAlert
       if (!linkedAlertEvent?.manageableAlert) return
 
       recordEvent.manageableAlert = linkedAlertEvent.manageableAlert
+      recordEvent.status = linkedAlertEvent.status
       recordEvent.type = linkedAlertEvent.type ?? recordEvent.type
       recordEvent.assignedUser = linkedAlertEvent.assignedUser
       recordEvent.clinicalNotes = linkedAlertEvent.clinicalNotes
       recordEvent.medicalNotes = linkedAlertEvent.medicalNotes
       recordEvent.actionTaken = linkedAlertEvent.actionTaken
+
+      if (
+        recordEvent.title === 'Intercorrência clínica' &&
+        isAlertConvertedToIncident(linkedAlertEvent.manageableAlert)
+      ) {
+        // Intercorrência confirmada permanece ativa para acompanhamento clínico.
+        recordEvent.status = AlertStatus.ACTIVE
+      }
 
       consumedVitalAlertIds.add(linkedAlertEvent.id)
     })
