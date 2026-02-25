@@ -52,6 +52,11 @@ export default function DocumentComplianceDashboard() {
   const navigate = useNavigate()
   const { data: fullProfile } = useProfile()
   const { data: dashboard, isLoading } = useComplianceDashboard()
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
+    { label: 'Documentos da Instituição' },
+  ]
 
   // Buscar todos os documentos enviados
   const { data: allDocuments = [] } = useDocuments()
@@ -88,6 +93,7 @@ export default function DocumentComplianceDashboard() {
         <PageHeader
           title="Dashboard de Conformidade de Documentos"
           subtitle="Visão geral do status dos documentos institucionais"
+          breadcrumbs={breadcrumbs}
         />
         <Card>
           <CardContent className="flex items-center justify-center h-64">
@@ -104,6 +110,7 @@ export default function DocumentComplianceDashboard() {
         <PageHeader
           title="Dashboard de Conformidade de Documentos"
           subtitle="Visão geral do status dos documentos institucionais"
+          breadcrumbs={breadcrumbs}
         />
         <Card>
           <CardContent className="flex flex-col items-center justify-center h-64">
@@ -134,10 +141,7 @@ export default function DocumentComplianceDashboard() {
       <PageHeader
         title="Dashboard de Conformidade de Documentos"
         subtitle="Visão geral do status dos documentos institucionais"
-        breadcrumbs={[
-          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
-          { label: 'Documentos da Instituição' },
-        ]}
+        breadcrumbs={breadcrumbs}
         actions={
           <Button
             onClick={() => navigate('/dashboard/conformidade/documentos/gestao')}

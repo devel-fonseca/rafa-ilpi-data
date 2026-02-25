@@ -198,6 +198,10 @@ export default function UsersList() {
         pageHeader={{
           title: 'Gerenciamento de Usuários',
           subtitle: 'Gerencie usuários, cargos e permissões',
+          breadcrumbs: [
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Gerenciamento de Usuários' },
+          ],
           actions: (
             <Button onClick={() => navigate('/dashboard/usuarios/new')}>
               <Plus className="h-4 w-4" />

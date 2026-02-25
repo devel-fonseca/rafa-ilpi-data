@@ -178,6 +178,10 @@ export default function AgendaPage() {
       <PageHeader
         title="Agenda"
         subtitle="Visualize medicamentos, agendamentos e registros programados"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Agenda' },
+        ]}
       />
 
       {/* Filtros */}

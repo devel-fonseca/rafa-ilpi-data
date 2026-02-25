@@ -93,6 +93,7 @@ export default function ResidentCareSummaryReportPage() {
         title="Resumo Assistencial do Residente"
         subtitle="Selecione um residente para visualizar o documento consolidado e gerar o PDF"
         breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
           { label: 'Resumo Assistencial do Residente' },
         ]}

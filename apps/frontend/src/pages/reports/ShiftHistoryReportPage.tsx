@@ -59,6 +59,7 @@ export default function ShiftHistoryReportPage() {
         title="Relatório de Histórico de Plantão"
         subtitle="Resumo do plantão concluído e trilha de atividades por origem de registro"
         breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
           { label: 'Histórico de Plantão' },
         ]}
@@ -110,4 +111,3 @@ export default function ShiftHistoryReportPage() {
     </Page>
   )
 }
-

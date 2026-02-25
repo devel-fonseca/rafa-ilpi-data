@@ -56,6 +56,10 @@ export function ConformidadePage() {
       <PageHeader
         title="Hub de Conformidade"
         subtitle="Central de conformidade regulatória e documental"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Hub de Conformidade' },
+        ]}
       />
 
       {/* Grid de Cards de Navegação */}

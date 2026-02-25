@@ -61,6 +61,7 @@ export default function ResidentsListReportPage() {
         title="Lista de Residentes"
         subtitle="Visão geral de todos os residentes ativos com informações demográficas e grau de dependência"
         breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
           { label: 'Lista de Residentes' },
         ]}

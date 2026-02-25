@@ -290,7 +290,8 @@ export default function DocumentManagement() {
         title="Gestão de Documentos"
         subtitle="Gerencie todos os documentos obrigatórios da instituição"
         breadcrumbs={[
-          { label: 'Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
           { label: 'Documentos da Instituição', href: '/dashboard/conformidade/documentos' },
           { label: 'Gestão de Documentos' },
         ]}

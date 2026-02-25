@@ -7,6 +7,10 @@ export default function InstitutionalProfile() {
       <PageHeader
         title="Perfil Institucional"
         subtitle="Gerencie as informações básicas da instituição"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Perfil Institucional' },
+        ]}
       />
 
       <div className="space-y-4">

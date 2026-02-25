@@ -192,6 +192,10 @@ export default function ResidentsList() {
         pageHeader={{
           title: 'Cadastro de Residentes',
           subtitle: 'Consulte e gerencie os residentes da instituição',
+          breadcrumbs: [
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Cadastro de Residentes' },
+          ],
           actions: (
             <Button onClick={() => navigate('/dashboard/residentes/new')}>
               <Plus className="h-4 w-4" />

@@ -6,6 +6,10 @@ import { Page, PageHeader, Section, EmptyState } from '@/design-system/component
 
 export function BedsMapPage() {
   const { data, isLoading, error } = useBedsHierarchy()
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Mapa de Ocupação' },
+  ]
 
   if (isLoading) {
     return (
@@ -13,6 +17,7 @@ export function BedsMapPage() {
         <PageHeader
           title="Mapa de Ocupação"
           subtitle="Carregando informações..."
+          breadcrumbs={breadcrumbs}
         />
         <EmptyState
           icon={Loader2}
@@ -30,6 +35,7 @@ export function BedsMapPage() {
         <PageHeader
           title="Mapa de Ocupação"
           subtitle="Erro ao carregar dados"
+          breadcrumbs={breadcrumbs}
         />
         <EmptyState
           icon={AlertCircle}
@@ -47,6 +53,7 @@ export function BedsMapPage() {
         <PageHeader
           title="Mapa de Ocupação"
           subtitle="Sem dados disponíveis"
+          breadcrumbs={breadcrumbs}
         />
         <EmptyState
           icon={Bed}
@@ -62,6 +69,7 @@ export function BedsMapPage() {
       <PageHeader
         title="Mapa de Ocupação"
         subtitle="Visualização hierárquica completa da estrutura de leitos"
+        breadcrumbs={breadcrumbs}
       />
 
       <Section title="Estatísticas de Ocupação">

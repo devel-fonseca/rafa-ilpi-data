@@ -35,6 +35,11 @@ export function AssessmentListPage() {
   const [page, setPage] = useState(1)
   const [isInfoExpanded, setIsInfoExpanded] = useState(false)
   const limit = 10
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
+    { label: 'Autodiagnósticos' },
+  ]
 
   const { data: assessmentsData, isLoading } = useAssessments({ page, limit })
   const createAssessmentMutation = useCreateAssessment()
@@ -93,7 +98,7 @@ export function AssessmentListPage() {
   if (isLoading) {
     return (
       <Page>
-        <PageHeader title="Autodiagnósticos RDC 502/2021" />
+        <PageHeader title="Autodiagnósticos RDC 502/2021" breadcrumbs={breadcrumbs} />
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -109,10 +114,7 @@ export function AssessmentListPage() {
       <PageHeader
         title="Autodiagnósticos"
         subtitle="Histórico de avaliações de conformidade regulatória"
-        breadcrumbs={[
-          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
-          { label: 'Autodiagnósticos' },
-        ]}
+        breadcrumbs={breadcrumbs}
         actions={
           <Button onClick={handleCreateNew} disabled={createAssessmentMutation.isPending}>
             {createAssessmentMutation.isPending ? (

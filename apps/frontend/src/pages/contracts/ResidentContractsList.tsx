@@ -128,6 +128,10 @@ export default function ResidentContractsList() {
       <PageHeader
         title="Contratos dos Residentes"
         subtitle="Gerencie os contratos dos residentes"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Contratos dos Residentes' },
+        ]}
         actions={
           canCreateContracts && (
             <Button onClick={() => navigate('/dashboard/contratos/novo')}>

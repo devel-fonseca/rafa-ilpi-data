@@ -19,6 +19,12 @@ import type { SubmitResponseDto } from '@/api/compliance-assessments.api'
 export function AssessmentFormPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
+    { label: 'Autodiagnósticos', href: '/dashboard/conformidade/autodiagnostico' },
+    { label: 'Avaliação' },
+  ]
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const debounceTimerRef = useRef<NodeJS.Timeout>()
@@ -134,7 +140,7 @@ export function AssessmentFormPage() {
   if (isLoadingQuestions || isLoadingAssessment) {
     return (
       <Page>
-        <PageHeader title="Autodiagnóstico RDC 502/2021" />
+        <PageHeader title="Autodiagnóstico RDC 502/2021" breadcrumbs={breadcrumbs} />
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -146,7 +152,7 @@ export function AssessmentFormPage() {
   if (!assessment || !questionsData || questions.length === 0) {
     return (
       <Page>
-        <PageHeader title="Autodiagnóstico RDC 502/2021" />
+        <PageHeader title="Autodiagnóstico RDC 502/2021" breadcrumbs={breadcrumbs} />
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -161,7 +167,7 @@ export function AssessmentFormPage() {
   if (assessment.status === 'COMPLETED') {
     return (
       <Page>
-        <PageHeader title="Autodiagnóstico RDC 502/2021" />
+        <PageHeader title="Autodiagnóstico RDC 502/2021" breadcrumbs={breadcrumbs} />
         <Alert>
           <FileText className="h-4 w-4" />
           <AlertDescription>
@@ -186,11 +192,7 @@ export function AssessmentFormPage() {
       <PageHeader
         title="Autodiagnóstico RDC 502/2021"
         subtitle={`Versão ${questionsData.version.versionNumber} • ${questionsData.version.regulationName}`}
-        breadcrumbs={[
-          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
-          { label: 'Autodiagnósticos', href: '/dashboard/conformidade/autodiagnostico' },
-          { label: 'Avaliação' },
-        ]}
+        breadcrumbs={breadcrumbs}
         actions={
           <div className="flex items-center gap-2">
             <Button

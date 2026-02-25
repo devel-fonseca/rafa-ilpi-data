@@ -38,6 +38,12 @@ export function AssessmentResultPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [isExporting, setIsExporting] = useState(false)
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
+    { label: 'Autodiagnósticos', href: '/dashboard/conformidade/autodiagnostico' },
+    { label: 'Resultados' },
+  ]
 
   const { data: report, isLoading, error } = useAssessmentReport(id!)
   const exportPDF = useExportPDF()
@@ -53,7 +59,7 @@ export function AssessmentResultPage() {
   if (isLoading) {
     return (
       <Page>
-        <PageHeader title="Resultados do Autodiagnóstico" />
+        <PageHeader title="Resultados do Autodiagnóstico" breadcrumbs={breadcrumbs} />
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -64,7 +70,7 @@ export function AssessmentResultPage() {
   if (error || !report) {
     return (
       <Page>
-        <PageHeader title="Resultados do Autodiagnóstico" />
+        <PageHeader title="Resultados do Autodiagnóstico" breadcrumbs={breadcrumbs} />
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -109,11 +115,7 @@ export function AssessmentResultPage() {
       <PageHeader
         title="Resultados do Autodiagnóstico"
         subtitle={`Avaliação realizada em ${format(new Date(assessment.assessmentDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`}
-        breadcrumbs={[
-          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
-          { label: 'Autodiagnósticos', href: '/dashboard/conformidade/autodiagnostico' },
-          { label: 'Resultados' },
-        ]}
+        breadcrumbs={breadcrumbs}
         actions={
           <div className="flex items-center gap-2">
             <Button

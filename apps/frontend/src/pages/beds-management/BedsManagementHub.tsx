@@ -58,6 +58,10 @@ interface BedWithHierarchy {
 export default function BedsManagementHub() {
   const { data: beds, isLoading: bedsLoading } = useBeds() // ✅ Busca todos os leitos
   const { data: historyData, isLoading: historyLoading } = useBedStatusHistory({ take: 10 })
+  const breadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Gestão de Leitos' },
+  ]
 
   const [selectedBed, setSelectedBed] = useState<BedType | null>(null)
   const [selectBedModalOpen, setSelectBedModalOpen] = useState(false)
@@ -180,6 +184,7 @@ export default function BedsManagementHub() {
         <PageHeader
           title="Gestão de Leitos"
           subtitle="Central de operações de leitos"
+          breadcrumbs={breadcrumbs}
           icon={<GitBranch className="w-8 h-8" />}
         />
         <div className="flex justify-center items-center h-64">
@@ -194,6 +199,7 @@ export default function BedsManagementHub() {
       <PageHeader
         title="Gestão de Leitos"
         subtitle="Central de operações para gestão de leitos: transferências, reservas, bloqueios e liberações"
+        breadcrumbs={breadcrumbs}
         icon={<GitBranch className="w-8 h-8" />}
       />
 

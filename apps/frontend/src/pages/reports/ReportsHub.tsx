@@ -284,6 +284,10 @@ export default function ReportsHub() {
       <PageHeader
         title="Relatórios e Documentos"
         subtitle="Geração unificada de relatórios operacionais, evidências de conformidade e documentos institucionais"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Relatórios e Documentos' },
+        ]}
         badge={<StatusBadge variant="info">{REPORT_CATEGORIES.length} categorias</StatusBadge>}
       />
 

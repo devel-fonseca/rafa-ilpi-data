@@ -88,6 +88,10 @@ export default function PopsList() {
         <PageHeader
           title="Procedimentos Operacionais Padrão"
           subtitle="Gerencie os POPs da instituição conforme RDC 502/2021"
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Procedimentos Operacionais Padrão' },
+          ]}
           actions={
             <Button onClick={() => navigate('/dashboard/pops/new')}>
               <Plus className="mr-2 h-4 w-4" />

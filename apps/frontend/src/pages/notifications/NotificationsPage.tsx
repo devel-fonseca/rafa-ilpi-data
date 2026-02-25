@@ -103,6 +103,10 @@ export function NotificationsPage() {
       <PageHeader
         title="Notificações"
         subtitle="Gerencie todas as suas notificações do sistema"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Notificações' },
+        ]}
         actions={
           notifications.some((n) => !n.read) && (
             <Button onClick={handleMarkAllAsRead} variant="outline">

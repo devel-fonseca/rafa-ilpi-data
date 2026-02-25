@@ -122,6 +122,7 @@ export default function DailyReportPage() {
         title={pageTitle}
         subtitle={pageSubtitle}
         breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
           { label: pageTitle },
         ]}

@@ -540,6 +540,7 @@ export function ConformidadeRDCPage() {
         title="Indicadores Mensais Obrigatórios"
         subtitle="RDC 502/2021 (Art. 58, 59, 60 e Anexo)"
         breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
           { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
           { label: 'Indicadores Mensais' },
         ]}

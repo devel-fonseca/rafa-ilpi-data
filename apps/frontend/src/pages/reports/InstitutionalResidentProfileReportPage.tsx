@@ -69,6 +69,7 @@ export default function InstitutionalResidentProfileReportPage() {
         title="Perfil dos Residentes"
         subtitle="Visão atual institucional de dependência, perfil clínico e carga assistencial para gestão"
         breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
           { label: 'Perfil dos Residentes' },
         ]}

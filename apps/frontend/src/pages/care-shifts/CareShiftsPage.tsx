@@ -37,6 +37,10 @@ export default function CareShiftsPage() {
       <PageHeader
         title="Escalas e Plantões"
         subtitle="Gestão de turnos, equipes e plantões de cuidadores em conformidade com RDC 502/2021"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Escalas e Plantões' },
+        ]}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

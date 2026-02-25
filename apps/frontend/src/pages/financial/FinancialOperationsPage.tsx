@@ -885,6 +885,10 @@ export default function FinancialOperationsPage() {
       <PageHeader
         title="Financeiro Operacional"
         subtitle="Gestão de categorias e transações financeiras da operação da ILPI"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Financeiro Operacional' },
+        ]}
         actions={
           tab === 'transactions' ? (
             <Button onClick={openCreateTransactionDialog} disabled={!canManageTransactions}>
