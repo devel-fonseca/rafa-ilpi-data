@@ -1,10 +1,10 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
+  BarChart3,
   Calendar,
   ClipboardCheck,
   ClipboardList,
-  FileText,
   LayoutGrid,
   Landmark,
   Pill,
@@ -54,7 +54,7 @@ const DASHBOARD_QUICK_ACTIONS: Record<
       id: 'data_analysis',
       title: 'Análise de Dados',
       description: 'Indicadores operacionais e tendências assistenciais',
-      icon: FileText,
+      icon: BarChart3,
       to: '/dashboard/analise-dados',
       visibleFor: [PositionCode.ADMINISTRATOR],
     },

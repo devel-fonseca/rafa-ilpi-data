@@ -27,10 +27,10 @@ interface BedsMapVisualizationProps {
 }
 
 const BED_STATUS_COLORS: Record<string, string> = {
-  'Disponível': 'bg-success/10 text-success/80 dark:text-success/30 border-success/50',
-  'Ocupado': 'bg-danger/10 text-danger/80 dark:text-danger/30 border-danger/50',
-  'Manutenção': 'bg-warning/10 text-warning/80 dark:text-warning/30 border-warning',
-  'Reservado': 'bg-primary/10 text-primary/80 dark:text-primary/30 border-primary/50',
+  'Disponível': 'bg-success/10 border-success/40',
+  'Ocupado': 'bg-warning/10 border-warning/40',
+  'Manutenção': 'bg-danger/10 border-danger/40',
+  'Reservado': 'bg-primary/10 border-primary/40',
 }
 
 const BED_STATUS_LABELS: Record<string, string> = {
@@ -337,7 +337,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                   floor.rooms.map((room) => (
                                     <Card
                                       key={room.id}
-                                      className="bg-background border-border/70 transition-colors hover:bg-muted/20 dark:bg-[#0B1730] dark:border-[#1C2F4E] dark:hover:bg-[#102042]"
+                                      className="bg-card border-border transition-colors hover:bg-muted/30"
                                     >
                                       <Accordion
                                         type="multiple"
@@ -355,7 +355,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                           value={room.id}
                                           className="border-none"
                                         >
-                                          <AccordionTrigger className="px-3 hover:no-underline dark:hover:bg-[#12284d]">
+                                          <AccordionTrigger className="px-3 hover:no-underline hover:bg-muted/30">
                                             <div className="flex items-center gap-2 flex-1">
                                               <DoorOpen className="h-4 w-4 text-severity-warning dark:text-severity-warning/40" />
                                               <div className="flex-1 text-left">
@@ -368,7 +368,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                               </div>
                                               <Badge
                                                 variant="secondary"
-                                                className="text-xs dark:bg-[#1C2F4E] dark:text-slate-200 dark:border-[#2B456E]"
+                                                className="text-xs"
                                               >
                                                 {room.roomNumber}
                                               </Badge>
@@ -398,18 +398,18 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                                           : bed.resident
                                                           ? 'cursor-grab hover:shadow-md active:cursor-grabbing'
                                                           : draggedResident && bed.status === 'Disponível'
-                                                          ? 'ring-2 ring-dashed ring-blue-400 dark:ring-blue-600 bg-primary/10 dark:bg-primary/20 cursor-copy'
+                                                          ? 'ring-2 ring-dashed ring-primary/70 bg-primary/10 cursor-copy'
                                                           : ''
                                                       } ${
                                                         dropTargetBed === bed.id
-                                                          ? 'ring-4 ring-blue-600 dark:ring-blue-400 shadow-2xl scale-110 bg-primary/20 dark:bg-primary/30'
+                                                          ? 'ring-4 ring-primary shadow-xl scale-[1.02] bg-primary/15'
                                                           : ''
                                                       }`}
                                                     >
                                                       <CardContent className="p-3 relative">
                                                         {draggedResident && bed.status === 'Disponível' && bed.id !== draggedResident.fromBedId && (
-                                                          <div className="absolute inset-0 flex items-center justify-center bg-primary/10 dark:bg-primary/20 rounded pointer-events-none">
-                                                            <span className="text-xs font-semibold text-primary/80 dark:text-primary/30 bg-background px-2 py-1 rounded shadow-md border border-primary/30">
+                                                          <div className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded pointer-events-none">
+                                                            <span className="text-xs font-semibold text-primary bg-background px-2 py-1 rounded shadow-md border border-primary/30">
                                                               ⬇ Solte aqui
                                                             </span>
                                                           </div>

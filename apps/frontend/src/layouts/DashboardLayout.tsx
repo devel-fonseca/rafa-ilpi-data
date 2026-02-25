@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, BarChart3, Map, NotebookPen, Landmark } from 'lucide-react'
+import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, Printer, Map, NotebookPen, Landmark } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -550,7 +550,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <BarChart3 className={desktopSidebarIconClass} />
+                      <Printer className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Relatórios'}
                     </Link>
                   </TooltipTrigger>
@@ -869,7 +869,7 @@ export function DashboardLayout() {
                   onClick={() => setIsSidebarOpen(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
-                  <BarChart3 className="h-4 w-4" />
+                  <Printer className="h-4 w-4" />
                   Relatórios
                 </Link>
               )}
