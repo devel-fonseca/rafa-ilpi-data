@@ -104,7 +104,8 @@ export default function FinancialOperationsPage() {
   const canManageReconciliation = hasPermission(PermissionType.MANAGE_FINANCIAL_RECONCILIATION)
 
   const [tab, setTab] = useState<'transactions' | 'categories' | 'accounts' | 'payment-methods' | 'reconciliations'>('transactions')
-  const [showUsageGuide, setShowUsageGuide] = useState(true)
+  const [showTransactionsUsageGuide, setShowTransactionsUsageGuide] = useState(true)
+  const [showReconciliationsUsageGuide, setShowReconciliationsUsageGuide] = useState(true)
 
   const [categoryFilterType, setCategoryFilterType] = useState<'' | FinancialCategoryType>('')
   const [categorySearch, setCategorySearch] = useState('')
@@ -166,7 +167,8 @@ export default function FinancialOperationsPage() {
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm)
   const [transactionForm, setTransactionForm] = useState<TransactionFormState>(emptyTransactionForm)
 
-  const guidePreferenceKey = user?.id ? `financial-operations-guide:${user.id}` : null
+  const transactionsGuidePreferenceKey = user?.id ? `financial-operations-guide:transactions:${user.id}` : null
+  const reconciliationsGuidePreferenceKey = user?.id ? `financial-operations-guide:reconciliations:${user.id}` : null
 
   const categoriesQuery = useFinancialCategories({
     type: categoryFilterType || undefined,
@@ -298,10 +300,16 @@ export default function FinancialOperationsPage() {
   }, [transactions])
 
   useEffect(() => {
-    if (!guidePreferenceKey) return
-    const hidden = localStorage.getItem(guidePreferenceKey) === 'hidden'
-    setShowUsageGuide(!hidden)
-  }, [guidePreferenceKey])
+    if (!transactionsGuidePreferenceKey) return
+    const hidden = localStorage.getItem(transactionsGuidePreferenceKey) === 'hidden'
+    setShowTransactionsUsageGuide(!hidden)
+  }, [transactionsGuidePreferenceKey])
+
+  useEffect(() => {
+    if (!reconciliationsGuidePreferenceKey) return
+    const hidden = localStorage.getItem(reconciliationsGuidePreferenceKey) === 'hidden'
+    setShowReconciliationsUsageGuide(!hidden)
+  }, [reconciliationsGuidePreferenceKey])
 
   useEffect(() => {
     const tabParam = searchParams.get('tab')
@@ -832,18 +840,32 @@ export default function FinancialOperationsPage() {
     })
   }
 
-  const hideUsageGuide = () => {
-    if (guidePreferenceKey) {
-      localStorage.setItem(guidePreferenceKey, 'hidden')
+  const hideTransactionsUsageGuide = () => {
+    if (transactionsGuidePreferenceKey) {
+      localStorage.setItem(transactionsGuidePreferenceKey, 'hidden')
     }
-    setShowUsageGuide(false)
+    setShowTransactionsUsageGuide(false)
   }
 
-  const showUsageGuideAgain = () => {
-    if (guidePreferenceKey) {
-      localStorage.removeItem(guidePreferenceKey)
+  const showTransactionsUsageGuideAgain = () => {
+    if (transactionsGuidePreferenceKey) {
+      localStorage.removeItem(transactionsGuidePreferenceKey)
     }
-    setShowUsageGuide(true)
+    setShowTransactionsUsageGuide(true)
+  }
+
+  const hideReconciliationsUsageGuide = () => {
+    if (reconciliationsGuidePreferenceKey) {
+      localStorage.setItem(reconciliationsGuidePreferenceKey, 'hidden')
+    }
+    setShowReconciliationsUsageGuide(false)
+  }
+
+  const showReconciliationsUsageGuideAgain = () => {
+    if (reconciliationsGuidePreferenceKey) {
+      localStorage.removeItem(reconciliationsGuidePreferenceKey)
+    }
+    setShowReconciliationsUsageGuide(true)
   }
 
   const categorySubmitDisabledReason = !categoryForm.name.trim()
@@ -919,35 +941,6 @@ export default function FinancialOperationsPage() {
         }
       />
 
-      {showUsageGuide ? (
-        <Card className="mb-4">
-          <CardContent className="pt-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Como usar o Financeiro Operacional</p>
-                <p className="text-sm text-muted-foreground">
-                  1) Cadastre categorias e conta bancária. 2) Lance transações e confirme pagamentos.
-                  3) Gere fechamento para validar saldo do período.
-                </p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={hideUsageGuide} aria-label="Fechar instruções">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="mb-4">
-          <Button variant="outline" size="sm" onClick={showUsageGuideAgain} className="gap-2">
-            <CircleHelp className="h-4 w-4" />
-            Mostrar instruções de uso
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-              Novo no módulo?
-            </span>
-          </Button>
-        </div>
-      )}
-
       <div className="grid gap-4 md:grid-cols-3 mb-6">
         <Card>
           <CardContent className="pt-6">
@@ -989,6 +982,35 @@ export default function FinancialOperationsPage() {
         </TabsList>
 
         <TabsContent value="transactions" className="mt-6">
+          {showTransactionsUsageGuide ? (
+            <Card className="mb-4 border-info/20 bg-info/5">
+              <CardContent className="pt-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-info">Como usar o Financeiro Operacional</p>
+                    <p className="text-sm text-muted-foreground">
+                      1) Cadastre categorias e conta bancária. 2) Lance transações e confirme pagamentos.
+                      3) Gere fechamento para validar saldo do período.
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={hideTransactionsUsageGuide} aria-label="Fechar instruções">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="mb-4">
+              <Button variant="outline" size="sm" onClick={showTransactionsUsageGuideAgain} className="gap-2">
+                <CircleHelp className="h-4 w-4" />
+                Mostrar instruções de uso
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  Novo no módulo?
+                </span>
+              </Button>
+            </div>
+          )}
+
           {transactionResidentContractId && (
             <Card className="mb-4">
               <CardContent className="pt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1126,15 +1148,32 @@ export default function FinancialOperationsPage() {
         </TabsContent>
 
         <TabsContent value="reconciliations" className="mt-6">
-          <Card className="mb-4">
-            <CardContent className="pt-4">
-              <p className="text-sm text-muted-foreground">
-                O fechamento compara o saldo informado no banco com o saldo calculado pelo sistema para o período.
-                Use esta aba no fechamento diário/semanal para validar caixa e identificar divergências.
-                A diferença é calculada como: <strong>informado - sistema</strong>.
-              </p>
-            </CardContent>
-          </Card>
+          {showReconciliationsUsageGuide ? (
+            <Card className="mb-4 border-info/20 bg-info/5">
+              <CardContent className="pt-4">
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-sm text-muted-foreground">
+                    O fechamento compara o saldo informado no banco com o saldo calculado pelo sistema para o período.
+                    Use esta aba no fechamento diário/semanal para validar caixa e identificar divergências.
+                    A diferença é calculada como: <strong>informado - sistema</strong>.
+                  </p>
+                  <Button variant="ghost" size="icon" onClick={hideReconciliationsUsageGuide} aria-label="Fechar instruções">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="mb-4">
+              <Button variant="outline" size="sm" onClick={showReconciliationsUsageGuideAgain} className="gap-2">
+                <CircleHelp className="h-4 w-4" />
+                Mostrar instruções de uso
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  Novo no módulo?
+                </span>
+              </Button>
+            </div>
+          )}
 
           <UnreconciledPaidTransactionsSection
             items={unreconciledPaidTransactions}
