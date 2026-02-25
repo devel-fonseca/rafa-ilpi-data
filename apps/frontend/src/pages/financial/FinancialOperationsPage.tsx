@@ -104,8 +104,11 @@ export default function FinancialOperationsPage() {
   const canManageReconciliation = hasPermission(PermissionType.MANAGE_FINANCIAL_RECONCILIATION)
 
   const [tab, setTab] = useState<'transactions' | 'categories' | 'accounts' | 'payment-methods' | 'reconciliations'>('transactions')
-  const [showTransactionsUsageGuide, setShowTransactionsUsageGuide] = useState(true)
-  const [showReconciliationsUsageGuide, setShowReconciliationsUsageGuide] = useState(true)
+  const [showTransactionsUsageGuide, setShowTransactionsUsageGuide] = useState(false)
+  const [showReconciliationsUsageGuide, setShowReconciliationsUsageGuide] = useState(false)
+  const [showAccountsUsageGuide, setShowAccountsUsageGuide] = useState(false)
+  const [showCategoriesUsageGuide, setShowCategoriesUsageGuide] = useState(false)
+  const [showPaymentMethodsUsageGuide, setShowPaymentMethodsUsageGuide] = useState(false)
 
   const [categoryFilterType, setCategoryFilterType] = useState<'' | FinancialCategoryType>('')
   const [categorySearch, setCategorySearch] = useState('')
@@ -169,6 +172,9 @@ export default function FinancialOperationsPage() {
 
   const transactionsGuidePreferenceKey = user?.id ? `financial-operations-guide:transactions:${user.id}` : null
   const reconciliationsGuidePreferenceKey = user?.id ? `financial-operations-guide:reconciliations:${user.id}` : null
+  const accountsGuidePreferenceKey = user?.id ? `financial-operations-guide:accounts:${user.id}` : null
+  const categoriesGuidePreferenceKey = user?.id ? `financial-operations-guide:categories:${user.id}` : null
+  const paymentMethodsGuidePreferenceKey = user?.id ? `financial-operations-guide:payment-methods:${user.id}` : null
 
   const categoriesQuery = useFinancialCategories({
     type: categoryFilterType || undefined,
@@ -310,6 +316,24 @@ export default function FinancialOperationsPage() {
     const hidden = localStorage.getItem(reconciliationsGuidePreferenceKey) === 'hidden'
     setShowReconciliationsUsageGuide(!hidden)
   }, [reconciliationsGuidePreferenceKey])
+
+  useEffect(() => {
+    if (!accountsGuidePreferenceKey) return
+    const hidden = localStorage.getItem(accountsGuidePreferenceKey) === 'hidden'
+    setShowAccountsUsageGuide(!hidden)
+  }, [accountsGuidePreferenceKey])
+
+  useEffect(() => {
+    if (!categoriesGuidePreferenceKey) return
+    const hidden = localStorage.getItem(categoriesGuidePreferenceKey) === 'hidden'
+    setShowCategoriesUsageGuide(!hidden)
+  }, [categoriesGuidePreferenceKey])
+
+  useEffect(() => {
+    if (!paymentMethodsGuidePreferenceKey) return
+    const hidden = localStorage.getItem(paymentMethodsGuidePreferenceKey) === 'hidden'
+    setShowPaymentMethodsUsageGuide(!hidden)
+  }, [paymentMethodsGuidePreferenceKey])
 
   useEffect(() => {
     const tabParam = searchParams.get('tab')
@@ -595,12 +619,6 @@ export default function FinancialOperationsPage() {
     setReconciliationForm(emptyReconciliationForm)
   }
 
-  const formatMoneyInputValue = (value: string | number | undefined): string => {
-    const numeric = Number(value ?? 0)
-    if (Number.isNaN(numeric)) return '0.00'
-    return numeric.toFixed(2)
-  }
-
   const applySystemBalancesToReconciliationForm = () => {
     const summary = reconciliationSystemSummaryQuery.data?.summary
     if (!summary) {
@@ -610,8 +628,8 @@ export default function FinancialOperationsPage() {
 
     setReconciliationForm((prev) => ({
       ...prev,
-      openingBalance: toPtBrDecimalInput(formatMoneyInputValue(summary.openingBalance)),
-      closingBalance: toPtBrDecimalInput(formatMoneyInputValue(summary.closingBalance)),
+      openingBalance: toPtBrDecimalInput(Number(summary.openingBalance ?? 0)),
+      closingBalance: toPtBrDecimalInput(Number(summary.closingBalance ?? 0)),
     }))
   }
 
@@ -692,6 +710,10 @@ export default function FinancialOperationsPage() {
   }
 
   const handleOpenMarkPaid = (transaction: FinancialTransaction) => {
+    if (!transaction.paymentMethodId || !transaction.bankAccountId) {
+      toast.error('Antes de confirmar o pagamento, edite a transação e informe o método de pagamento e a conta bancária.')
+      return
+    }
     setTransactionToMarkPaid(transaction)
     setMarkPaidDate(getCurrentDate())
     setIsMarkPaidDialogOpen(true)
@@ -699,6 +721,13 @@ export default function FinancialOperationsPage() {
 
   const openBatchMarkPaid = () => {
     if (selectedTransactionIds.length === 0) return
+    const incomplete = transactions.filter(
+      (t) => selectedTransactionIds.includes(t.id) && (!t.paymentMethodId || !t.bankAccountId),
+    )
+    if (incomplete.length > 0) {
+      toast.error(`${incomplete.length} transação(ões) selecionada(s) não possuem método de pagamento ou conta bancária. Edite-as antes de confirmar o pagamento.`)
+      return
+    }
     setTransactionToMarkPaid(null)
     setMarkPaidDate(getCurrentDate())
     setIsMarkPaidDialogOpen(true)
@@ -868,6 +897,48 @@ export default function FinancialOperationsPage() {
     setShowReconciliationsUsageGuide(true)
   }
 
+  const hideAccountsUsageGuide = () => {
+    if (accountsGuidePreferenceKey) {
+      localStorage.setItem(accountsGuidePreferenceKey, 'hidden')
+    }
+    setShowAccountsUsageGuide(false)
+  }
+
+  const showAccountsUsageGuideAgain = () => {
+    if (accountsGuidePreferenceKey) {
+      localStorage.removeItem(accountsGuidePreferenceKey)
+    }
+    setShowAccountsUsageGuide(true)
+  }
+
+  const hideCategoriesUsageGuide = () => {
+    if (categoriesGuidePreferenceKey) {
+      localStorage.setItem(categoriesGuidePreferenceKey, 'hidden')
+    }
+    setShowCategoriesUsageGuide(false)
+  }
+
+  const showCategoriesUsageGuideAgain = () => {
+    if (categoriesGuidePreferenceKey) {
+      localStorage.removeItem(categoriesGuidePreferenceKey)
+    }
+    setShowCategoriesUsageGuide(true)
+  }
+
+  const hidePaymentMethodsUsageGuide = () => {
+    if (paymentMethodsGuidePreferenceKey) {
+      localStorage.setItem(paymentMethodsGuidePreferenceKey, 'hidden')
+    }
+    setShowPaymentMethodsUsageGuide(false)
+  }
+
+  const showPaymentMethodsUsageGuideAgain = () => {
+    if (paymentMethodsGuidePreferenceKey) {
+      localStorage.removeItem(paymentMethodsGuidePreferenceKey)
+    }
+    setShowPaymentMethodsUsageGuide(true)
+  }
+
   const categorySubmitDisabledReason = !categoryForm.name.trim()
     ? 'Informe o nome da categoria.'
     : undefined
@@ -987,11 +1058,15 @@ export default function FinancialOperationsPage() {
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-info">Como usar o Financeiro Operacional</p>
-                    <p className="text-sm text-muted-foreground">
-                      1) Cadastre categorias e conta bancária. 2) Lance transações e confirme pagamentos.
-                      3) Gere fechamento para validar saldo do período.
-                    </p>
+                    <p className="text-sm font-medium text-info">Primeiros passos no Financeiro</p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>
+                        <strong>Configuração inicial (faça uma vez):</strong> Vá na aba <strong>Categorias</strong> e confira se os tipos de receita e despesa atendem à sua ILPI. Depois, na aba <strong>Contas</strong>, cadastre a conta bancária onde o dinheiro entra e sai.
+                      </p>
+                      <p>
+                        <strong>No dia a dia:</strong> Registre aqui cada entrada (ex: mensalidade recebida) ou saída de dinheiro (ex: compra de medicamentos). Quando o pagamento for confirmado, marque a transação como &ldquo;Pago&rdquo;.
+                      </p>
+                    </div>
                   </div>
                   <Button variant="ghost" size="icon" onClick={hideTransactionsUsageGuide} aria-label="Fechar instruções">
                     <X className="h-4 w-4" />
@@ -1130,6 +1205,33 @@ export default function FinancialOperationsPage() {
         </TabsContent>
 
         <TabsContent value="payment-methods" className="mt-6">
+          {showPaymentMethodsUsageGuide ? (
+            <Card className="mb-4 border-info/20 bg-info/5">
+              <CardContent className="pt-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-info">Métodos de pagamento</p>
+                    <p className="text-sm text-muted-foreground">
+                      Métodos de pagamento indicam como o dinheiro foi recebido ou pago — por exemplo: PIX, boleto ou cartão. O sistema já vem com os métodos mais comuns cadastrados.
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={hidePaymentMethodsUsageGuide} aria-label="Fechar instruções">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="mb-4">
+              <Button variant="outline" size="sm" onClick={showPaymentMethodsUsageGuideAgain} className="gap-2">
+                <CircleHelp className="h-4 w-4" />
+                Mostrar instruções de uso
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  Novo no módulo?
+                </span>
+              </Button>
+            </div>
+          )}
           <PaymentMethodsSection
             methods={paymentMethodsCatalog}
             isLoading={paymentMethodsCatalogQuery.isLoading}
@@ -1152,11 +1254,12 @@ export default function FinancialOperationsPage() {
             <Card className="mb-4 border-info/20 bg-info/5">
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between gap-4">
-                  <p className="text-sm text-muted-foreground">
-                    O fechamento compara o saldo informado no banco com o saldo calculado pelo sistema para o período.
-                    Use esta aba no fechamento diário/semanal para validar caixa e identificar divergências.
-                    A diferença é calculada como: <strong>informado - sistema</strong>.
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-info">O que é o Fechamento?</p>
+                    <p className="text-sm text-muted-foreground">
+                      O fechamento serve para conferir se o saldo da sua conta bancária no banco está batendo com o que foi registrado aqui no sistema. Escolha a conta, o período e informe o saldo que aparece no seu extrato bancário. O sistema compara automaticamente e avisa se houver diferença. Caso exista divergência, verifique se o saldo inicial da conta foi informado corretamente e revise as transações do período para identificar lançamentos faltando ou com valor incorreto.
+                    </p>
+                  </div>
                   <Button variant="ghost" size="icon" onClick={hideReconciliationsUsageGuide} aria-label="Fechar instruções">
                     <X className="h-4 w-4" />
                   </Button>
@@ -1254,6 +1357,33 @@ export default function FinancialOperationsPage() {
         </TabsContent>
 
         <TabsContent value="accounts" className="mt-6">
+          {showAccountsUsageGuide ? (
+            <Card className="mb-4 border-info/20 bg-info/5">
+              <CardContent className="pt-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-info">Contas bancárias</p>
+                    <p className="text-sm text-muted-foreground">
+                      Cadastre aqui as contas bancárias da sua ILPI (conta corrente, poupança ou conta de pagamento). Essas contas serão usadas para vincular receitas e despesas e acompanhar o saldo.
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={hideAccountsUsageGuide} aria-label="Fechar instruções">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="mb-4">
+              <Button variant="outline" size="sm" onClick={showAccountsUsageGuideAgain} className="gap-2">
+                <CircleHelp className="h-4 w-4" />
+                Mostrar instruções de uso
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  Novo no módulo?
+                </span>
+              </Button>
+            </div>
+          )}
           <AccountsSection
             accounts={accounts}
             isLoading={accountsQuery.isLoading}
@@ -1278,6 +1408,33 @@ export default function FinancialOperationsPage() {
         </TabsContent>
 
         <TabsContent value="categories" className="mt-6">
+          {showCategoriesUsageGuide ? (
+            <Card className="mb-4 border-info/20 bg-info/5">
+              <CardContent className="pt-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-info">Categorias de receita e despesa</p>
+                    <p className="text-sm text-muted-foreground">
+                      Categorias organizam suas transações por tipo — por exemplo: &ldquo;Mensalidades&rdquo; (receita) ou &ldquo;Medicamentos&rdquo; (despesa). O sistema já vem com categorias padrão, mas você pode criar novas conforme a necessidade.
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={hideCategoriesUsageGuide} aria-label="Fechar instruções">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="mb-4">
+              <Button variant="outline" size="sm" onClick={showCategoriesUsageGuideAgain} className="gap-2">
+                <CircleHelp className="h-4 w-4" />
+                Mostrar instruções de uso
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  Novo no módulo?
+                </span>
+              </Button>
+            </div>
+          )}
           <CategoriesSection
             categories={categories}
             categoryById={categoryById}

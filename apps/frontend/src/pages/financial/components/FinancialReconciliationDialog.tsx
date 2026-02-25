@@ -64,7 +64,15 @@ export function FinancialReconciliationDialog({
                     <CircleHelp className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Use o fechamento para comparar o saldo informado com o saldo calculado no período.</TooltipContent>
+                <TooltipContent side="bottom" className="max-w-xs text-left">
+                  <p className="font-medium mb-1">Como preencher:</p>
+                  <ol className="list-decimal pl-4 space-y-0.5">
+                    <li>Selecione a conta e o período que deseja conferir.</li>
+                    <li>O sistema calcula o saldo automaticamente. Você pode usar esses valores clicando em &ldquo;Usar saldos do sistema&rdquo;.</li>
+                    <li>Em <strong>Saldo final informado</strong>, digite o saldo que aparece no seu extrato bancário.</li>
+                    <li>Clique em <strong>Gerar fechamento</strong>. Se houver diferença, revise se o saldo inicial está correto e se todas as transações do período foram lançadas.</li>
+                  </ol>
+                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>

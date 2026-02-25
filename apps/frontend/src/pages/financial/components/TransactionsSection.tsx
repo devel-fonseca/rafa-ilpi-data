@@ -1,4 +1,4 @@
-import { Ban, CheckCircle2, Pencil, Plus, TrendingDown, TrendingUp } from 'lucide-react'
+import { Ban, CheckCircle2, CircleHelp, Pencil, Plus, TrendingDown, TrendingUp } from 'lucide-react'
 import { Section } from '@/design-system/components'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -111,7 +111,32 @@ export function TransactionsSection({
 
   return (
     <div className="space-y-6">
-      <Section title="Filtros de transações" spacing="compact">
+      <Section
+        title={
+          <span className="inline-flex items-center gap-2">
+            Filtros de transações
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="text-muted-foreground hover:text-foreground">
+                    <CircleHelp className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-left font-normal">
+                  <p className="font-medium mb-1">Dica de uso:</p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    <li><strong>Tipo:</strong> filtra entre receitas (entradas) e despesas (saídas).</li>
+                    <li><strong>Status:</strong> encontre transações pendentes, pagas, vencidas ou canceladas.</li>
+                    <li><strong>Categoria:</strong> filtra por tipo de receita ou despesa (ex: Mensalidades, Medicamentos).</li>
+                    <li><strong>Vencimento:</strong> defina o período de datas para restringir os resultados.</li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </span>
+        }
+        spacing="compact"
+      >
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
           <div className="xl:col-span-2">
             <Label>Busca</Label>

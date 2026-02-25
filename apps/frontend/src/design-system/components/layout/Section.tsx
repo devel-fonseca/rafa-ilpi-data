@@ -86,8 +86,9 @@ export interface SectionProps
   /**
    * Título da seção (opcional)
    * Renderizado no CardHeader com text-lg font-semibold
+   * Aceita string ou JSX (ex: título + ícone de ajuda)
    */
-  title?: string
+  title?: React.ReactNode
 
   /**
    * Descrição/subtítulo da seção (opcional)

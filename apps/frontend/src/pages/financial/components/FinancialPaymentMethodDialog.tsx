@@ -50,7 +50,15 @@ export function FinancialPaymentMethodDialog({
                     <CircleHelp className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Define formas de recebimento/pagamento. Confirmação é manual.</TooltipContent>
+                <TooltipContent side="bottom" className="max-w-xs text-left">
+                  <p className="font-medium mb-1">Como preencher:</p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    <li><strong>Nome:</strong> como aparece para o usuário (ex: PIX, Boleto).</li>
+                    <li><strong>Código:</strong> identificador interno, sem espaços (ex: pix, bank_slip).</li>
+                    <li><strong>Permite parcelamento:</strong> marque se o método aceita pagamento em parcelas e defina o máximo.</li>
+                    <li>A confirmação de pagamento é sempre manual — você precisará marcar cada transação como paga.</li>
+                  </ul>
+                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
