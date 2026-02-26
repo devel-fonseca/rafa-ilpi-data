@@ -15,6 +15,8 @@ import type {
   ListReconciliationsQuery,
   ListUnreconciledPaidTransactionsQuery,
   ListTransactionsQuery,
+  GenerateContractTransactionsDto,
+  MarkTransactionPartiallyPaidDto,
   MarkTransactionPaidDto,
   UpdateFinancialAccountDto,
   UpdateFinancialPaymentMethodDto,
@@ -339,6 +341,42 @@ export function useMarkFinancialTransactionPaid() {
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } }; message?: string }
       toast.error(err.response?.data?.message || err.message || 'Erro ao marcar transação como paga')
+    },
+  })
+}
+
+export function useMarkFinancialTransactionPartiallyPaid() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: MarkTransactionPartiallyPaidDto }) =>
+      financialOperationsApi.markTransactionPartiallyPaid(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tenantKey('financial-operations') })
+      toast.success('Baixa parcial registrada com sucesso')
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      toast.error(err.response?.data?.message || err.message || 'Erro ao registrar baixa parcial')
+    },
+  })
+}
+
+export function useGenerateFinancialTransactionsFromContracts() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: GenerateContractTransactionsDto = {}) =>
+      financialOperationsApi.generateTransactionsFromContracts(payload),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: tenantKey('financial-operations') })
+      toast.success(
+        `Geração concluída (${result.competenceMonth}): ${result.generated} criadas, ${result.skippedExisting} já existentes.`,
+      )
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      toast.error(err.response?.data?.message || err.message || 'Erro ao gerar mensalidades por contratos')
     },
   })
 }

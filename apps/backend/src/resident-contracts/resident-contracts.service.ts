@@ -22,6 +22,7 @@ import { differenceInDays, parseISO } from 'date-fns';
 import { ContractDocumentStatus, ContractHistoryAction, Prisma } from '@prisma/client';
 import { DEFAULT_TIMEZONE, getCurrentDateInTz, parseDateOnly } from '../utils/date.helpers';
 import { FinancialContractTransactionsService } from '../financial-operations/services/financial-contract-transactions.service';
+import { FinancialTransactionsService } from '../financial-operations/services/financial-transactions.service';
 import { FieldEncryption } from '../prisma/middleware/field-encryption.class';
 
 /**
@@ -50,6 +51,7 @@ export class ResidentContractsService {
     private readonly filesService: FilesService,
     private readonly fileProcessingService: FileProcessingService,
     private readonly financialContractTransactionsService: FinancialContractTransactionsService,
+    private readonly financialTransactionsService: FinancialTransactionsService,
   ) {}
 
   private decryptMaybeEncrypted(value: string | null | undefined): string | null {
@@ -539,6 +541,7 @@ export class ResidentContractsService {
       : null;
 
     await this.financialContractTransactionsService.ensureCurrentCompetenceBestEffort({
+      tenantId: this.tenantContext.tenantId,
       userId,
       contractId: contract.id,
     });
@@ -869,10 +872,37 @@ export class ResidentContractsService {
       return updatedContract;
     });
 
+    const shouldRecalculateOpenInstallments =
+      changedFields.includes('lateFeePercent') ||
+      changedFields.includes('interestMonthlyPercent');
+
     await this.financialContractTransactionsService.ensureCurrentCompetenceBestEffort({
+      tenantId: this.tenantContext.tenantId,
       userId,
       contractId,
     });
+
+    if (shouldRecalculateOpenInstallments) {
+      try {
+        const tenant = await this.prisma.tenant.findUnique({
+          where: { id: this.tenantContext.tenantId },
+          select: { timezone: true },
+        });
+        const referenceDate = getCurrentDateInTz(tenant?.timezone || DEFAULT_TIMEZONE);
+        const result =
+          await this.financialTransactionsService.recalculateOpenInstallmentsFromContract({
+            contractId,
+            referenceDate,
+          });
+        this.logger.log(
+          `Recálculo de parcelas abertas do contrato ${contractId}: total=${result.totalOpenInstallments}, atualizadas=${result.updated}`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Falha ao recalcular parcelas em aberto do contrato ${contractId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
 
     return this.findOne(updated.id);
   }
@@ -1336,6 +1366,7 @@ export class ResidentContractsService {
     });
 
     await this.financialContractTransactionsService.ensureCurrentCompetenceBestEffort({
+      tenantId: this.tenantContext.tenantId,
       userId,
       contractId: renewed.id,
     });

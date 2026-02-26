@@ -304,6 +304,23 @@ export interface MarkTransactionPaidDto {
   paymentDate: string
 }
 
+export interface MarkTransactionPartiallyPaidDto {
+  paymentDate: string
+  amount: string
+}
+
+export interface GenerateContractTransactionsDto {
+  competenceMonth?: string
+}
+
+export interface GenerateContractTransactionsResult {
+  competenceMonth: string
+  generated: number
+  skippedExisting: number
+  skippedNoCategory: number
+  totalEligibleContracts: number
+}
+
 export interface CreateFinancialAccountDto {
   bankCode: string
   bankName: string

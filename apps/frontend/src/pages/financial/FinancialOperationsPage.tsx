@@ -34,6 +34,8 @@ import {
   useFinancialPaymentMethodsCatalog,
   useFinancialPaymentMethods,
   useFinancialTransactions,
+  useGenerateFinancialTransactionsFromContracts,
+  useMarkFinancialTransactionPartiallyPaid,
   useFinancialReconciliation,
   useFinancialReconciliations,
   useFinancialUnreconciledPaidTransactions,
@@ -69,7 +71,9 @@ import { FinancialCategoryDialog, type CategoryFormState } from './components/Fi
 import { FinancialPaymentMethodDialog, type PaymentMethodFormState } from './components/FinancialPaymentMethodDialog'
 import { FinancialReconciliationDialog, type ReconciliationFormState } from './components/FinancialReconciliationDialog'
 import { FinancialTransactionDialog, type TransactionFormState } from './components/FinancialTransactionDialog'
+import { GenerateContractTransactionsDialog } from './components/GenerateContractTransactionsDialog'
 import { MarkTransactionPaidDialog } from './components/MarkTransactionPaidDialog'
+import { MarkTransactionPartiallyPaidDialog } from './components/MarkTransactionPartiallyPaidDialog'
 import { PaymentMethodsSection } from './components/PaymentMethodsSection'
 import { ReconciliationDetailsDialog } from './components/ReconciliationDetailsDialog'
 import { ReconciliationsSection } from './components/ReconciliationsSection'
@@ -148,12 +152,18 @@ export default function FinancialOperationsPage() {
   const [isPaymentMethodDialogOpen, setIsPaymentMethodDialogOpen] = useState(false)
   const [isReconciliationDialogOpen, setIsReconciliationDialogOpen] = useState(false)
   const [isReconciliationDetailsOpen, setIsReconciliationDetailsOpen] = useState(false)
+  const [isGenerateContractTransactionsDialogOpen, setIsGenerateContractTransactionsDialogOpen] = useState(false)
   const [isMarkPaidDialogOpen, setIsMarkPaidDialogOpen] = useState(false)
+  const [isMarkPartiallyPaidDialogOpen, setIsMarkPartiallyPaidDialogOpen] = useState(false)
   const [isBatchCancelDialogOpen, setIsBatchCancelDialogOpen] = useState(false)
 
+  const [generateContractsCompetenceMonth, setGenerateContractsCompetenceMonth] = useState(getCurrentDate().slice(0, 7))
   const [markPaidDate, setMarkPaidDate] = useState(getCurrentDate())
+  const [markPartiallyPaidDate, setMarkPartiallyPaidDate] = useState(getCurrentDate())
+  const [markPartiallyPaidAmount, setMarkPartiallyPaidAmount] = useState('')
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<string[]>([])
   const [transactionToMarkPaid, setTransactionToMarkPaid] = useState<FinancialTransaction | null>(null)
+  const [transactionToMarkPartiallyPaid, setTransactionToMarkPartiallyPaid] = useState<FinancialTransaction | null>(null)
   const [transactionToCancel, setTransactionToCancel] = useState<FinancialTransaction | null>(null)
   const [categoryToDelete, setCategoryToDelete] = useState<FinancialCategory | null>(null)
   const [categoryToToggle, setCategoryToToggle] = useState<FinancialCategory | null>(null)
@@ -261,6 +271,8 @@ export default function FinancialOperationsPage() {
   const createTransaction = useCreateFinancialTransaction()
   const updateTransaction = useUpdateFinancialTransaction()
   const markPaid = useMarkFinancialTransactionPaid()
+  const markPartiallyPaid = useMarkFinancialTransactionPartiallyPaid()
+  const generateContractTransactions = useGenerateFinancialTransactionsFromContracts()
   const cancelTransaction = useCancelFinancialTransaction()
 
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data])
@@ -410,6 +422,11 @@ export default function FinancialOperationsPage() {
   const openCreatePaymentMethodDialog = () => {
     setPaymentMethodForm(emptyPaymentMethodForm)
     setIsPaymentMethodDialogOpen(true)
+  }
+
+  const openGenerateContractTransactionsDialog = () => {
+    setGenerateContractsCompetenceMonth(getCurrentDate().slice(0, 7))
+    setIsGenerateContractTransactionsDialogOpen(true)
   }
 
   const openCreateReconciliationDialog = (prefill?: Partial<ReconciliationFormState>) => {
@@ -704,6 +721,15 @@ export default function FinancialOperationsPage() {
     setTransactionForm(emptyTransactionForm)
   }
 
+  const submitGenerateContractTransactions = async () => {
+    const payload = generateContractsCompetenceMonth
+      ? { competenceMonth: fromMonthInput(generateContractsCompetenceMonth) }
+      : {}
+
+    await generateContractTransactions.mutateAsync(payload)
+    setIsGenerateContractTransactionsDialogOpen(false)
+  }
+
   const toggleSelectTransaction = (transactionId: string, checked: boolean) => {
     setSelectedTransactionIds((prev) =>
       checked ? Array.from(new Set([...prev, transactionId])) : prev.filter((id) => id !== transactionId),
@@ -731,6 +757,17 @@ export default function FinancialOperationsPage() {
     setTransactionToMarkPaid(transaction)
     setMarkPaidDate(getCurrentDate())
     setIsMarkPaidDialogOpen(true)
+  }
+
+  const handleOpenMarkPartiallyPaid = (transaction: FinancialTransaction) => {
+    if (!transaction.paymentMethodId || !transaction.bankAccountId) {
+      toast.error('Antes da baixa parcial, edite a transação e informe o método de pagamento e a conta bancária.')
+      return
+    }
+    setTransactionToMarkPartiallyPaid(transaction)
+    setMarkPartiallyPaidDate(getCurrentDate())
+    setMarkPartiallyPaidAmount('')
+    setIsMarkPartiallyPaidDialogOpen(true)
   }
 
   const openBatchMarkPaid = () => {
@@ -773,6 +810,30 @@ export default function FinancialOperationsPage() {
     setIsMarkPaidDialogOpen(false)
     setTransactionToMarkPaid(null)
     setSelectedTransactionIds([])
+  }
+
+  const handleMarkPartiallyPaid = async () => {
+    if (!markPartiallyPaidDate) {
+      toast.error('Informe a data de pagamento')
+      return
+    }
+    if (parsePtBrDecimalToNumber(markPartiallyPaidAmount) <= 0) {
+      toast.error('Informe um valor parcial maior que zero')
+      return
+    }
+    if (!transactionToMarkPartiallyPaid) return
+
+    await markPartiallyPaid.mutateAsync({
+      id: transactionToMarkPartiallyPaid.id,
+      payload: {
+        paymentDate: markPartiallyPaidDate,
+        amount: parsePtBrDecimalToApi(markPartiallyPaidAmount),
+      },
+    })
+
+    setIsMarkPartiallyPaidDialogOpen(false)
+    setTransactionToMarkPartiallyPaid(null)
+    setMarkPartiallyPaidAmount('')
   }
 
   const handleCancelTransaction = async () => {
@@ -1003,12 +1064,21 @@ export default function FinancialOperationsPage() {
         ]}
         actions={
           tab === 'transactions' ? (
-            <Button onClick={openCreateTransactionDialog} disabled={!canManageTransactions}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova transação
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={openGenerateContractTransactionsDialog}
+                disabled={!canManageTransactions}
+              >
+                Gerar mensalidades
+              </Button>
+              <Button onClick={openCreateTransactionDialog} disabled={!canManageTransactions}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova transação
+              </Button>
+            </div>
           ) : tab === 'reconciliations' ? (
-            <Button onClick={openCreateReconciliationDialog} disabled={!canManageReconciliation}>
+            <Button onClick={() => openCreateReconciliationDialog()} disabled={!canManageReconciliation}>
               <Plus className="h-4 w-4 mr-2" />
               Novo fechamento
             </Button>
@@ -1227,6 +1297,7 @@ export default function FinancialOperationsPage() {
             onPreviousPage={() => setPage((current) => current - 1)}
             onNextPage={() => setPage((current) => current + 1)}
             onEdit={openEditTransactionDialog}
+            onOpenMarkPartiallyPaid={handleOpenMarkPartiallyPaid}
             onOpenMarkPaid={handleOpenMarkPaid}
             onOpenCancel={setTransactionToCancel}
             selectedTransactionIds={selectedTransactionIds}
@@ -1628,6 +1699,15 @@ export default function FinancialOperationsPage() {
         submitDisabledReason={transactionSubmitDisabledReason}
       />
 
+      <GenerateContractTransactionsDialog
+        open={isGenerateContractTransactionsDialogOpen}
+        onOpenChange={setIsGenerateContractTransactionsDialogOpen}
+        competenceMonth={generateContractsCompetenceMonth}
+        onCompetenceMonthChange={setGenerateContractsCompetenceMonth}
+        onConfirm={submitGenerateContractTransactions}
+        isSubmitting={generateContractTransactions.isPending}
+      />
+
       <MarkTransactionPaidDialog
         open={isMarkPaidDialogOpen}
         onOpenChange={(open) => {
@@ -1642,6 +1722,24 @@ export default function FinancialOperationsPage() {
         onPaymentDateChange={setMarkPaidDate}
         onConfirm={handleMarkPaid}
         isSubmitting={markPaid.isPending}
+      />
+
+      <MarkTransactionPartiallyPaidDialog
+        open={isMarkPartiallyPaidDialogOpen}
+        onOpenChange={(open) => {
+          setIsMarkPartiallyPaidDialogOpen(open)
+          if (!open) {
+            setTransactionToMarkPartiallyPaid(null)
+            setMarkPartiallyPaidAmount('')
+          }
+        }}
+        paymentDate={markPartiallyPaidDate}
+        amount={markPartiallyPaidAmount}
+        transactionDescription={transactionToMarkPartiallyPaid?.description}
+        onPaymentDateChange={setMarkPartiallyPaidDate}
+        onAmountChange={setMarkPartiallyPaidAmount}
+        onConfirm={handleMarkPartiallyPaid}
+        isSubmitting={markPartiallyPaid.isPending}
       />
 
       <AlertDialog open={!!transactionToCancel} onOpenChange={(open) => !open && setTransactionToCancel(null)}>

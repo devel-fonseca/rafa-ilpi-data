@@ -1,4 +1,4 @@
-import { Ban, CheckCircle2, CircleHelp, Pencil, Plus, TrendingDown, TrendingUp } from 'lucide-react'
+import { Ban, CheckCircle2, CircleHelp, Percent, Pencil, Plus, TrendingDown, TrendingUp } from 'lucide-react'
 import { Section } from '@/design-system/components'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,6 +43,7 @@ interface TransactionsSectionProps {
   onPreviousPage: () => void
   onNextPage: () => void
   onEdit: (transaction: FinancialTransaction) => void
+  onOpenMarkPartiallyPaid: (transaction: FinancialTransaction) => void
   onOpenMarkPaid: (transaction: FinancialTransaction) => void
   onOpenCancel: (transaction: FinancialTransaction) => void
   selectedTransactionIds: string[]
@@ -91,6 +92,7 @@ export function TransactionsSection({
   onPreviousPage,
   onNextPage,
   onEdit,
+  onOpenMarkPartiallyPaid,
   onOpenMarkPaid,
   onOpenCancel,
   selectedTransactionIds,
@@ -270,7 +272,7 @@ export function TransactionsSection({
               <TableHead>Vencimento</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Valor líquido</TableHead>
-              <TableHead className="w-[132px] text-right">Ações</TableHead>
+              <TableHead className="w-[168px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -313,7 +315,7 @@ export function TransactionsSection({
                   <Badge variant={transaction.status === 'PAID' ? 'default' : 'outline'}>{statusLabel(transaction.status)}</Badge>
                 </TableCell>
                 <TableCell className="text-right font-semibold">{formatCurrency(transaction.netAmount)}</TableCell>
-                <TableCell className="w-[132px]">
+                <TableCell className="w-[168px]">
                   <TooltipProvider delayDuration={200}>
                     <div className="flex justify-end gap-1">
                       <Tooltip>
@@ -323,6 +325,19 @@ export function TransactionsSection({
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Editar transação</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => onOpenMarkPartiallyPaid(transaction)}
+                            disabled={!canManageTransactions || transaction.status === 'PAID' || transaction.status === 'CANCELLED'}
+                          >
+                            <Percent className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Registrar baixa parcial</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>

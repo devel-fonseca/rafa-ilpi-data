@@ -5,6 +5,7 @@ export * from './create-transaction.dto';
 export * from './update-transaction.dto';
 export * from './query-transactions.dto';
 export * from './mark-transaction-paid.dto';
+export * from './mark-transaction-partially-paid.dto';
 export * from './generate-contract-transactions.dto';
 export * from './query-reference-data.dto';
 export * from './create-account.dto';

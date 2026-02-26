@@ -185,5 +185,6 @@ npm run financial:rebuild-ledger-account -- --schema=<schema_tenant> --accountId
 ## Limitações conhecidas (estado atual)
 
 - Confirmação de pagamento é apenas manual (automação futura).
-- Juros/multa em `%` na transação já existe com cálculo automático no formulário, mas sem regras de cálculo temporal avançadas (pró-rata/ao dia) no backend.
+- Para transações vinculadas a contrato (`residentContractId`), o backend aplica multa fixa + juros mensal pró-rata diário na baixa e no recálculo de parcelas abertas.
+- Para transações avulsas (sem contrato), juros/multa continuam informados manualmente no lançamento.
 - Fechamento não substitui conciliação bancária automatizada por extrato OFX/API bancária (futuro).

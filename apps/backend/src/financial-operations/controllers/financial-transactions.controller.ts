@@ -25,6 +25,7 @@ import { RequireFeatures } from '../../common/decorators/require-features.decora
 import {
   CreateTransactionDto,
   GenerateContractTransactionsDto,
+  MarkTransactionPartiallyPaidDto,
   MarkTransactionPaidDto,
   QueryTransactionsDto,
   UpdateTransactionDto,
@@ -95,6 +96,17 @@ export class FinancialTransactionsController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.transactionsService.markPaid(id, dto, user.id);
+  }
+
+  @Post(':id/mark-partially-paid')
+  @RequirePermissions(PermissionType.MANAGE_FINANCIAL_TRANSACTIONS)
+  @ApiOperation({ summary: 'Marcar transação como parcialmente paga' })
+  markPartiallyPaid(
+    @Param('id') id: string,
+    @Body() dto: MarkTransactionPartiallyPaidDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.transactionsService.markPartiallyPaid(id, dto, user.id);
   }
 
   @Post(':id/cancel')

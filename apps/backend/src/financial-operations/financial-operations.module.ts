@@ -7,6 +7,7 @@ import { FinancialPaymentMethodsController } from './controllers/financial-payme
 import { FinancialReferenceDataController } from './controllers/financial-reference-data.controller';
 import { FinancialReconciliationsController } from './controllers/financial-reconciliations.controller';
 import { FinancialTransactionsController } from './controllers/financial-transactions.controller';
+import { FinancialContractTransactionsJob } from './jobs/financial-contract-transactions.job';
 import { FinancialAccountsService } from './services/financial-accounts.service';
 import { FinancialCategoriesService } from './services/financial-categories.service';
 import { FinancialPaymentMethodsService } from './services/financial-payment-methods.service';
@@ -33,6 +34,7 @@ import { FinancialTransactionsService } from './services/financial-transactions.
     FinancialReferenceDataService,
     FinancialPaymentMethodsService,
     FinancialReconciliationsService,
+    FinancialContractTransactionsJob,
   ],
   exports: [
     FinancialAccountsService,

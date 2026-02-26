@@ -135,14 +135,17 @@ Motivo:
 - evita geração massiva retroativa involuntária;
 - permite backfill controlado quando necessário.
 
-### Tradeoff 3: juros/multa no contrato não recalculam automaticamente parcelas já geradas
+### Tradeoff 3: recálculo limitado a parcelas em aberto
 
 Estado atual:
-- campos ficam registrados no contrato e disponíveis para uso operacional.
+- política aplicada no backend para atraso:
+  - multa fixa (% do principal) + juros mensal (% a.m.) em pró-rata diário (`dias/30`);
+  - cálculo aplicado na baixa (parcial/total) pela `paymentDate`;
+  - recálculo assistido de parcelas **em aberto** (`PENDING/OVERDUE`) quando percentual de multa/juros do contrato é alterado.
 
 Motivo:
-- preserva estabilidade das transações já emitidas;
-- política de recálculo retroativo pode variar por ILPI e será fase posterior.
+- evita reprocessar parcelas já pagas ou canceladas;
+- mantém previsibilidade operacional sem backfill massivo.
 
 ## Checklist de operação pós-deploy
 
@@ -165,6 +168,6 @@ npm run build
 
 ## Próximas evoluções sugeridas
 
-- Política formal de cálculo de juros/multa temporal (ao dia/pró-rata/mês).
-- Recálculo assistido para parcelas em aberto após alteração contratual.
+- Política configurável por tenant para juros (ao dia/pró-rata/mês comercial).
+- Recálculo opcional para parcelas parcialmente pagas com regra de amortização explícita.
 - Integração de fechamento com importação de extrato bancário (OFX/API).

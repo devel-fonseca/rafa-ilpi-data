@@ -22,6 +22,9 @@ import type {
   ListUnreconciledPaidTransactionsResponse,
   QueryAccountStatementDto,
   MarkTransactionPaidDto,
+  MarkTransactionPartiallyPaidDto,
+  GenerateContractTransactionsDto,
+  GenerateContractTransactionsResult,
   UpdateFinancialAccountDto,
   UpdateFinancialPaymentMethodDto,
   UpdateCategoryDto,
@@ -196,6 +199,21 @@ class FinancialOperationsApi {
 
   async markTransactionPaid(id: string, payload: MarkTransactionPaidDto): Promise<FinancialTransaction> {
     const response = await api.post(`/financial/transactions/${id}/mark-paid`, payload)
+    return response.data
+  }
+
+  async markTransactionPartiallyPaid(
+    id: string,
+    payload: MarkTransactionPartiallyPaidDto,
+  ): Promise<FinancialTransaction> {
+    const response = await api.post(`/financial/transactions/${id}/mark-partially-paid`, payload)
+    return response.data
+  }
+
+  async generateTransactionsFromContracts(
+    payload: GenerateContractTransactionsDto = {},
+  ): Promise<GenerateContractTransactionsResult> {
+    const response = await api.post('/financial/transactions/generate-from-contracts', payload)
     return response.data
   }
 

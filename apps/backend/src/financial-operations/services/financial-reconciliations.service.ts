@@ -40,7 +40,9 @@ export class FinancialReconciliationsService {
   }
 
   async findAll(query: QueryReconciliationsDto) {
-    await this.contractTransactionsService.ensureCurrentCompetenceBestEffort();
+    await this.contractTransactionsService.ensureCurrentCompetenceBestEffort({
+      tenantId: this.tenantContext.tenantId,
+    });
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
@@ -129,7 +131,9 @@ export class FinancialReconciliationsService {
   async findUnreconciledPaidTransactions(
     query: QueryUnreconciledPaidTransactionsDto,
   ) {
-    await this.contractTransactionsService.ensureCurrentCompetenceBestEffort();
+    await this.contractTransactionsService.ensureCurrentCompetenceBestEffort({
+      tenantId: this.tenantContext.tenantId,
+    });
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
