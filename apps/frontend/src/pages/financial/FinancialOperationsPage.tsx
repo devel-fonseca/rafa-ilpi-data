@@ -40,6 +40,7 @@ import {
   useFinancialReconciliations,
   useFinancialUnreconciledPaidTransactions,
   useMarkFinancialTransactionPaid,
+  useReprocessFinancialReconciliation,
   useUpdateFinancialAccount,
   useUpdateFinancialPaymentMethod,
   useUpdateFinancialCategory,
@@ -60,6 +61,7 @@ import type {
   FinancialTransaction,
   FinancialTransactionStatus,
   FinancialTransactionType,
+  UpdateFinancialReconciliationDto,
   UpdateCategoryDto,
 } from '@/types/financial-operations'
 import { extractDateOnly, getCurrentDate } from '@/utils/dateHelpers'
@@ -171,6 +173,7 @@ export default function FinancialOperationsPage() {
   const [accountForStatement, setAccountForStatement] = useState<FinancialBankAccount | null>(null)
   const [paymentMethodToToggle, setPaymentMethodToToggle] = useState<FinancialPaymentMethod | null>(null)
   const [selectedReconciliationId, setSelectedReconciliationId] = useState<string | null>(null)
+  const [reprocessingReconciliationId, setReprocessingReconciliationId] = useState<string | null>(null)
   const [statementFromDateInput, setStatementFromDateInput] = useState('')
   const [statementToDateInput, setStatementToDateInput] = useState('')
   const [statementFromDate, setStatementFromDate] = useState('')
@@ -262,6 +265,7 @@ export default function FinancialOperationsPage() {
   const createAccount = useCreateFinancialAccount()
   const createPaymentMethod = useCreateFinancialPaymentMethod()
   const createReconciliation = useCreateFinancialReconciliation()
+  const reprocessReconciliation = useReprocessFinancialReconciliation()
   const updateAccount = useUpdateFinancialAccount()
   const updatePaymentMethod = useUpdateFinancialPaymentMethod()
   const createCategory = useCreateFinancialCategory()
@@ -430,10 +434,27 @@ export default function FinancialOperationsPage() {
   }
 
   const openCreateReconciliationDialog = (prefill?: Partial<ReconciliationFormState>) => {
+    setReprocessingReconciliationId(null)
     setReconciliationForm({
       ...emptyReconciliationForm,
       ...prefill,
     })
+    setIsReconciliationDialogOpen(true)
+  }
+
+  const openResolveReconciliationDialog = (reconciliation: NonNullable<typeof reconciliationDetailsQuery.data>) => {
+    setReprocessingReconciliationId(reconciliation.id)
+    setReconciliationForm({
+      bankAccountId: reconciliation.bankAccountId,
+      reconciliationDate: extractDateOnly(reconciliation.reconciliationDate),
+      startDate: extractDateOnly(reconciliation.startDate),
+      endDate: extractDateOnly(reconciliation.endDate),
+      openingBalance: toPtBrDecimalInput(reconciliation.openingBalance ?? '0'),
+      closingBalance: toPtBrDecimalInput(reconciliation.closingBalance ?? '0'),
+      notes: reconciliation.notes || '',
+    })
+    setIsReconciliationDetailsOpen(false)
+    setSelectedReconciliationId(null)
     setIsReconciliationDialogOpen(true)
   }
 
@@ -620,7 +641,7 @@ export default function FinancialOperationsPage() {
       return
     }
     if (!reconciliationForm.startDate || !reconciliationForm.endDate || !reconciliationForm.reconciliationDate) {
-      toast.error('Preencha as datas do fechamento')
+      toast.error('Preencha as datas da conciliação')
       return
     }
     if (reconciliationForm.startDate > reconciliationForm.endDate) {
@@ -645,7 +666,23 @@ export default function FinancialOperationsPage() {
       notes: reconciliationForm.notes.trim() || undefined,
     }
 
-    await createReconciliation.mutateAsync(payload)
+    if (reprocessingReconciliationId) {
+      const reprocessPayload: UpdateFinancialReconciliationDto = {
+        startDate: payload.startDate,
+        endDate: payload.endDate,
+        openingBalance: payload.openingBalance,
+        closingBalance: payload.closingBalance,
+        notes: payload.notes,
+      }
+      await reprocessReconciliation.mutateAsync({
+        id: reprocessingReconciliationId,
+        payload: reprocessPayload,
+      })
+      setReprocessingReconciliationId(null)
+    } else {
+      await createReconciliation.mutateAsync(payload)
+    }
+
     setIsReconciliationDialogOpen(false)
     setReconciliationForm(emptyReconciliationForm)
   }
@@ -898,7 +935,7 @@ export default function FinancialOperationsPage() {
   const pageCountLabelByTab: Record<typeof tab, string> = {
     dashboard: 'Transações no dashboard',
     transactions: 'Transações exibidas na página',
-    reconciliations: 'Fechamentos exibidos na página',
+    reconciliations: 'Conciliações exibidas na página',
     'payment-methods': 'Métodos exibidos na página',
     accounts: 'Contas exibidas na página',
     categories: 'Categorias exibidas na página',
@@ -936,7 +973,7 @@ export default function FinancialOperationsPage() {
 
     if (targetBankAccountId && maybeDuplicate) {
       toast.warning(
-        'Já existe fechamento desta conta para a data selecionada. Ajuste o período ou revise o fechamento existente.',
+        'Já existe conciliação desta conta para a data selecionada. Ajuste o período ou revise a conciliação existente.',
       )
       return
     }
@@ -1041,9 +1078,9 @@ export default function FinancialOperationsPage() {
   const reconciliationSubmitDisabledReason = !reconciliationForm.bankAccountId
     ? 'Selecione a conta bancária.'
     : !reconciliationForm.reconciliationDate || !reconciliationForm.startDate || !reconciliationForm.endDate
-      ? 'Preencha as datas do fechamento.'
+      ? 'Preencha as datas da conciliação.'
       : !reconciliationForm.openingBalance || !reconciliationForm.closingBalance
-        ? 'Preencha os saldos de abertura e fechamento.'
+        ? 'Preencha os saldos de abertura e final.'
         : undefined
   const transactionSubmitDisabledReason = !transactionForm.categoryId
     ? 'Selecione a categoria.'
@@ -1080,7 +1117,7 @@ export default function FinancialOperationsPage() {
           ) : tab === 'reconciliations' ? (
             <Button onClick={() => openCreateReconciliationDialog()} disabled={!canManageReconciliation}>
               <Plus className="h-4 w-4 mr-2" />
-              Novo fechamento
+              Nova conciliação
             </Button>
           ) : tab === 'payment-methods' ? (
             <Button onClick={openCreatePaymentMethodDialog} disabled={!canManageAccounts}>
@@ -1133,7 +1170,7 @@ export default function FinancialOperationsPage() {
             <Wallet className="h-4 w-4" /> Transações
           </TabsTrigger>
           <TabsTrigger value="reconciliations" className="gap-2">
-            <Scale className="h-4 w-4" /> Fechamento
+            <Scale className="h-4 w-4" /> Conciliação
           </TabsTrigger>
           <TabsTrigger value="payment-methods" className="gap-2">
             <CreditCard className="h-4 w-4" /> Métodos
@@ -1362,9 +1399,9 @@ export default function FinancialOperationsPage() {
               <CardContent className="pt-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-info">O que é o Fechamento?</p>
+                    <p className="text-sm font-medium text-info">O que é a Conciliação?</p>
                     <p className="text-sm text-muted-foreground">
-                      O fechamento serve para conferir se o saldo da sua conta bancária no banco está batendo com o que foi registrado aqui no sistema. Escolha a conta, o período e informe o saldo que aparece no seu extrato bancário. O sistema compara automaticamente e avisa se houver diferença. Caso exista divergência, verifique se o saldo inicial da conta foi informado corretamente e revise as transações do período para identificar lançamentos faltando ou com valor incorreto.
+                      A conciliação serve para conferir se o saldo da sua conta bancária no banco está batendo com o que foi registrado aqui no sistema. Escolha a conta, o período e informe o saldo que aparece no seu extrato bancário. O sistema compara automaticamente e avisa se houver diferença. Caso exista divergência, verifique se o saldo inicial da conta foi informado corretamente e revise as transações do período para identificar lançamentos faltando ou com valor incorreto.
                     </p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={hideReconciliationsUsageGuide} aria-label="Fechar instruções">
@@ -1638,13 +1675,19 @@ export default function FinancialOperationsPage() {
 
       <FinancialReconciliationDialog
         open={isReconciliationDialogOpen}
-        onOpenChange={setIsReconciliationDialogOpen}
+        onOpenChange={(open) => {
+          setIsReconciliationDialogOpen(open)
+          if (!open) {
+            setReprocessingReconciliationId(null)
+          }
+        }}
+        mode={reprocessingReconciliationId ? 'resolve' : 'create'}
         form={reconciliationForm}
         setForm={(updater) => setReconciliationForm((prev) => updater(prev))}
         bankAccounts={bankAccounts}
         onSubmit={submitReconciliation}
         onApplySystemBalances={applySystemBalancesToReconciliationForm}
-        isSubmitting={createReconciliation.isPending}
+        isSubmitting={createReconciliation.isPending || reprocessReconciliation.isPending}
         isSystemSummaryLoading={reconciliationSystemSummaryQuery.isLoading}
         systemSummary={reconciliationSystemSummaryQuery.data?.summary
           ? {
@@ -1678,6 +1721,8 @@ export default function FinancialOperationsPage() {
         formatCurrency={formatCurrency}
         statusLabel={statusLabel}
         typeLabel={typeLabel}
+        canResolveDivergence={canManageReconciliation}
+        onResolveDivergence={openResolveReconciliationDialog}
       />
 
       <FinancialTransactionDialog

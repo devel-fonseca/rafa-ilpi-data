@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -25,6 +26,7 @@ import {
   CreateReconciliationDto,
   QueryReconciliationsDto,
   QueryUnreconciledPaidTransactionsDto,
+  ReprocessReconciliationDto,
 } from '../dto';
 import { FinancialReconciliationsService } from '../services/financial-reconciliations.service';
 
@@ -68,5 +70,17 @@ export class FinancialReconciliationsController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.reconciliationsService.create(dto, user.id);
+  }
+
+  @Patch(':id/reprocess')
+  @RequirePermissions(PermissionType.MANAGE_FINANCIAL_RECONCILIATION)
+  @ApiOperation({ summary: 'Reprocessar fechamento com divergência' })
+  @ApiResponse({ status: 200, description: 'Fechamento reprocessado com sucesso' })
+  reprocess(
+    @Param('id') id: string,
+    @Body() dto: ReprocessReconciliationDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reconciliationsService.reprocess(id, dto, user.id);
   }
 }

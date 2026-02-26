@@ -25,6 +25,7 @@ import type {
   MarkTransactionPartiallyPaidDto,
   GenerateContractTransactionsDto,
   GenerateContractTransactionsResult,
+  UpdateFinancialReconciliationDto,
   UpdateFinancialAccountDto,
   UpdateFinancialPaymentMethodDto,
   UpdateCategoryDto,
@@ -70,6 +71,14 @@ class FinancialOperationsApi {
 
   async createReconciliation(payload: CreateFinancialReconciliationDto): Promise<FinancialReconciliation> {
     const response = await api.post('/financial/reconciliations', payload)
+    return response.data
+  }
+
+  async reprocessReconciliation(
+    id: string,
+    payload: UpdateFinancialReconciliationDto,
+  ): Promise<FinancialReconciliation> {
+    const response = await api.patch(`/financial/reconciliations/${id}/reprocess`, payload)
     return response.data
   }
 

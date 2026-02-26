@@ -359,6 +359,14 @@ export interface CreateFinancialReconciliationDto {
   notes?: string
 }
 
+export interface UpdateFinancialReconciliationDto {
+  startDate: string
+  endDate: string
+  openingBalance: string
+  closingBalance: string
+  notes?: string
+}
+
 export interface ListReconciliationsResponse {
   items: FinancialReconciliation[]
   pagination: FinancialPagination

@@ -46,12 +46,12 @@ export function UnreconciledPaidTransactionsSection({
   return (
     <div className="space-y-4">
       <Section
-        title="Pagas sem fechamento"
-        description={`${total} total • Exibe somente transações pagas ainda não incluídas em nenhum fechamento.`}
+        title="Pagas sem conciliação"
+        description={`${total} total • Exibe somente transações pagas ainda não incluídas em nenhuma conciliação.`}
         spacing="compact"
         headerAction={
           <Button size="sm" onClick={onOpenReconciliationWithFilters}>
-            Novo fechamento com estes filtros
+            Nova conciliação com estes filtros
           </Button>
         }
       >
@@ -126,7 +126,7 @@ export function UnreconciledPaidTransactionsSection({
             {!isLoading && items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                  Nenhuma transação paga pendente de fechamento neste filtro.
+                  Nenhuma transação paga pendente de conciliação neste filtro.
                 </TableCell>
               </TableRow>
             )}

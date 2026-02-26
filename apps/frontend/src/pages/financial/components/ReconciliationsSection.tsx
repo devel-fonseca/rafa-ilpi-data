@@ -52,7 +52,7 @@ export function ReconciliationsSection({
 }: ReconciliationsSectionProps) {
   return (
     <div className="space-y-6">
-      <Section title="Filtros de fechamento" spacing="compact">
+      <Section title="Filtros de conciliação" spacing="compact">
         <div className="grid gap-3 md:grid-cols-4">
           <div>
             <Label>Status</Label>
@@ -64,7 +64,7 @@ export function ReconciliationsSection({
               <option value="">Todos</option>
               <option value="PENDING">Pendente</option>
               <option value="IN_PROGRESS">Em andamento</option>
-              <option value="RECONCILED">Fechado</option>
+              <option value="RECONCILED">Conciliado</option>
               <option value="DISCREPANCY">Com divergência</option>
             </select>
           </div>
@@ -92,8 +92,8 @@ export function ReconciliationsSection({
       </Section>
 
       <Section
-        title="Fechamentos"
-        description={`${total} total • Os fechamentos são gerados manualmente em "Novo fechamento".`}
+        title="Conciliações"
+        description={`${total} total • As conciliações são geradas manualmente em "Nova conciliação".`}
         spacing="compact"
         headerAction={<div className="text-sm text-muted-foreground">Página {page} de {totalPages}</div>}
       >
@@ -115,7 +115,7 @@ export function ReconciliationsSection({
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground">
-                  Carregando fechamentos...
+                  Carregando conciliações...
                 </TableCell>
               </TableRow>
             ) : null}
@@ -145,9 +145,9 @@ export function ReconciliationsSection({
             {!isLoading && reconciliations.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
-                  <div>Nenhum fechamento encontrado</div>
+                  <div>Nenhuma conciliação encontrada</div>
                   <div className="mt-1 text-xs">
-                    Lance as transações, marque como pagas e use "Novo fechamento" para gerar o primeiro registro.
+                    Lance as transações, marque como pagas e use "Nova conciliação" para gerar o primeiro registro.
                   </div>
                 </TableCell>
               </TableRow>

@@ -18,6 +18,7 @@ import type {
   GenerateContractTransactionsDto,
   MarkTransactionPartiallyPaidDto,
   MarkTransactionPaidDto,
+  UpdateFinancialReconciliationDto,
   UpdateFinancialAccountDto,
   UpdateFinancialPaymentMethodDto,
   UpdateCategoryDto,
@@ -197,11 +198,28 @@ export function useCreateFinancialReconciliation() {
     mutationFn: (payload: CreateFinancialReconciliationDto) => financialOperationsApi.createReconciliation(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tenantKey('financial-operations') })
-      toast.success('Fechamento criado com sucesso')
+      toast.success('Conciliação criada com sucesso')
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } }; message?: string }
-      toast.error(err.response?.data?.message || err.message || 'Erro ao criar fechamento')
+      toast.error(err.response?.data?.message || err.message || 'Erro ao criar conciliação')
+    },
+  })
+}
+
+export function useReprocessFinancialReconciliation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateFinancialReconciliationDto }) =>
+      financialOperationsApi.reprocessReconciliation(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tenantKey('financial-operations') })
+      toast.success('Conciliação reprocessada com sucesso')
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      toast.error(err.response?.data?.message || err.message || 'Erro ao reprocessar conciliação')
     },
   })
 }

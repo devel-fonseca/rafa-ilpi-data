@@ -11,6 +11,7 @@ import {
   CreateReconciliationDto,
   QueryReconciliationsDto,
   QueryUnreconciledPaidTransactionsDto,
+  ReprocessReconciliationDto,
 } from '../dto';
 import { TenantContextService } from '../../prisma/tenant-context.service';
 import { FinancialContractTransactionsService } from './financial-contract-transactions.service';
@@ -377,6 +378,174 @@ export class FinancialReconciliationsService {
       return tx.financialReconciliation.findFirst({
         where: {
           id: reconciliation.id,
+          tenantId: this.tenantContext.tenantId,
+        },
+        include: {
+          bankAccount: {
+            select: {
+              id: true,
+              accountName: true,
+              bankName: true,
+            },
+          },
+          items: {
+            include: {
+              transaction: {
+                select: {
+                  id: true,
+                  description: true,
+                  type: true,
+                  netAmount: true,
+                  paymentDate: true,
+                  status: true,
+                },
+              },
+            },
+            orderBy: {
+              transaction: {
+                paymentDate: 'asc',
+              },
+            },
+          },
+        },
+      });
+    });
+  }
+
+  async reprocess(id: string, dto: ReprocessReconciliationDto, userId: string) {
+    const startDateOnly = parseDateOnly(dto.startDate);
+    const endDateOnly = parseDateOnly(dto.endDate);
+    const startDate = this.toPrismaDate(dto.startDate);
+    const endDate = this.toPrismaDate(dto.endDate);
+
+    if (startDateOnly > endDateOnly) {
+      throw new BadRequestException('Período inválido: data inicial maior que data final');
+    }
+
+    const existingReconciliation =
+      await this.tenantContext.client.financialReconciliation.findFirst({
+        where: {
+          id,
+          tenantId: this.tenantContext.tenantId,
+        },
+        select: {
+          id: true,
+          bankAccountId: true,
+          status: true,
+        },
+      });
+
+    if (!existingReconciliation) {
+      throw new NotFoundException('Conciliação não encontrada');
+    }
+
+    if (existingReconciliation.status !== FinancialReconciliationStatus.DISCREPANCY) {
+      throw new BadRequestException(
+        'Somente conciliações com divergência podem ser reprocessadas',
+      );
+    }
+
+    const openingBalance = this.parseDecimal(dto.openingBalance);
+    const closingBalance = this.parseDecimal(dto.closingBalance);
+
+    const transactions =
+      await this.tenantContext.client.financialTransaction.findMany({
+        where: {
+          tenantId: this.tenantContext.tenantId,
+          bankAccountId: existingReconciliation.bankAccountId,
+          deletedAt: null,
+          status: {
+            in: [
+              FinancialTransactionStatus.PAID,
+              FinancialTransactionStatus.PARTIALLY_PAID,
+            ],
+          },
+          paymentDate: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        select: {
+          id: true,
+          type: true,
+          netAmount: true,
+        },
+      });
+
+    const totalIncome = transactions
+      .filter((t) => t.type === FinancialTransactionType.INCOME)
+      .reduce((sum, t) => sum.plus(t.netAmount), new Prisma.Decimal(0));
+
+    const totalExpense = transactions
+      .filter((t) => t.type === FinancialTransactionType.EXPENSE)
+      .reduce((sum, t) => sum.plus(t.netAmount), new Prisma.Decimal(0));
+
+    const systemBalance = openingBalance.plus(totalIncome).minus(totalExpense);
+    const difference = closingBalance.minus(systemBalance);
+    const status = difference.equals(0)
+      ? FinancialReconciliationStatus.RECONCILED
+      : FinancialReconciliationStatus.DISCREPANCY;
+
+    return this.tenantContext.client.$transaction(async (tx) => {
+      await tx.financialReconciliation.update({
+        where: { id: existingReconciliation.id },
+        data: {
+          startDate,
+          endDate,
+          openingBalance,
+          closingBalance,
+          systemBalance,
+          difference,
+          status,
+          reconciledTransactionsCount: transactions.length,
+          totalIncome,
+          totalExpense,
+          notes: dto.notes?.trim() ? dto.notes.trim() : null,
+          reconciledBy:
+            status === FinancialReconciliationStatus.RECONCILED ? userId : null,
+          discrepancyReason:
+            status === FinancialReconciliationStatus.RECONCILED ? null : undefined,
+        },
+      });
+
+      await tx.financialReconciliationItem.deleteMany({
+        where: {
+          reconciliationId: existingReconciliation.id,
+        },
+      });
+
+      if (transactions.length > 0) {
+        await tx.financialReconciliationItem.createMany({
+          data: transactions.map((transaction) => ({
+            reconciliationId: existingReconciliation.id,
+            transactionId: transaction.id,
+            isReconciled: status === FinancialReconciliationStatus.RECONCILED,
+            reconciledAt:
+              status === FinancialReconciliationStatus.RECONCILED
+                ? new Date()
+                : null,
+            reconciledBy:
+              status === FinancialReconciliationStatus.RECONCILED
+                ? userId
+                : null,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      if (status === FinancialReconciliationStatus.RECONCILED) {
+        await tx.financialBankAccount.update({
+          where: { id: existingReconciliation.bankAccountId },
+          data: {
+            currentBalance: closingBalance,
+            lastBalanceUpdate: new Date(),
+          },
+        });
+      }
+
+      return tx.financialReconciliation.findFirst({
+        where: {
+          id: existingReconciliation.id,
           tenantId: this.tenantContext.tenantId,
         },
         include: {

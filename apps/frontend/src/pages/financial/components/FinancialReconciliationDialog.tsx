@@ -21,6 +21,7 @@ export interface ReconciliationFormState {
 interface FinancialReconciliationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  mode?: 'create' | 'resolve'
   form: ReconciliationFormState
   setForm: (updater: (prev: ReconciliationFormState) => ReconciliationFormState) => void
   bankAccounts: FinancialBankAccount[]
@@ -40,6 +41,7 @@ interface FinancialReconciliationDialogProps {
 export function FinancialReconciliationDialog({
   open,
   onOpenChange,
+  mode = 'create',
   form,
   setForm,
   bankAccounts,
@@ -51,12 +53,16 @@ export function FinancialReconciliationDialog({
   canSubmit,
   submitDisabledReason,
 }: FinancialReconciliationDialogProps) {
+  const isResolveMode = mode === 'resolve'
+  const title = isResolveMode ? 'Resolver divergência' : 'Nova conciliação'
+  const submitLabel = isResolveMode ? 'Reprocessar conciliação' : 'Gerar conciliação'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] w-[min(42rem,calc(100vw-2rem))] max-w-2xl overflow-hidden p-0">
         <DialogHeader className="px-6 pt-6">
           <div className="flex items-center gap-2">
-            <DialogTitle>Novo fechamento</DialogTitle>
+            <DialogTitle>{title}</DialogTitle>
             <TooltipProvider delayDuration={150}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -67,10 +73,10 @@ export function FinancialReconciliationDialog({
                 <TooltipContent side="bottom" className="max-w-xs text-left">
                   <p className="font-medium mb-1">Como preencher:</p>
                   <ol className="list-decimal pl-4 space-y-0.5">
-                    <li>Selecione a conta e o período que deseja conferir.</li>
+                    <li>Selecione a conta e o período que deseja conferir{isResolveMode ? ' (na resolução, a conta fica fixa)' : ''}.</li>
                     <li>O sistema calcula o saldo automaticamente. Você pode usar esses valores clicando em &ldquo;Usar saldos do sistema&rdquo;.</li>
                     <li>Em <strong>Saldo final informado</strong>, digite o saldo que aparece no seu extrato bancário.</li>
-                    <li>Clique em <strong>Gerar fechamento</strong>. Se houver diferença, revise se o saldo inicial está correto e se todas as transações do período foram lançadas.</li>
+                    <li>Clique em <strong>{submitLabel}</strong>. Se houver diferença, revise se o saldo inicial está correto e se todas as transações do período foram lançadas.</li>
                   </ol>
                 </TooltipContent>
               </Tooltip>
@@ -84,6 +90,7 @@ export function FinancialReconciliationDialog({
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={form.bankAccountId}
+              disabled={isResolveMode}
               onChange={(event) => setForm((prev) => ({ ...prev, bankAccountId: event.target.value }))}
             >
               <option value="">Selecione</option>
@@ -104,7 +111,7 @@ export function FinancialReconciliationDialog({
                 </p>
                 <p>
                   Abertura: <strong>{systemSummary.openingBalance}</strong> | Impacto:{' '}
-                  <strong>{systemSummary.periodNetImpact}</strong> | Fechamento:{' '}
+                  <strong>{systemSummary.periodNetImpact}</strong> | Conciliação:{' '}
                   <strong>{systemSummary.closingBalance}</strong>
                 </p>
                 <Button
@@ -123,10 +130,11 @@ export function FinancialReconciliationDialog({
             )}
           </div>
           <div>
-            <Label>Data do fechamento</Label>
+            <Label>Data da conciliação</Label>
             <Input
               type="date"
               value={form.reconciliationDate}
+              disabled={isResolveMode}
               onChange={(event) => setForm((prev) => ({ ...prev, reconciliationDate: event.target.value }))}
             />
           </div>
@@ -203,7 +211,7 @@ export function FinancialReconciliationDialog({
             Cancelar
           </Button>
           <Button onClick={onSubmit} disabled={isSubmitting || !canSubmit}>
-            Gerar fechamento
+            {submitLabel}
           </Button>
         </div>
       </DialogContent>

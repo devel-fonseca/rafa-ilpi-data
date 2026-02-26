@@ -298,6 +298,52 @@ export class FinancialTransactionsService {
     });
   }
 
+  private async fixInconsistentHistoryForUnpaidTransaction(
+    tx: Prisma.TransactionClient,
+    transactionId: string,
+    userId: string,
+  ): Promise<void> {
+    const entries = await tx.financialBankAccountLedger.findMany({
+      where: {
+        tenantId: this.tenantContext.tenantId,
+        transactionId,
+      },
+      select: {
+        bankAccountId: true,
+        amount: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    for (const entry of entries) {
+      const reversalImpact = new Prisma.Decimal(entry.amount).neg();
+      if (reversalImpact.equals(0)) {
+        continue;
+      }
+
+      const updateResult = await this.applyBankAccountImpact(
+        tx,
+        entry.bankAccountId,
+        reversalImpact,
+      );
+
+      if (updateResult) {
+        await this.appendLedgerEntry(tx, {
+          bankAccountId: updateResult.accountId,
+          transactionId,
+          effectiveDate: new Date(),
+          amount: reversalImpact,
+          balanceAfter: updateResult.balanceAfter,
+          entryType: 'INCONSISTENT_HISTORY_FIX',
+          description: 'Ajuste automático de histórico inconsistente',
+          createdBy: userId,
+        });
+      }
+    }
+  }
+
   private async validateCategory(categoryId: string, type: CreateTransactionDto['type']) {
     const category = await this.tenantContext.client.financialCategory.findFirst({
       where: {
@@ -686,10 +732,19 @@ export class FinancialTransactionsService {
         dto.paymentDate,
       );
 
-      const appliedImpact = await this.getAppliedImpactForTransaction(tx, transaction.id);
-      const appliedPaidAmount = this.getPaidAmountFromImpact(transaction.type, appliedImpact);
+      let appliedImpact = await this.getAppliedImpactForTransaction(tx, transaction.id);
+      let appliedPaidAmount = this.getPaidAmountFromImpact(transaction.type, appliedImpact);
+      if (
+        appliedPaidAmount.isNegative() &&
+        !appliedPaidAmount.isZero() &&
+        transaction.status !== FinancialTransactionStatus.PAID
+      ) {
+        await this.fixInconsistentHistoryForUnpaidTransaction(tx, transaction.id, userId);
+        appliedImpact = await this.getAppliedImpactForTransaction(tx, transaction.id);
+        appliedPaidAmount = this.getPaidAmountFromImpact(transaction.type, appliedImpact);
+      }
 
-      if (appliedPaidAmount.isNegative()) {
+      if (appliedPaidAmount.isNegative() && !appliedPaidAmount.isZero()) {
         throw new BadRequestException('Histórico de pagamentos inconsistente para esta transação');
       }
 
@@ -796,9 +851,14 @@ export class FinancialTransactionsService {
         dto.paymentDate,
       );
 
-      const appliedImpact = await this.getAppliedImpactForTransaction(tx, transaction.id);
-      const alreadyPaidAmount = this.getPaidAmountFromImpact(transaction.type, appliedImpact);
-      if (alreadyPaidAmount.isNegative()) {
+      let appliedImpact = await this.getAppliedImpactForTransaction(tx, transaction.id);
+      let alreadyPaidAmount = this.getPaidAmountFromImpact(transaction.type, appliedImpact);
+      if (alreadyPaidAmount.isNegative() && !alreadyPaidAmount.isZero()) {
+        await this.fixInconsistentHistoryForUnpaidTransaction(tx, transaction.id, userId);
+        appliedImpact = await this.getAppliedImpactForTransaction(tx, transaction.id);
+        alreadyPaidAmount = this.getPaidAmountFromImpact(transaction.type, appliedImpact);
+      }
+      if (alreadyPaidAmount.isNegative() && !alreadyPaidAmount.isZero()) {
         throw new BadRequestException('Histórico de pagamentos inconsistente para esta transação');
       }
 

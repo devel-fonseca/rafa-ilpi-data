@@ -46,15 +46,40 @@ export function toPtBrDecimalInput(value: string | number | null | undefined): s
 }
 
 export function normalizePtBrDecimalInput(raw: string): string {
-  const clean = raw.replace(/[^\d,.-]/g, '').replace(/\./g, ',')
-  const hasNegative = clean.startsWith('-')
-  const noSignal = clean.replace(/-/g, '')
-  const [intPart = '', decimalPart = ''] = noSignal.split(',')
-  const safeInt = intPart.replace(/\D/g, '')
-  const safeDecimal = decimalPart.replace(/\D/g, '').slice(0, 2)
+  const clean = raw.replace(/[^\d,.-]/g, '')
+  const hasNegative = clean.trim().startsWith('-')
+  const unsigned = clean.replace(/-/g, '')
+  const joinSign = (value: string) => (hasNegative ? `-${value}` : value)
 
-  const joined = safeDecimal.length > 0 ? `${safeInt},${safeDecimal}` : safeInt
-  return hasNegative ? `-${joined}` : joined
+  if (!/\d/.test(unsigned)) {
+    return hasNegative ? '-' : ''
+  }
+
+  const lastComma = unsigned.lastIndexOf(',')
+  const lastDot = unsigned.lastIndexOf('.')
+  const separatorIndex = Math.max(lastComma, lastDot)
+
+  if (separatorIndex === -1) {
+    return joinSign(unsigned.replace(/\D/g, ''))
+  }
+
+  const intPart = unsigned.slice(0, separatorIndex).replace(/\D/g, '')
+  const decimalRaw = unsigned.slice(separatorIndex + 1).replace(/\D/g, '')
+  const hasTrailingSeparator = separatorIndex === unsigned.length - 1
+  const shouldTreatAsDecimal = hasTrailingSeparator || decimalRaw.length <= 2
+
+  if (!shouldTreatAsDecimal) {
+    return joinSign(unsigned.replace(/\D/g, ''))
+  }
+
+  const decimalPart = decimalRaw.slice(0, 2)
+  const normalizedInt = intPart || '0'
+
+  if (decimalPart.length > 0 || hasTrailingSeparator) {
+    return joinSign(`${normalizedInt},${decimalPart}`)
+  }
+
+  return joinSign(normalizedInt)
 }
 
 export function parsePtBrDecimalToNumber(value: string): number {
@@ -122,7 +147,7 @@ export function reconciliationStatusLabel(status: FinancialReconciliationStatus)
   const labels: Record<FinancialReconciliationStatus, string> = {
     PENDING: 'Pendente',
     IN_PROGRESS: 'Em andamento',
-    RECONCILED: 'Fechado',
+    RECONCILED: 'Conciliado',
     DISCREPANCY: 'Com divergência',
   }
   return labels[status]

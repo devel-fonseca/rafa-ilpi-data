@@ -16,5 +16,6 @@ export * from './create-payment-method.dto';
 export * from './update-payment-method.dto';
 export * from './query-payment-methods.dto';
 export * from './create-reconciliation.dto';
+export * from './reprocess-reconciliation.dto';
 export * from './query-reconciliations.dto';
 export * from './query-unreconciled-paid-transactions.dto';
