@@ -68,8 +68,6 @@ const tooltipStyle = {
   borderRadius: '8px',
   color: 'hsl(var(--popover-foreground))',
 }
-const tooltipLabelStyle = { color: 'hsl(var(--popover-foreground))' }
-const tooltipItemStyle = { color: 'hsl(var(--popover-foreground))' }
 
 const axisStroke = 'hsl(var(--muted-foreground))'
 const axisStyle = { fontSize: '12px' }
@@ -473,12 +471,7 @@ export function DashboardSection({
                     style={axisStyle}
                     tickFormatter={(value) => compactNumberFormatter.format(Number(value))}
                   />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={tooltipLabelStyle}
-                    itemStyle={tooltipItemStyle}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
                   <Legend wrapperStyle={legendStyle} />
                   <Bar dataKey="Receitas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Despesas" fill="hsl(var(--danger))" radius={[4, 4, 0, 0]} />
@@ -517,10 +510,20 @@ export function DashboardSection({
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={tooltipLabelStyle}
-                    itemStyle={tooltipItemStyle}
-                    formatter={(value: number) => formatCurrency(value)}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null
+                      const entry = payload[0]
+                      const rawValue = typeof entry.value === 'number' ? entry.value : Number(entry.value ?? 0)
+                      const value = Number.isFinite(rawValue) ? rawValue : 0
+                      const name = entry.name ? String(entry.name) : 'Categoria'
+
+                      return (
+                        <div style={tooltipStyle} className="px-3 py-2">
+                          <p className="text-xs text-muted-foreground">{name}</p>
+                          <p className="text-sm font-semibold text-foreground">{formatCurrency(value)}</p>
+                        </div>
+                      )
+                    }}
                   />
                   <Legend wrapperStyle={legendStyle} />
                 </PieChart>
@@ -553,12 +556,7 @@ export function DashboardSection({
                     style={axisStyle}
                     tickFormatter={(value) => compactNumberFormatter.format(Number(value))}
                   />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={tooltipLabelStyle}
-                    itemStyle={tooltipItemStyle}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
                   <Line
                     type="monotone"
                     dataKey="Saldo"
@@ -594,12 +592,7 @@ export function DashboardSection({
                     style={axisStyle}
                     tickFormatter={(value) => compactNumberFormatter.format(Number(value))}
                   />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={tooltipLabelStyle}
-                    itemStyle={tooltipItemStyle}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
                   <Legend wrapperStyle={legendStyle} />
                   <Bar dataKey="Realizado" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Aberto" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
