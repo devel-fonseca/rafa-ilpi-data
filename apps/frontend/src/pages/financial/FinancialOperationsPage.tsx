@@ -933,7 +933,7 @@ export default function FinancialOperationsPage() {
   const dashboardTotal = dashboardTransactionsQuery.data?.pagination?.total ?? 0
 
   const pageCountLabelByTab: Record<typeof tab, string> = {
-    dashboard: 'Transações no dashboard',
+    dashboard: 'Transações na visão financeira',
     transactions: 'Transações exibidas na página',
     reconciliations: 'Conciliações exibidas na página',
     'payment-methods': 'Métodos exibidos na página',
@@ -948,6 +948,7 @@ export default function FinancialOperationsPage() {
     accounts: accounts.length,
     categories: categories.length,
   }
+  const tabsGridColumnsClass = canViewDashboard ? 'md:grid-cols-6' : 'md:grid-cols-5'
 
   const openAccountStatement = (account: FinancialBankAccount) => {
     const today = getCurrentDate()
@@ -1160,28 +1161,30 @@ export default function FinancialOperationsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
-        <TabsList>
-          {canViewDashboard && (
-            <TabsTrigger value="dashboard" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" /> Dashboard
+        <div className="w-full overflow-x-auto pb-1">
+          <TabsList className={`h-auto w-max min-w-full justify-start gap-1 ${tabsGridColumnsClass} md:grid md:w-full md:justify-stretch`}>
+            {canViewDashboard && (
+              <TabsTrigger value="dashboard" className="gap-2 shrink-0 px-3 py-2 md:w-full">
+                <LayoutDashboard className="h-4 w-4 shrink-0" /> <span>Visão Financeira</span>
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="transactions" className="gap-2 shrink-0 px-3 py-2 md:w-full">
+              <Wallet className="h-4 w-4 shrink-0" /> <span>Transações</span>
             </TabsTrigger>
-          )}
-          <TabsTrigger value="transactions" className="gap-2">
-            <Wallet className="h-4 w-4" /> Transações
-          </TabsTrigger>
-          <TabsTrigger value="reconciliations" className="gap-2">
-            <Scale className="h-4 w-4" /> Conciliação
-          </TabsTrigger>
-          <TabsTrigger value="payment-methods" className="gap-2">
-            <CreditCard className="h-4 w-4" /> Métodos
-          </TabsTrigger>
-          <TabsTrigger value="accounts" className="gap-2">
-            <Landmark className="h-4 w-4" /> Contas
-          </TabsTrigger>
-          <TabsTrigger value="categories" className="gap-2">
-            <Tags className="h-4 w-4" /> Categorias
-          </TabsTrigger>
-        </TabsList>
+            <TabsTrigger value="reconciliations" className="gap-2 shrink-0 px-3 py-2 md:w-full">
+              <Scale className="h-4 w-4 shrink-0" /> <span>Conciliação</span>
+            </TabsTrigger>
+            <TabsTrigger value="payment-methods" className="gap-2 shrink-0 px-3 py-2 md:w-full">
+              <CreditCard className="h-4 w-4 shrink-0" /> <span>Métodos</span>
+            </TabsTrigger>
+            <TabsTrigger value="accounts" className="gap-2 shrink-0 px-3 py-2 md:w-full">
+              <Landmark className="h-4 w-4 shrink-0" /> <span>Contas</span>
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="gap-2 shrink-0 px-3 py-2 md:w-full">
+              <Tags className="h-4 w-4 shrink-0" /> <span>Categorias</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {canViewDashboard && (
           <TabsContent value="dashboard" className="mt-6">
