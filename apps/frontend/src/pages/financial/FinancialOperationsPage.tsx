@@ -1164,24 +1164,24 @@ export default function FinancialOperationsPage() {
         <div className="w-full overflow-x-auto pb-1">
           <TabsList className={`h-auto w-max min-w-full justify-start gap-1 ${tabsGridColumnsClass} md:grid md:w-full md:justify-stretch`}>
             {canViewDashboard && (
-              <TabsTrigger value="dashboard" className="gap-2 shrink-0 px-3 py-2 md:w-full">
-                <LayoutDashboard className="h-4 w-4 shrink-0" /> <span>Visão Financeira</span>
+              <TabsTrigger value="dashboard" className="gap-0 sm:gap-2 shrink-0 px-3 py-2 md:w-full">
+                <LayoutDashboard className="hidden h-4 w-4 shrink-0 sm:block" /> <span>Visão Financeira</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="transactions" className="gap-2 shrink-0 px-3 py-2 md:w-full">
-              <Wallet className="h-4 w-4 shrink-0" /> <span>Transações</span>
+            <TabsTrigger value="transactions" className="gap-0 sm:gap-2 shrink-0 px-3 py-2 md:w-full">
+              <Wallet className="hidden h-4 w-4 shrink-0 sm:block" /> <span>Transações</span>
             </TabsTrigger>
-            <TabsTrigger value="reconciliations" className="gap-2 shrink-0 px-3 py-2 md:w-full">
-              <Scale className="h-4 w-4 shrink-0" /> <span>Conciliação</span>
+            <TabsTrigger value="reconciliations" className="gap-0 sm:gap-2 shrink-0 px-3 py-2 md:w-full">
+              <Scale className="hidden h-4 w-4 shrink-0 sm:block" /> <span>Conciliação</span>
             </TabsTrigger>
-            <TabsTrigger value="payment-methods" className="gap-2 shrink-0 px-3 py-2 md:w-full">
-              <CreditCard className="h-4 w-4 shrink-0" /> <span>Métodos</span>
+            <TabsTrigger value="payment-methods" className="gap-0 sm:gap-2 shrink-0 px-3 py-2 md:w-full">
+              <CreditCard className="hidden h-4 w-4 shrink-0 sm:block" /> <span>Métodos</span>
             </TabsTrigger>
-            <TabsTrigger value="accounts" className="gap-2 shrink-0 px-3 py-2 md:w-full">
-              <Landmark className="h-4 w-4 shrink-0" /> <span>Contas</span>
+            <TabsTrigger value="accounts" className="gap-0 sm:gap-2 shrink-0 px-3 py-2 md:w-full">
+              <Landmark className="hidden h-4 w-4 shrink-0 sm:block" /> <span>Contas</span>
             </TabsTrigger>
-            <TabsTrigger value="categories" className="gap-2 shrink-0 px-3 py-2 md:w-full">
-              <Tags className="h-4 w-4 shrink-0" /> <span>Categorias</span>
+            <TabsTrigger value="categories" className="gap-0 sm:gap-2 shrink-0 px-3 py-2 md:w-full">
+              <Tags className="hidden h-4 w-4 shrink-0 sm:block" /> <span>Categorias</span>
             </TabsTrigger>
           </TabsList>
         </div>
