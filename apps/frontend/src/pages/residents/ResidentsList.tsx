@@ -204,9 +204,6 @@ export default function ResidentsList() {
           ),
         }}
         filters={{
-          title: 'Filtros',
-          description: 'Refine a lista por busca, status e grau de dependência.',
-          defaultOpen: false,
           content: (
             <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1">
@@ -301,8 +298,8 @@ export default function ResidentsList() {
           ) : (
             <div className="rounded-md border overflow-hidden">
               <Table>
-                <TableHeader className="bg-primary/5">
-                  <TableRow className="border-b border-primary/10 hover:bg-primary/5">
+                <TableHeader>
+                  <TableRow>
                     <TableHead className="w-12 h-10 py-2"></TableHead>
                     <TableHead className="h-10 py-2">Nome</TableHead>
                     <TableHead className="text-right h-10 py-2">Ações</TableHead>

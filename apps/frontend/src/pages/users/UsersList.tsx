@@ -233,8 +233,8 @@ export default function UsersList() {
           ) : (
             <div className="rounded-md border overflow-hidden">
               <Table>
-                <TableHeader className="bg-primary/5">
-                  <TableRow className="border-b border-primary/10 hover:bg-primary/5">
+                <TableHeader>
+                  <TableRow>
                     <TableHead className="w-12 h-10 py-2"></TableHead>
                     <TableHead className="h-10 py-2">Nome</TableHead>
                     <TableHead className="text-right h-10 py-2">Ações</TableHead>

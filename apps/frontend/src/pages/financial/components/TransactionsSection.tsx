@@ -139,16 +139,16 @@ export function TransactionsSection({
         }
         spacing="compact"
       >
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
-          <div className="xl:col-span-2">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+          <div>
             <Label>Busca</Label>
             <Input
               value={transactionSearch}
               onChange={(event) => onTransactionSearchChange(event.target.value)}
-              placeholder="Buscar por descrição ou observação"
+              placeholder="Buscar por descrição"
             />
           </div>
-          <div className="xl:col-span-2">
+          <div>
             <Label>Tipo</Label>
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -160,7 +160,7 @@ export function TransactionsSection({
               <option value="EXPENSE">Despesa</option>
             </select>
           </div>
-          <div className="xl:col-span-2">
+          <div>
             <Label>Status</Label>
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -176,7 +176,7 @@ export function TransactionsSection({
               <option value="PARTIALLY_PAID">Parcial</option>
             </select>
           </div>
-          <div className="xl:col-span-2">
+          <div>
             <Label>Categoria</Label>
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -191,7 +191,7 @@ export function TransactionsSection({
               ))}
             </select>
           </div>
-          <div className="xl:col-span-2">
+          <div>
             <Label>Ordenar por</Label>
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -204,7 +204,7 @@ export function TransactionsSection({
               <option value="description">Descrição</option>
             </select>
           </div>
-          <div className="xl:col-span-2 xl:col-start-1">
+          <div>
             <Label>Ordem</Label>
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -215,15 +215,15 @@ export function TransactionsSection({
               <option value="desc">Descendente</option>
             </select>
           </div>
-          <div className="xl:col-span-2">
+          <div>
             <Label>Vencimento de</Label>
             <Input type="date" value={dueDateFrom} onChange={(event) => onDueDateFromChange(event.target.value)} />
           </div>
-          <div className="xl:col-span-2">
+          <div>
             <Label>Vencimento até</Label>
             <Input type="date" value={dueDateTo} onChange={(event) => onDueDateToChange(event.target.value)} />
           </div>
-          <div className="flex items-end md:col-span-2 xl:col-span-2 xl:justify-end">
+          <div className="flex items-end">
             <Button type="button" variant="outline" onClick={onClearFilters}>
               Limpar
             </Button>

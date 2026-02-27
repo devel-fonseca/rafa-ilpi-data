@@ -1,19 +1,11 @@
 import * as React from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Collapsible,
-  CollapsibleContent,
-} from '@/components/ui/collapsible'
 import { Page } from './Page'
 import { PageHeader, type PageHeaderProps } from './PageHeader'
 import { Section } from './Section'
 
 interface FiltersConfig {
   title?: string
-  description?: string
   content: React.ReactNode
-  defaultOpen?: boolean
 }
 
 interface ListConfig {
@@ -34,12 +26,10 @@ export interface EntityListPageProps {
  *
  * Padrão aplicado:
  * - Header da página (PageHeader)
- * - Card de filtros colapsável
+ * - Card de filtros (sempre visível)
  * - Card de listagem com header destacado
  */
 export function EntityListPage({ pageHeader, filters, list }: EntityListPageProps) {
-  const [isFiltersOpen, setIsFiltersOpen] = React.useState(filters?.defaultOpen ?? false)
-
   return (
     <Page>
       <PageHeader
@@ -52,25 +42,8 @@ export function EntityListPage({ pageHeader, filters, list }: EntityListPageProp
       />
 
       {filters && (
-        <Section
-          title={filters.title ?? 'Filtros'}
-          description={filters.description}
-          className="overflow-hidden [&>div:first-child]:bg-primary/5"
-          headerAction={(
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => setIsFiltersOpen((prev) => !prev)}
-              aria-label={isFiltersOpen ? 'Recolher filtros' : 'Expandir filtros'}
-            >
-              {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          )}
-        >
-          <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-            <CollapsibleContent>{filters.content}</CollapsibleContent>
-          </Collapsible>
+        <Section title={filters.title ?? 'Filtros'}>
+          {filters.content}
         </Section>
       )}
 
@@ -78,7 +51,6 @@ export function EntityListPage({ pageHeader, filters, list }: EntityListPageProp
         title={list.title}
         description={list.description}
         headerAction={list.headerAction}
-        className="overflow-hidden [&>div:first-child]:bg-primary/5"
       >
         {list.content}
       </Section>
