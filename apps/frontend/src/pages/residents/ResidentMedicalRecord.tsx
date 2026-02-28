@@ -20,7 +20,6 @@ import {
   AccessDenied,
   EmptyState,
   LoadingSpinner,
-  StatusBadge,
 } from '@/design-system/components'
 import {
   Eye,
@@ -68,9 +67,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import { tenantKey } from '@/lib/query-keys'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { useCurrentDependencyAssessment } from '@/hooks/useResidentHealth'
 import type { DailyRecord } from '@/api/dailyRecords.api'
 import { Card, CardContent } from '@/components/ui/card'
 import { api } from '@/services/api'
+import { ResidentBadges } from '@/components/residents/ResidentBadges'
 import type {
   AlimentacaoRecord,
   AtividadesRecord,
@@ -122,26 +123,6 @@ const SECTION_CONFIG: Record<MedicalSection, { title: string; subtitle: string }
   'schedule': { title: 'Agenda do Residente', subtitle: 'Compromissos e atividades agendadas' },
 }
 
-// ========== HELPERS ==========
-
-const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'info' | 'secondary' => {
-  switch (status?.toUpperCase()) {
-    case 'ATIVO':
-      return 'success'
-    case 'INATIVO':
-      return 'warning'
-    case 'ALTA':
-    case 'TRANSFERIDO':
-      return 'info'
-    case 'OBITO':
-    case 'ÓBITO':
-    case 'FALECIDO':
-      return 'secondary'
-    default:
-      return 'secondary'
-  }
-}
-
 // ========== COMPONENT ==========
 
 export default function ResidentProfile() {
@@ -190,8 +171,14 @@ export default function ResidentProfile() {
   const shouldAutoOpenAnthropometry = searchParams.get('openModal') === 'anthropometry-create'
 
   const { data: resident, isLoading, error } = useResident(id || '')
+  const { data: currentDependencyAssessment } = useCurrentDependencyAssessment(resident?.id)
   const { hasPermission } = usePermissions()
   const { hasFeature } = useFeatures()
+
+  const dependencyLevelForHeader =
+    currentDependencyAssessment?.dependencyLevel ?? resident?.dependencyLevel
+  const mobilityAidForHeader =
+    currentDependencyAssessment?.mobilityAid ?? resident?.mobilityAid
 
   // Verificar se o usuário tem permissão para visualizar prontuário
   const canViewMedicalRecord = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
@@ -519,9 +506,12 @@ export default function ResidentProfile() {
             <div className="px-6 py-4 bg-primary/10 rounded-t-lg">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-semibold text-primary">{resident.fullName}</h2>
-                <StatusBadge variant={getStatusBadgeVariant(resident.status)}>
-                  {resident.status}
-                </StatusBadge>
+                <ResidentBadges
+                  status={resident.status}
+                  dependencyLevel={dependencyLevelForHeader}
+                  mobilityAid={mobilityAidForHeader}
+                  mobilityDisplay="label"
+                />
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 {SECTION_CONFIG[activeSection].title} • {SECTION_CONFIG[activeSection].subtitle}

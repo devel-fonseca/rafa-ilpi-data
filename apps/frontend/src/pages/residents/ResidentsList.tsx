@@ -9,10 +9,10 @@ import { DeleteResidentModal } from '@/components/modals/DeleteResidentModal'
 import {
   EntityListPage,
   EmptyState,
-  StatusBadge,
   AccessDenied,
   LoadingSpinner,
 } from '@/design-system/components'
+import { ResidentBadges } from '@/components/residents/ResidentBadges'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -54,14 +54,12 @@ import {
   Printer,
   History,
   Package,
-  Accessibility,
   Filter,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { formatBedFromResident } from '@/utils/formatters'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
-import { DEPENDENCY_LEVEL_SHORT_LABELS, type DependencyLevel } from '@/api/resident-health.api'
 
 export default function ResidentsList() {
   const navigate = useNavigate()
@@ -149,36 +147,6 @@ export default function ResidentsList() {
       age--
     }
     return age
-  }
-
-  const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'info' | 'secondary' => {
-    switch (status) {
-      case 'ATIVO':
-        return 'success'
-      case 'INATIVO':
-        return 'warning'
-      case 'ALTA':
-        return 'info'
-      case 'OBITO':
-        return 'secondary'
-      case 'TRANSFERIDO':
-        return 'info'
-      default:
-        return 'secondary'
-    }
-  }
-
-  const getDependencyBadgeVariant = (level: DependencyLevel): 'success' | 'warning' | 'danger' => {
-    switch (level) {
-      case 'GRAU_I':
-        return 'success'
-      case 'GRAU_II':
-        return 'warning'
-      case 'GRAU_III':
-        return 'danger'
-      default:
-        return 'warning'
-    }
   }
 
   if (!canManageResidents) {
@@ -323,23 +291,12 @@ export default function ResidentsList() {
                         <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{resident.fullName}</span>
-                            <StatusBadge variant={getStatusBadgeVariant(resident.status)}>
-                              {resident.status}
-                            </StatusBadge>
-                            {resident.dependencyLevel && (
-                              <StatusBadge variant={getDependencyBadgeVariant(resident.dependencyLevel)}>
-                                {DEPENDENCY_LEVEL_SHORT_LABELS[resident.dependencyLevel]}
-                              </StatusBadge>
-                            )}
-                            {resident.mobilityAid && (
-                              <StatusBadge
-                                variant="info"
-                                title="Auxílio de mobilidade"
-                                className="h-5 min-w-5 px-1.5 justify-center"
-                              >
-                                <Accessibility className="h-3 w-3" />
-                              </StatusBadge>
-                            )}
+                            <ResidentBadges
+                              status={resident.status}
+                              dependencyLevel={resident.dependencyLevel}
+                              mobilityAid={resident.mobilityAid}
+                              mobilityDisplay="label"
+                            />
                           </div>
                           <span className="text-xs text-muted-foreground">
                             {calculateAge(resident.birthDate)} anos

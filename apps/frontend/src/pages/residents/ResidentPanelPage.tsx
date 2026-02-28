@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { useState, useMemo, useEffect } from 'react'
-import { Page, PageHeader, LoadingSpinner, EmptyState, StatusBadge } from '@/design-system/components'
+import { Page, PageHeader, LoadingSpinner, EmptyState } from '@/design-system/components'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
@@ -26,6 +26,7 @@ import { prescriptionsApi } from '@/api/prescriptions.api'
 import { tenantKey } from '@/lib/query-keys'
 import { formatDate } from '@/utils/formatters'
 import { extractDateOnly } from '@/utils/dateHelpers'
+import { ResidentBadges } from '@/components/residents/ResidentBadges'
 import {
   BasicInfoView,
   ClinicalProfileView,
@@ -50,17 +51,6 @@ function calculateAge(birthDate: string): number {
     age--
   }
   return age
-}
-
-function getStatusBadgeVariant(status: string): 'success' | 'warning' | 'secondary' {
-  switch (status?.toUpperCase()) {
-    case 'ATIVO':
-      return 'success'
-    case 'INATIVO':
-      return 'warning'
-    default:
-      return 'secondary'
-  }
 }
 
 // ========== TYPES ==========
@@ -131,7 +121,7 @@ export default function ResidentPanelPage() {
     isVaccinationsView
   )
   const { data: prescriptionsData, isLoading: isLoadingPrescriptions } = useQuery({
-    queryKey: tenantKey('prescriptions', 'resident-panel', selectedResidentId),
+    queryKey: tenantKey('prescriptions', 'resident-panel', selectedResidentId || undefined),
     queryFn: () => prescriptionsApi.findAll({
       residentId: selectedResidentId!,
       isActive: true,
@@ -301,9 +291,11 @@ export default function ResidentPanelPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-xl font-bold text-primary">{selectedResident.fullName}</h2>
-                      <StatusBadge variant={getStatusBadgeVariant(selectedResident.status)}>
-                        {selectedResident.status}
-                      </StatusBadge>
+                      <ResidentBadges
+                        status={selectedResident.status}
+                        dependencyLevel={selectedResident.dependencyLevel}
+                        mobilityAid={selectedResident.mobilityAid}
+                      />
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {selectedResident.birthDate && `${calculateAge(selectedResident.birthDate)} anos`}

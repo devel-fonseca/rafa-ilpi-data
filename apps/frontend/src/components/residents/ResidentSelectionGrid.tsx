@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Grid3x3, List, Accessibility, X } from 'lucide-react'
+import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Grid3x3, List, X } from 'lucide-react'
 import { useUserPreference } from '@/hooks/useUserPreference'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,8 @@ import type { LatestRecord } from '@/hooks/useDailyRecords'
 import { extractDateOnly, getCurrentDate, formatDateOnlySafe } from '@/utils/dateHelpers'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
 import { getRecordTypeLabel as getDailyRecordTypeLabel } from '@/utils/recordTypeLabels'
+import type { DependencyLevel } from '@/api/resident-health.api'
+import { ResidentBadges } from '@/components/residents/ResidentBadges'
 
 const ITEMS_PER_PAGE = 12
 
@@ -50,6 +52,7 @@ interface Resident {
   cpf?: string
   cns?: string
   mobilityAid?: boolean
+  dependencyLevel?: DependencyLevel | null
 }
 
 interface ResidentSelectionGridProps {
@@ -375,29 +378,14 @@ export function ResidentSelectionGrid({
                 className="relative overflow-hidden hover:shadow-lg transition-all duration-200 group"
               >
                 {/* Badges no Topo */}
-                <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-2">
-                  {/* Badge de Auxílio (esquerda) */}
-                  {resident.mobilityAid && (
-                    <Badge
-                      variant="default"
-                      className="bg-primary/60 hover:bg-blue-700 dark:bg-primary dark:hover:bg-primary/60 border-0 shadow-md"
-                    >
-                      <Accessibility className="h-3 w-3 mr-1" />
-                      <span className="text-xs font-semibold">Auxílio</span>
-                    </Badge>
-                  )}
-
-                  {/* Badge de Status (direita) */}
-                  <Badge
-                    variant={resident.status === 'Ativo' ? 'default' : 'secondary'}
-                    className={
-                      resident.status === 'Ativo'
-                        ? 'bg-success hover:bg-success/90 ml-auto'
-                        : 'ml-auto'
-                    }
-                  >
-                    {resident.status}
-                  </Badge>
+                <div className="absolute top-3 left-3 right-3 z-10">
+                  <ResidentBadges
+                    status={resident.status}
+                    dependencyLevel={resident.dependencyLevel}
+                    mobilityAid={resident.mobilityAid}
+                    mobilityDisplay="label"
+                    className="gap-1"
+                  />
                 </div>
 
                 <CardContent className="p-6 pt-12 flex flex-col items-center text-center space-y-3">
@@ -505,25 +493,16 @@ export function ResidentSelectionGrid({
                             <h3 className="font-semibold text-sm truncate">
                               {resident.fullName}
                             </h3>
-                            {resident.mobilityAid && (
-                              <Badge
-                                variant="default"
-                                className="bg-primary/60 hover:bg-blue-700 dark:bg-primary dark:hover:bg-primary/60 border-0 text-xs"
-                              >
-                                <Accessibility className="h-3 w-3 mr-1" />
-                                Auxílio
-                              </Badge>
-                            )}
-                            <Badge
-                              variant={resident.status === 'Ativo' ? 'default' : 'secondary'}
-                              className={
-                                resident.status === 'Ativo'
-                                  ? 'bg-success hover:bg-success/90 text-xs'
-                                  : 'text-xs'
-                              }
-                            >
-                              {resident.status}
-                            </Badge>
+                            <ResidentBadges
+                              status={resident.status}
+                              dependencyLevel={resident.dependencyLevel}
+                              mobilityAid={resident.mobilityAid}
+                              mobilityDisplay="label"
+                              className="gap-1"
+                              statusClassName="text-xs"
+                              dependencyClassName="text-xs"
+                              mobilityClassName="text-xs"
+                            />
                           </div>
 
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">

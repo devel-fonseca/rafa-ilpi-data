@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
-import { Eye, ChevronRight, Accessibility } from 'lucide-react'
+import { Eye, ChevronRight } from 'lucide-react'
 import { formatBedFromResident } from '@/utils/formatters'
 import type { Resident } from '@/api/residents.api'
+import { ResidentBadges } from './ResidentBadges'
 
 interface CompactResidentsListProps {
   residents: Resident[]
@@ -23,23 +23,6 @@ export function CompactResidentsList({ residents, title = 'Residentes Recentes',
   const sortedResidents = [...residents]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limit)
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'ATIVO':
-        return 'bg-success/10 text-success border-success/30'
-      case 'INATIVO':
-        return 'bg-warning/10 text-warning border-warning/30'
-      case 'ALTA':
-        return 'bg-info/10 text-info border-info/30'
-      case 'OBITO':
-        return 'bg-muted text-muted-foreground border-border'
-      case 'TRANSFERIDO':
-        return 'bg-accent/10 text-accent border-accent/30'
-      default:
-        return 'bg-muted text-muted-foreground border-border'
-    }
-  }
 
   if (sortedResidents.length === 0) {
     return (
@@ -94,15 +77,15 @@ export function CompactResidentsList({ residents, title = 'Residentes Recentes',
                     ) : (
                       <span className="text-xs text-muted-foreground italic">Sem leito</span>
                     )}
-                    {resident.mobilityAid && (
-                      <Badge className="bg-primary/60 text-white text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 whitespace-nowrap">
-                        <Accessibility className="h-2.5 w-2.5 mr-0.5" />
-                        Auxílio
-                      </Badge>
-                    )}
-                    <Badge className={`${getStatusBadgeColor(resident.status)} text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 whitespace-nowrap`}>
-                      {resident.status}
-                    </Badge>
+                    <ResidentBadges
+                      status={resident.status}
+                      dependencyLevel={resident.dependencyLevel}
+                      mobilityAid={resident.mobilityAid}
+                      className="gap-1"
+                      statusClassName="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0"
+                      dependencyClassName="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0"
+                      mobilityClassName="h-4 min-w-4 px-1"
+                    />
                   </div>
                 </div>
               </div>

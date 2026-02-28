@@ -297,10 +297,12 @@ export const DEPENDENCY_LEVEL_SHORT_LABELS: Record<DependencyLevel, string> = {
   GRAU_III: 'Grau III',
 }
 
-export const DEPENDENCY_LEVEL_COLORS: Record<DependencyLevel, string> = {
-  GRAU_I: 'green',
-  GRAU_II: 'yellow',
-  GRAU_III: 'red',
+export type DependencyLevelBadgeVariant = 'primary' | 'warning' | 'danger'
+
+export const DEPENDENCY_LEVEL_COLORS: Record<DependencyLevel, DependencyLevelBadgeVariant> = {
+  GRAU_I: 'primary',
+  GRAU_II: 'warning',
+  GRAU_III: 'danger',
 }
 
 export function getBMIClassification(bmi: number): {

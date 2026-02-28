@@ -21,6 +21,7 @@ const statusBadgeVariants = cva(
         secondary: 'border-transparent bg-secondary text-secondary-foreground',
         destructive: 'border-transparent bg-danger text-danger-foreground',
         outline: 'text-foreground',
+        primary: 'border-primary/30 bg-primary/10 text-primary',
 
         // Feedback variants
         success: 'border-success/30 bg-success/10 text-success',
@@ -85,6 +86,7 @@ export interface StatusBadgeProps
     | 'secondary'
     | 'destructive'
     | 'outline'
+    | 'primary'
     | 'success'
     | 'warning'
     | 'danger'

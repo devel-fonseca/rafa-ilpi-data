@@ -2,8 +2,7 @@
 //  COMPONENT - ClinicalProfileView (Painel do Residente)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { Badge } from '@/components/ui/badge'
-import { EmptyState } from '@/design-system/components'
+import { EmptyState, StatusBadge } from '@/design-system/components'
 import { ClipboardList } from 'lucide-react'
 import { InfoCard } from './InfoCard'
 import type { ClinicalProfile } from '@/api/clinical-profiles.api'
@@ -59,14 +58,14 @@ export function ClinicalProfileView({ clinicalProfile, resident }: ClinicalProfi
         value={
           <div className="space-y-2">
             {dependencyAssessment && (
-              <Badge
-                variant={dependencyAssessment.mobilityAid ? 'default' : 'secondary'}
-                className={dependencyAssessment.mobilityAid ? 'bg-primary/60 text-white' : 'text-xs'}
+              <StatusBadge
+                variant={dependencyAssessment.mobilityAid ? 'info' : 'secondary'}
+                className="text-xs"
               >
                 {dependencyAssessment.mobilityAid
                   ? `♿ ${dependencyAssessment.mobilityAidDescription || 'Auxílio Mobilidade'}`
                   : '✓ Independente'}
-              </Badge>
+              </StatusBadge>
             )}
             <div>
               {clinicalProfile?.functionalAspects || (

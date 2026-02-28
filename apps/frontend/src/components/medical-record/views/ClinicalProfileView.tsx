@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/design-system/components'
 import {
   Select,
   SelectContent,
@@ -762,18 +763,12 @@ export function ClinicalProfileView({
                 <div className="p-4 space-y-4">
                   <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Badge
-                      variant={
-                        DEPENDENCY_LEVEL_COLORS[healthSummary.currentAssessment.dependencyLevel] === 'green'
-                          ? 'success'
-                          : DEPENDENCY_LEVEL_COLORS[healthSummary.currentAssessment.dependencyLevel] === 'yellow'
-                            ? 'warning'
-                            : 'danger'
-                      }
+                    <StatusBadge
+                      variant={DEPENDENCY_LEVEL_COLORS[healthSummary.currentAssessment.dependencyLevel]}
                       className="text-sm px-3 py-1"
                     >
                       {DEPENDENCY_LEVEL_SHORT_LABELS[healthSummary.currentAssessment.dependencyLevel]}
-                    </Badge>
+                    </StatusBadge>
                     <Badge variant="outline" className="text-xs">Vigente</Badge>
                   </div>
                   {canEditProfile && (

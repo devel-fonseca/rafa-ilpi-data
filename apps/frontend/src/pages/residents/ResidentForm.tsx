@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
-import { Page, PageHeader, StatusBadge, LoadingSpinner, EmptyState } from '@/design-system/components'
+import { Page, PageHeader, LoadingSpinner, EmptyState } from '@/design-system/components'
 import {
   getMensagemValidacaoCPF,
   getMensagemValidacaoCNS,
@@ -31,9 +31,11 @@ import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDra
 import { toast } from 'sonner'
 import { PlanLimitWarningDialog } from '@/components/admin/PlanLimitWarningDialog'
 import type { Resident } from '@/api/residents.api'
+import { ResidentBadges } from '@/components/residents/ResidentBadges'
 import { tenantKey } from '@/lib/query-keys'
 import { useMySubscription } from '@/hooks/useTenant'
 import { useResident } from '@/hooks/useResidents'
+import { useCurrentDependencyAssessment } from '@/hooks/useResidentHealth'
 import {
   FormSidebar,
   IdentificacaoSection,
@@ -60,23 +62,6 @@ const SECTION_CONFIG: Record<FormSection, { title: string; subtitle: string }> =
   convenios: { title: 'Convênios', subtitle: 'Planos de saúde vinculados' },
   admissao: { title: 'Admissão e Acomodação', subtitle: 'Dados de admissão e leito' },
   documentos: { title: 'Documentos', subtitle: 'Documentos anexados ao prontuário' },
-}
-
-const getResidentStatusBadgeVariant = (
-  status?: string
-): 'success' | 'warning' | 'secondary' => {
-  switch (status?.toUpperCase()) {
-    case 'ATIVO':
-      return 'success'
-    case 'INATIVO':
-      return 'warning'
-    case 'FALECIDO':
-    case 'OBITO':
-    case 'ÓBITO':
-      return 'secondary'
-    default:
-      return 'secondary'
-  }
 }
 
 // ========== COMPONENT ==========
@@ -126,8 +111,14 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     isLoading: isResidentLoading,
     error: residentLoadError,
   } = useResident(id)
+  const { data: currentDependencyAssessment } = useCurrentDependencyAssessment(loadedResident?.id)
   const isLoading = !!id && isResidentLoading
   const hasResidentLoadError = !!id && !!residentLoadError && !loadedResident
+
+  const dependencyLevelForHeader =
+    currentDependencyAssessment?.dependencyLevel ?? loadedResident?.dependencyLevel
+  const mobilityAidForHeader =
+    currentDependencyAssessment?.mobilityAid ?? loadedResident?.mobilityAid
 
   // Form setup
   const methods = useForm<ResidentFormData>({
@@ -773,9 +764,12 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                   <div className="px-6 py-4 bg-primary/10 rounded-t-lg">
                     <div className="flex items-center gap-3">
                       <h2 className="text-xl font-semibold text-primary">{residentFullName}</h2>
-                      <StatusBadge variant={getResidentStatusBadgeVariant(watch('status'))}>
-                        {watch('status') || 'Ativo'}
-                      </StatusBadge>
+                      <ResidentBadges
+                        status={watch('status') || loadedResident?.status || 'Ativo'}
+                        dependencyLevel={dependencyLevelForHeader}
+                        mobilityAid={mobilityAidForHeader}
+                        mobilityDisplay="label"
+                      />
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {SECTION_CONFIG[activeSection].title} • {SECTION_CONFIG[activeSection].subtitle}

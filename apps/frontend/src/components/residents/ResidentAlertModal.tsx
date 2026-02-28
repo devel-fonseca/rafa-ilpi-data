@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Resident } from '@/api/residents.api'
 import { AlertCircle, AlertTriangle, Info } from 'lucide-react'
 import { formatBedFromResident } from '@/utils/formatters'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
+import { ResidentBadges } from '@/components/residents/ResidentBadges'
 import { AssignBedDialog } from '@/components/beds/AssignBedDialog'
 import { AssignGuardianDialog } from '@/components/residents/AssignGuardianDialog'
 import { AssignEmergencyContactDialog } from '@/components/residents/AssignEmergencyContactDialog'
@@ -256,9 +256,12 @@ export function ResidentAlertModal({
                     )}
                   </div>
 
-                  <Badge variant={resident.status === 'Ativo' ? 'default' : 'secondary'}>
-                    {resident.status || 'N/A'}
-                  </Badge>
+                  <ResidentBadges
+                    status={resident.status || 'N/A'}
+                    dependencyLevel={resident.dependencyLevel}
+                    mobilityAid={resident.mobilityAid}
+                    className="justify-end"
+                  />
                 </div>
               ))}
             </div>
