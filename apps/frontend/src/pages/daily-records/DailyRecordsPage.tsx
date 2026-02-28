@@ -1,25 +1,24 @@
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { useLocation } from 'react-router-dom'
 import { Page, PageHeader } from '@/design-system/components'
 import { TodayRecords } from './components/TodayRecords'
 
 export default function DailyRecordsPage() {
-  const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const location = useLocation()
+  const [quickAddOpen, setQuickAddOpen] = useState(
+    (location.state as { quickAdd?: boolean })?.quickAdd === true,
+  )
 
   return (
     <Page>
       <PageHeader
-        title="Registros de Atividades (AVDs)"
+        title="Registros Programados"
         subtitle="Registros programados para hoje"
         breadcrumbs={[
           { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Registros AVDs' },
+          { label: 'Registros Diários', href: '/dashboard/registros-diarios' },
+          { label: 'Programados' },
         ]}
-        actions={
-          <Button onClick={() => setQuickAddOpen(true)}>
-            Registro Avulso
-          </Button>
-        }
       />
       <TodayRecords
         quickAddOpen={quickAddOpen}

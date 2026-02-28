@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import { residentsAPI } from '@/api/residents.api'
 import { Button } from '@/components/ui/button'
 import { Page, PageHeader } from '@/design-system/components'
@@ -71,9 +72,15 @@ export default function ResidentSelectionPage() {
           { label: 'Registros Diários' },
         ]}
         actions={
-          <Button onClick={() => navigate('/dashboard/registros-diarios/registros')}>
-            Registros Programados
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate('/dashboard/registros-diarios/registros')}>
+              Registros Programados
+            </Button>
+            <Button onClick={() => navigate('/dashboard/registros-diarios/registros', { state: { quickAdd: true } })}>
+              <Plus className="h-4 w-4" />
+              Registro Avulso
+            </Button>
+          </div>
         }
       />
       <ResidentSelectionGrid
