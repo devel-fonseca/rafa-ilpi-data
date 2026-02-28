@@ -77,6 +77,7 @@ services:
       - "3000:3000"
     volumes:
       - ./apps/backend/logs:/app/logs
+      - backups_data:/backups
     networks:
       - rafa-ilpi-network
     depends_on:
@@ -119,6 +120,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  backups_data:
     driver: local
 
 networks:

@@ -45,8 +45,8 @@ RUN npm prune --production
 # ------------------------------
 FROM node:20-alpine AS production
 
-# Instalar dumb-init e OpenSSL para Prisma
-RUN apk add --no-cache dumb-init openssl
+# Instalar dependências de runtime e pg_dump para serviço de backup
+RUN apk add --no-cache dumb-init openssl postgresql-client
 
 WORKDIR /app
 
@@ -67,6 +67,10 @@ RUN rm -rf node_modules/.prisma && npx prisma generate
 
 # Criar diretório de logs
 RUN mkdir -p /app/logs && chown -R nestjs:nodejs /app/logs
+
+# Criar diretórios de backup com permissão de escrita para usuário da aplicação
+RUN mkdir -p /backups/superadmin/full /backups/tenant \
+    && chown -R nestjs:nogroup /backups
 
 # Mudar para usuário não-root
 USER nestjs
