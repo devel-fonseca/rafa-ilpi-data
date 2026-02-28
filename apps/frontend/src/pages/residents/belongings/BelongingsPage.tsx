@@ -241,6 +241,7 @@ export function BelongingsPage() {
                     onValueChange={(v) => handleFilterChange('category', v)}
                   >
                     <SelectTrigger className="w-[180px]">
+                      <Filter className="h-4 w-4 text-muted-foreground" />
                       <SelectValue placeholder="Categoria" />
                     </SelectTrigger>
                     <SelectContent>
@@ -257,6 +258,7 @@ export function BelongingsPage() {
                     onValueChange={(v) => handleFilterChange('status', v)}
                   >
                     <SelectTrigger className="w-[150px]">
+                      <Filter className="h-4 w-4 text-muted-foreground" />
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>

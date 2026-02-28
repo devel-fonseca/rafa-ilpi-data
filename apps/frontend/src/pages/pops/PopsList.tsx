@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   XCircle,
   History,
+  Filter,
   GitBranch,
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
@@ -121,6 +122,7 @@ export default function PopsList() {
               onValueChange={(value) => handleFilterChange('status', value)}
             >
               <SelectTrigger>
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -143,6 +145,7 @@ export default function PopsList() {
               onValueChange={(value) => handleFilterChange('category', value)}
             >
               <SelectTrigger>
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>

@@ -33,6 +33,7 @@ import {
   AlertCircle,
   Calendar,
   DollarSign,
+  Filter,
 } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
@@ -211,6 +212,7 @@ export default function ResidentContractsList() {
           <div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>

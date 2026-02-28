@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Bell, Search, CheckCheck, Check, X, Loader2 } from 'lucide-react'
+import { Bell, Search, CheckCheck, Check, X, Loader2, Filter } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -136,6 +136,7 @@ export function NotificationsPage() {
               onValueChange={(v) => setSelectedCategory(v as NotificationCategory | 'all')}
             >
               <SelectTrigger>
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -153,6 +154,7 @@ export function NotificationsPage() {
               onValueChange={(v) => setSelectedSeverity(v as NotificationSeverity | 'all')}
             >
               <SelectTrigger>
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Severidade" />
               </SelectTrigger>
               <SelectContent>

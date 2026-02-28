@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { Search, Bed as BedIcon, X, Check, Filter, Building2, Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { useQuery } from '@tanstack/react-query'
 import { Card } from '@/components/ui/card'
 import { tenantKey } from '@/lib/query-keys'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,7 +61,6 @@ export function BedSearchCombobox({
 }: BedSearchComboboxProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
-  const wrapperRef = useRef<HTMLDivElement>(null)
 
   // Filtros
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false)
@@ -83,22 +83,11 @@ export function BedSearchCombobox({
     new Set(beds.map(bed => bed.room?.floor?.building?.name).filter(Boolean))
   ) as string[]
 
-  // Fechar dropdown ao clicar fora
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
   // Filtrar leitos baseado na busca e filtros ativos
   const filteredBeds = beds.filter((bed) => {
     // SEMPRE excluir leitos ocupados (segurança)
-    const isOccupied = bed.status === 'OCUPADO'
-    if (isOccupied) return false
+    const statusUpper = bed.status?.toUpperCase()
+    if (statusUpper === 'OCUPADO') return false
 
     // Filtro de status (apenas disponíveis)
     if (showOnlyAvailable) {
@@ -158,184 +147,198 @@ export function BedSearchCombobox({
   const activeFiltersCount = (showOnlyAvailable ? 1 : 0) + (selectedBuildingFilter ? 1 : 0)
 
   return (
-    <div className={cn('relative flex flex-col gap-2', className)} ref={wrapperRef}>
-          {/* Campo de busca com dropdown de filtros */}
-          <div className="flex gap-2">
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <div className={cn('flex flex-col gap-2', className)}>
+        {/* Campo de busca com dropdown de filtros */}
+        <PopoverAnchor asChild>
+          <div className="flex gap-2" data-bed-search-anchor>
             <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={placeholder}
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value)
-              setIsOpen(true)
-            }}
-            onFocus={() => setIsOpen(true)}
-            disabled={disabled}
-            className="pl-9 pr-9"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-              onClick={() => {
-                setSearchQuery('')
-                setIsOpen(false)
-              }}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        {/* Dropdown de Filtros */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="relative" disabled={disabled}>
-              <Filter className="h-4 w-4" />
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Filtros</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-
-            <DropdownMenuCheckboxItem
-              checked={showOnlyAvailable}
-              onCheckedChange={setShowOnlyAvailable}
-            >
-              <Check className={cn('mr-2 h-4 w-4', showOnlyAvailable ? 'opacity-100' : 'opacity-0')} />
-              Apenas disponíveis
-            </DropdownMenuCheckboxItem>
-
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs">Filtrar por Prédio</DropdownMenuLabel>
-
-            <DropdownMenuItem
-              onClick={() => setSelectedBuildingFilter(null)}
-              className={cn(!selectedBuildingFilter && 'bg-accent')}
-            >
-              <Building2 className="mr-2 h-4 w-4" />
-              Todos os prédios
-            </DropdownMenuItem>
-
-            {uniqueBuildings.map((building) => (
-              <DropdownMenuItem
-                key={building}
-                onClick={() => setSelectedBuildingFilter(building)}
-                className={cn(selectedBuildingFilter === building && 'bg-accent')}
-              >
-                <Layers className="mr-2 h-4 w-4" />
-                {building}
-                {selectedBuildingFilter === building && (
-                  <Check className="ml-auto h-4 w-4" />
-                )}
-              </DropdownMenuItem>
-            ))}
-
-            {activeFiltersCount > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={placeholder}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setIsOpen(true)
+                }}
+                onFocus={() => setIsOpen(true)}
+                disabled={disabled}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
                   onClick={() => {
-                    setShowOnlyAvailable(false)
-                    setSelectedBuildingFilter(null)
+                    setSearchQuery('')
+                    setIsOpen(false)
                   }}
-                  className="text-danger"
                 >
-                  <X className="mr-2 h-4 w-4" />
-                  Limpar filtros
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Dropdown de Filtros */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="relative" disabled={disabled}>
+                  <Filter className="h-4 w-4" />
+                  {activeFiltersCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Filtros</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                <DropdownMenuCheckboxItem
+                  checked={showOnlyAvailable}
+                  onCheckedChange={setShowOnlyAvailable}
+                >
+                  <Check className={cn('mr-2 h-4 w-4', showOnlyAvailable ? 'opacity-100' : 'opacity-0')} />
+                  Apenas disponíveis
+                </DropdownMenuCheckboxItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Filtrar por Prédio</DropdownMenuLabel>
+
+                <DropdownMenuItem
+                  onClick={() => setSelectedBuildingFilter(null)}
+                  className={cn(!selectedBuildingFilter && 'bg-accent')}
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Todos os prédios
                 </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+
+                {uniqueBuildings.map((building) => (
+                  <DropdownMenuItem
+                    key={building}
+                    onClick={() => setSelectedBuildingFilter(building)}
+                    className={cn(selectedBuildingFilter === building && 'bg-accent')}
+                  >
+                    <Layers className="mr-2 h-4 w-4" />
+                    {building}
+                    {selectedBuildingFilter === building && (
+                      <Check className="ml-auto h-4 w-4" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+
+                {activeFiltersCount > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setShowOnlyAvailable(false)
+                        setSelectedBuildingFilter(null)
+                      }}
+                      className="text-danger"
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Limpar filtros
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </PopoverAnchor>
+
+        {/* Leito selecionado */}
+        {selectedBed && !isOpen && (
+          <Card className="p-3 bg-primary/5 border-primary/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <BedIcon className="h-5 w-5 text-primary" />
+                <div className="flex flex-col">
+                  <span className="font-mono font-bold text-foreground">
+                    {formatBedFromObject(selectedBed)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {selectedBed.room?.floor?.building?.name} • {selectedBed.room?.name} • {selectedBed.room?.floor?.name}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClear}
+                disabled={disabled}
+                className="h-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+        )}
       </div>
 
-      {/* Leito selecionado */}
-      {selectedBed && !isOpen && (
-        <Card className="p-3 bg-indigo-50/50 border-indigo-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <BedIcon className="h-5 w-5 text-indigo-600" />
-              <div className="flex flex-col">
-                <span className="font-mono font-bold text-indigo-900">
-                  {formatBedFromObject(selectedBed)}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {selectedBed.room?.floor?.building?.name} • {selectedBed.room?.name} • {selectedBed.room?.floor?.name}
-                </span>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClear}
-              disabled={disabled}
-              className="h-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+      {/* Dropdown de resultados — renderizado via Portal */}
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        className="p-0 w-[--radix-popover-trigger-width] max-h-[400px] overflow-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          // Não fechar se o clique foi dentro do anchor (input/filtros)
+          const target = e.target as HTMLElement
+          if (target.closest('[data-bed-search-anchor]')) {
+            e.preventDefault()
+          }
+        }}
+      >
+        {filteredBeds.length === 0 ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            Nenhum leito encontrado
           </div>
-        </Card>
-      )}
-
-          {/* Dropdown de resultados */}
-          {isOpen && (
-            <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-[400px] overflow-auto shadow-lg">
-              {filteredBeds.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  Nenhum leito encontrado
+        ) : (
+          <div className="p-2">
+            {Object.entries(bedsByBuilding).map(([buildingName, buildingBeds]) => (
+              <div key={buildingName} className="mb-3 last:mb-0">
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {buildingName}
                 </div>
-              ) : (
-                <div className="p-2">
-                  {Object.entries(bedsByBuilding).map(([buildingName, buildingBeds]) => (
-                    <div key={buildingName} className="mb-3 last:mb-0">
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        {buildingName}
-                      </div>
-                      <div className="space-y-1">
-                        {buildingBeds.map((bed) => {
-                          const bedCode = formatBedFromObject(bed)
-                          const isSelected = value === bed.id
+                <div className="space-y-1">
+                  {buildingBeds.map((bed) => {
+                    const bedCode = formatBedFromObject(bed)
+                    const isSelected = value === bed.id
 
-                          return (
-                            <button
-                              key={bed.id}
-                              onClick={() => handleSelect(bed)}
-                              className={cn(
-                                'w-full flex items-center justify-between p-2 rounded-md hover:bg-accent transition-colors text-left',
-                                isSelected && 'bg-indigo-50 border border-indigo-200'
-                              )}
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                {isSelected && <Check className="h-4 w-4 text-indigo-600" />}
-                                <BedIcon className="h-4 w-4 text-indigo-600" />
-                                <div className="flex flex-col min-w-0">
-                                  <span className="font-mono font-semibold text-sm">{bedCode}</span>
-                                  <span className="text-xs text-muted-foreground truncate">
-                                    {bed.room?.name} • {bed.room?.floor?.name}
-                                  </span>
-                                </div>
-                              </div>
-                              <Badge className={cn('text-xs ml-2 shrink-0', BED_STATUS_COLORS[bed.status])}>
-                                {BED_STATUS_LABELS[bed.status]}
-                              </Badge>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                    return (
+                      <button
+                        key={bed.id}
+                        onClick={() => handleSelect(bed)}
+                        className={cn(
+                          'w-full flex items-center justify-between p-2 rounded-md hover:bg-accent transition-colors text-left',
+                          isSelected && 'bg-accent border border-primary/20'
+                        )}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          {isSelected && <Check className="h-4 w-4 text-primary" />}
+                          <BedIcon className="h-4 w-4 text-primary" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-mono font-semibold text-sm">{bedCode}</span>
+                            <span className="text-xs text-muted-foreground truncate">
+                              {bed.room?.name} • {bed.room?.floor?.name}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge className={cn('text-xs ml-2 shrink-0', BED_STATUS_COLORS[bed.status])}>
+                          {BED_STATUS_LABELS[bed.status]}
+                        </Badge>
+                      </button>
+                    )
+                  })}
                 </div>
-              )}
-            </Card>
-          )}
-    </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }

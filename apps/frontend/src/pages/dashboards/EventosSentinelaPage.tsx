@@ -197,10 +197,7 @@ export function EventosSentinelaPage() {
       {/* Filtros */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filtros
-          </CardTitle>
+          <CardTitle className="text-sm">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 items-center">
@@ -210,6 +207,7 @@ export function EventosSentinelaPage() {
                 onValueChange={(v) => setStatusFilter(v as StatusFilter)}
               >
                 <SelectTrigger>
+                  <Filter className="h-4 w-4 text-muted-foreground" />
                   <SelectValue placeholder="Filtrar por status" />
                 </SelectTrigger>
                 <SelectContent>

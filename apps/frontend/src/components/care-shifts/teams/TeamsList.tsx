@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Users, Loader2, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Loader2, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -149,6 +149,7 @@ export function TeamsList({ onSelectTeam }: TeamsListProps) {
               }}
             >
               <SelectTrigger className="w-full sm:w-[180px]">
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>

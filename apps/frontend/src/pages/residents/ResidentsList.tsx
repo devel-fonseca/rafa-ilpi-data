@@ -55,6 +55,7 @@ import {
   History,
   Package,
   Accessibility,
+  Filter,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { formatBedFromResident } from '@/utils/formatters'
@@ -226,6 +227,7 @@ export default function ResidentsList() {
                 <Label htmlFor="status">Status</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger id="status">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -246,6 +248,7 @@ export default function ResidentsList() {
                   onValueChange={(value) => setDependencyFilter(value as 'ALL' | 'GRAU_I' | 'GRAU_II' | 'GRAU_III')}
                 >
                   <SelectTrigger id="dependencyLevel">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>

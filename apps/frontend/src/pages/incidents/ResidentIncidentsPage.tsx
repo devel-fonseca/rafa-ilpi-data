@@ -43,6 +43,7 @@ import {
   Siren,
   ShieldAlert,
   SquarePen,
+  Filter,
 } from 'lucide-react'
 import { DeleteDailyRecordModal } from '@/components/modals/DeleteDailyRecordModal'
 import type { VitalSignAlert } from '@/api/vitalSignAlerts.api'
@@ -381,6 +382,7 @@ export default function ResidentIncidentsPage() {
         <div className="flex flex-col lg:flex-row gap-3">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-full lg:w-[220px]">
+              <Filter className="h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -394,6 +396,7 @@ export default function ResidentIncidentsPage() {
 
           <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as SeverityFilter)}>
             <SelectTrigger className="w-full lg:w-[220px]">
+              <Filter className="h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Severidade" />
             </SelectTrigger>
             <SelectContent>
@@ -407,6 +410,7 @@ export default function ResidentIncidentsPage() {
 
           <Select value={originFilter} onValueChange={(value) => setOriginFilter(value as OriginFilter)}>
             <SelectTrigger className="w-full lg:w-[220px]">
+              <Filter className="h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Origem" />
             </SelectTrigger>
             <SelectContent>

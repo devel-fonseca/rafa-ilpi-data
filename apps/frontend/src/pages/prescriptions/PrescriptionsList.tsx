@@ -48,6 +48,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileCheck,
+  Filter,
 } from 'lucide-react'
 // parseISO removido - usar extractDateOnly para campos DATE
 import { useToast } from '@/components/ui/use-toast'
@@ -298,6 +299,7 @@ export default function PrescriptionsList() {
               <Label htmlFor="status" className="text-sm">Status</Label>
               <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger id="status">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

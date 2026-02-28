@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { History, Loader2, FileText, Clock } from 'lucide-react';
+import { History, Loader2, FileText, Clock, Filter } from 'lucide-react';
 import { extractDateOnly, getCurrentDate, normalizeUTCDate } from '@/utils/dateHelpers';
 import {
   Card,
@@ -138,6 +138,7 @@ export function ShiftsHistoryTab() {
               <Label>Período</Label>
               <Select value={periodPreset} onValueChange={handlePresetChange}>
                 <SelectTrigger>
+                  <Filter className="h-4 w-4 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
