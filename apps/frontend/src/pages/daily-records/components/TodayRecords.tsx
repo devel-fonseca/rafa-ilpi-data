@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CheckCircle2,
   XCircle,
@@ -23,12 +23,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { QuickAddRecordDialog } from '@/components/daily-records/QuickAddRecordDialog'
 import {
   Tooltip,
   TooltipContent,
@@ -39,11 +34,8 @@ import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { useAuthStore } from '@/stores/auth.store'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
-import { residentsAPI } from '@/api/residents.api'
-import { ResidentSearchSelect } from '@/components/residents/ResidentSearchSelect'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
-import { tenantKey } from '@/lib/query-keys'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
 import type { DailyTask } from '@/types/resident-schedule'
 import type { CreateDailyRecordInput, DailyRecordData } from '@/types/daily-records'
@@ -147,22 +139,6 @@ const RECORD_TYPE_CONFIG: Record<
   OUTROS: { icon: FileText, label: 'Outros', color: 'text-muted-foreground' },
 }
 
-const RECORD_QUICK_ACTIONS = [
-  { type: 'HIGIENE', label: 'Higiene' },
-  { type: 'ALIMENTACAO', label: 'Alimentação' },
-  { type: 'HIDRATACAO', label: 'Hidratação' },
-  { type: 'MONITORAMENTO', label: 'Monitoramento' },
-  { type: 'ELIMINACAO', label: 'Eliminação' },
-  { type: 'COMPORTAMENTO', label: 'Comportamento' },
-  { type: 'HUMOR', label: 'Humor' },
-  { type: 'SONO', label: 'Sono' },
-  { type: 'PESO', label: 'Peso/Altura' },
-  { type: 'INTERCORRENCIA', label: 'Intercorrência' },
-  { type: 'ATIVIDADES', label: 'Atividades' },
-  { type: 'VISITA', label: 'Visita' },
-  { type: 'OUTROS', label: 'Outros' },
-] as const
-
 const ITEMS_PER_PAGE = 10
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -192,18 +168,6 @@ export function TodayRecords({ quickAddOpen = false, onQuickAddOpenChange }: Tod
   const [currentResidentName, setCurrentResidentName] = useState<string>('')
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
 
-  // Estado para registro avulso
-  const [quickAddResidentId, setQuickAddResidentId] = useState<string | null>(null)
-
-  // Buscar residentes ativos para o registro avulso
-  const { data: residentsData, isLoading: isLoadingResidents } = useQuery({
-    queryKey: tenantKey('residents', 'list', 'quick-add-avds'),
-    queryFn: () => residentsAPI.getAll({ page: 1, limit: 1000, status: 'Ativo', sortBy: 'fullName', sortOrder: 'asc' }),
-    enabled: quickAddOpen,
-    staleTime: 60_000,
-  })
-  const residents = residentsData?.data || []
-
   // Mutation para criar registro
   const createMutation = useMutation({
     mutationFn: async (recordData: CreateDailyRecordInput<DailyRecordData>) => {
@@ -224,26 +188,6 @@ export function TodayRecords({ quickAddOpen = false, onQuickAddOpenChange }: Tod
 
   const handleCreateRecord = (recordData: CreateDailyRecordInput<DailyRecordData>) => {
     createMutation.mutate(recordData)
-  }
-
-  const handleQuickAddSelectType = (recordType: string) => {
-    if (!quickAddResidentId) return
-    const resident = residents.find((r) => r.id === quickAddResidentId)
-    if (!resident) return
-
-    setCurrentResidentId(resident.id)
-    setCurrentResidentName(resident.fullName)
-    setActiveModal(recordType)
-    setSelectedMealType(undefined)
-    setQuickAddResidentId(null)
-    onQuickAddOpenChange?.(false)
-  }
-
-  const handleQuickAddClose = (open: boolean) => {
-    if (!open) {
-      setQuickAddResidentId(null)
-    }
-    onQuickAddOpenChange?.(open)
   }
 
   const handleRecordClick = async (action: RecordAction) => {
@@ -493,61 +437,10 @@ export function TodayRecords({ quickAddOpen = false, onQuickAddOpenChange }: Tod
       </Card>
 
       {/* Dialog de Registro Avulso */}
-      <Dialog open={quickAddOpen} onOpenChange={handleQuickAddClose}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {quickAddResidentId ? 'Selecione o tipo de registro' : 'Registro Avulso'}
-            </DialogTitle>
-          </DialogHeader>
-
-          {!quickAddResidentId ? (
-            <div className="space-y-3 min-h-[320px]">
-              <p className="text-sm text-muted-foreground">
-                Busque e selecione o residente para realizar o registro.
-              </p>
-              <ResidentSearchSelect
-                residents={residents}
-                value={null}
-                onValueChange={(id) => setQuickAddResidentId(id)}
-                isLoading={isLoadingResidents}
-                placeholder="Buscar residente por nome ou leito..."
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-muted-foreground">
-                  {residents.find((r) => r.id === quickAddResidentId)?.fullName}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setQuickAddResidentId(null)}
-                >
-                  Trocar
-                </Button>
-              </div>
-              {RECORD_QUICK_ACTIONS.map((action) => {
-                const config = RECORD_TYPE_CONFIG[action.type] || RECORD_TYPE_CONFIG.OUTROS
-                const Icon = config.icon
-                return (
-                  <Button
-                    key={action.type}
-                    onClick={() => handleQuickAddSelectType(action.type)}
-                    variant="outline"
-                    size="sm"
-                    className="justify-start"
-                  >
-                    <Icon className={`h-4 w-4 mr-2 ${config.color}`} />
-                    {action.label}
-                  </Button>
-                )
-              })}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <QuickAddRecordDialog
+        open={quickAddOpen}
+        onOpenChange={(open) => onQuickAddOpenChange?.(open)}
+      />
 
       {/* Mini Prontuário Modal */}
       {selectedResidentId && (

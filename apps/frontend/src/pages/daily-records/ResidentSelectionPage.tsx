@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import { residentsAPI } from '@/api/residents.api'
 import { Button } from '@/components/ui/button'
 import { Page, PageHeader } from '@/design-system/components'
+import { QuickAddRecordDialog } from '@/components/daily-records/QuickAddRecordDialog'
 import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionGrid'
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
 import { useLatestRecordsByResidents } from '@/hooks/useDailyRecords'
@@ -14,6 +15,7 @@ export default function ResidentSelectionPage() {
   const navigate = useNavigate()
   const [statusFilter, setStatusFilter] = useState<string>('active')
   const [clinicalOccurrenceResidentIds, setClinicalOccurrenceResidentIds] = useState<string[]>([])
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
 
   // Buscar lista de residentes
   const { data: residentsData, isLoading: isLoadingResidents } = useQuery({
@@ -76,7 +78,7 @@ export default function ResidentSelectionPage() {
             <Button onClick={() => navigate('/dashboard/registros-diarios/registros')}>
               Registros Programados
             </Button>
-            <Button onClick={() => navigate('/dashboard/registros-diarios/registros', { state: { quickAdd: true } })}>
+            <Button onClick={() => setQuickAddOpen(true)}>
               <Plus className="h-4 w-4" />
               Registro Avulso
             </Button>
@@ -105,6 +107,7 @@ export default function ResidentSelectionPage() {
           />
         }
       />
+      <QuickAddRecordDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
     </Page>
   )
 }

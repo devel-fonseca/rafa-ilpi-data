@@ -10,31 +10,14 @@ import { residentsAPI } from '@/api/residents.api'
 import { Button } from '@/components/ui/button'
 import {
   AlertTriangle,
-  Activity,
-  Bath,
-  Calendar,
   CalendarCheck2,
   CheckCircle2,
   ClipboardCheck,
-  Dribbble,
-  Droplets,
-  FileText,
   Loader2,
-  Moon,
   Pill,
-  Smile,
-  Trash2,
-  Utensils,
-  Weight,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { ResidentSearchSelect } from '@/components/residents/ResidentSearchSelect'
+import { QuickAddRecordDialog } from '@/components/daily-records/QuickAddRecordDialog'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { CaregiverStatsCards } from '@/components/caregiver/CaregiverStatsCards'
 import { BirthdaysSection } from '@/components/caregiver/BirthdaysSection'
@@ -80,38 +63,6 @@ type MedicationWithPreselectedTime = Medication & {
   preselectedScheduledTime?: string
 }
 
-// Configuração de ícones/cores por tipo de registro (para dialog de registro avulso)
-const RECORD_TYPE_CONFIG: Record<string, { icon: typeof Bath; label: string; color: string }> = {
-  HIGIENE: { icon: Bath, label: 'Higiene', color: 'text-primary dark:text-primary/40' },
-  ALIMENTACAO: { icon: Utensils, label: 'Alimentação', color: 'text-success dark:text-success/40' },
-  HIDRATACAO: { icon: Droplets, label: 'Hidratação', color: 'text-cyan-600 dark:text-cyan-400' },
-  MONITORAMENTO: { icon: Activity, label: 'Sinais Vitais', color: 'text-danger dark:text-danger/40' },
-  ELIMINACAO: { icon: Trash2, label: 'Eliminação', color: 'text-amber-600 dark:text-amber-400' },
-  COMPORTAMENTO: { icon: Smile, label: 'Comportamento', color: 'text-medication-controlled dark:text-medication-controlled/40' },
-  HUMOR: { icon: Smile, label: 'Humor', color: 'text-pink-600 dark:text-pink-400' },
-  SONO: { icon: Moon, label: 'Sono', color: 'text-indigo-600 dark:text-indigo-400' },
-  PESO: { icon: Weight, label: 'Peso', color: 'text-muted-foreground' },
-  INTERCORRENCIA: { icon: AlertTriangle, label: 'Intercorrência', color: 'text-destructive' },
-  ATIVIDADES: { icon: Dribbble, label: 'Atividades', color: 'text-teal-600 dark:text-teal-400' },
-  VISITA: { icon: Calendar, label: 'Visita', color: 'text-violet-600 dark:text-violet-400' },
-  OUTROS: { icon: FileText, label: 'Outros', color: 'text-muted-foreground' },
-}
-
-const RECORD_QUICK_ACTIONS = [
-  { type: 'HIGIENE', label: 'Higiene' },
-  { type: 'ALIMENTACAO', label: 'Alimentação' },
-  { type: 'HIDRATACAO', label: 'Hidratação' },
-  { type: 'MONITORAMENTO', label: 'Monitoramento' },
-  { type: 'ELIMINACAO', label: 'Eliminação' },
-  { type: 'COMPORTAMENTO', label: 'Comportamento' },
-  { type: 'HUMOR', label: 'Humor' },
-  { type: 'SONO', label: 'Sono' },
-  { type: 'PESO', label: 'Peso/Altura' },
-  { type: 'INTERCORRENCIA', label: 'Intercorrência' },
-  { type: 'ATIVIDADES', label: 'Atividades' },
-  { type: 'VISITA', label: 'Visita' },
-  { type: 'OUTROS', label: 'Outros' },
-] as const
 
 type CaregiverOperationalActivity = {
   id: string
@@ -271,15 +222,6 @@ export function CaregiverDashboard() {
 
   // Estado para dialog de registro avulso
   const [quickAddOpen, setQuickAddOpen] = useState(false)
-  const [quickAddResidentId, setQuickAddResidentId] = useState<string | null>(null)
-
-  const { data: quickAddResidentsData, isLoading: isLoadingQuickAddResidents } = useQuery({
-    queryKey: tenantKey('residents', 'list', 'quick-add-caregiver'),
-    queryFn: () => residentsAPI.getAll({ page: 1, limit: 1000, status: 'Ativo', sortBy: 'fullName', sortOrder: 'asc' }),
-    enabled: quickAddOpen,
-    staleTime: 60_000,
-  })
-  const quickAddResidents = quickAddResidentsData?.data || []
 
   // Mutation para criar registro
   const createMutation = useMutation({
@@ -315,23 +257,6 @@ export function CaregiverDashboard() {
     if (actionId === 'quick-add-record') {
       setQuickAddOpen(true)
     }
-  }
-
-  const handleQuickAddSelectType = (recordType: string) => {
-    if (!quickAddResidentId) return
-    const resident = quickAddResidents.find((r) => r.id === quickAddResidentId)
-    if (!resident) return
-    setCurrentResidentId(resident.id)
-    setCurrentResidentName(resident.fullName)
-    setActiveModal(recordType)
-    setSelectedMealType(undefined)
-    setQuickAddResidentId(null)
-    setQuickAddOpen(false)
-  }
-
-  const handleQuickAddClose = (open: boolean) => {
-    if (!open) { setQuickAddResidentId(null) }
-    setQuickAddOpen(open)
   }
 
   const handleOpenModal = async (
@@ -716,55 +641,7 @@ export function CaregiverDashboard() {
       )}
 
       {/* Dialog de Registro Avulso */}
-      <Dialog open={quickAddOpen} onOpenChange={handleQuickAddClose}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {quickAddResidentId ? 'Selecione o tipo de registro' : 'Registro Avulso'}
-            </DialogTitle>
-          </DialogHeader>
-          {!quickAddResidentId ? (
-            <div className="space-y-3 min-h-[320px]">
-              <p className="text-sm text-muted-foreground">
-                Busque e selecione o residente para registrar uma atividade avulsa.
-              </p>
-              <ResidentSearchSelect
-                residents={quickAddResidents}
-                value={null}
-                onValueChange={(id) => setQuickAddResidentId(id)}
-                isLoading={isLoadingQuickAddResidents}
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium">
-                  {quickAddResidents.find((r) => r.id === quickAddResidentId)?.fullName}
-                </p>
-                <Button variant="ghost" size="sm" onClick={() => setQuickAddResidentId(null)}>
-                  Trocar
-                </Button>
-              </div>
-              {RECORD_QUICK_ACTIONS.map((action) => {
-                const config = RECORD_TYPE_CONFIG[action.type] || RECORD_TYPE_CONFIG.OUTROS
-                const Icon = config.icon
-                return (
-                  <Button
-                    key={action.type}
-                    onClick={() => handleQuickAddSelectType(action.type)}
-                    variant="outline"
-                    size="sm"
-                    className="justify-start"
-                  >
-                    <Icon className={`h-4 w-4 mr-2 ${config.color}`} />
-                    {action.label}
-                  </Button>
-                )
-              })}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <QuickAddRecordDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
 
       {/* Modais de Registro */}
       {activeModal === 'HIGIENE' && (
