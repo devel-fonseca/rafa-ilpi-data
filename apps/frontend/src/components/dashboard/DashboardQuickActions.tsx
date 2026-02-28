@@ -20,6 +20,7 @@ interface DashboardQuickActionsProps {
   mode?: 'toolbar' | 'grid';
   gridColumns?: 2 | 3 | 4 | 5 | 6;
   className?: string;
+  onAction?: (actionId: string) => void;
 }
 
 /**
@@ -32,6 +33,7 @@ export function DashboardQuickActions({
   mode = 'grid',
   gridColumns = 4,
   className,
+  onAction,
 }: DashboardQuickActionsProps) {
   const navigate = useNavigate();
 
@@ -57,7 +59,7 @@ export function DashboardQuickActions({
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 shrink-0 rounded-md"
-                    onClick={() => navigate(action.to)}
+                    onClick={() => action.action ? onAction?.(action.action) : action.to && navigate(action.to)}
                     disabled={action.disabled}
                     aria-label={action.title}
                   >
@@ -87,7 +89,7 @@ export function DashboardQuickActions({
           description: action.description,
           icon: action.icon,
           disabled: action.disabled,
-          onClick: () => navigate(action.to),
+          onClick: () => action.action ? onAction?.(action.action) : action.to && navigate(action.to),
         }))}
       />
     </div>

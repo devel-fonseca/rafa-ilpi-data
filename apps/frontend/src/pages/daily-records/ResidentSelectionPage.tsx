@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { residentsAPI } from '@/api/residents.api'
+import { Button } from '@/components/ui/button'
 import { Page, PageHeader } from '@/design-system/components'
 import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionGrid'
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
@@ -69,6 +70,11 @@ export default function ResidentSelectionPage() {
           { label: 'Dashboard', href: '/dashboard' },
           { label: 'Registros Diários' },
         ]}
+        actions={
+          <Button onClick={() => navigate('/dashboard/registros-diarios/registros')}>
+            Registros Programados
+          </Button>
+        }
       />
       <ResidentSelectionGrid
         residents={residentsData?.data || []}

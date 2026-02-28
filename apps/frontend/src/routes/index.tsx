@@ -40,6 +40,7 @@ import ResidentPanelPage from '@/pages/residents/ResidentPanelPage'
 
 // Daily Records Pages
 import { ResidentSelectionPage, ResidentRecordsPage } from '@/pages/daily-records'
+import DailyRecordsPage from '@/pages/daily-records/DailyRecordsPage'
 
 // Vital Signs Pages
 
@@ -338,6 +339,10 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: <ResidentSelectionPage />,
+          },
+          {
+            path: 'registros',
+            element: <DailyRecordsPage />,
           },
           {
             path: ':residentId',

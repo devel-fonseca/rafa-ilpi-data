@@ -5,6 +5,7 @@ import {
   Calendar,
   ClipboardCheck,
   ClipboardList,
+  ClipboardPlus,
   LayoutGrid,
   Landmark,
   Pill,
@@ -24,7 +25,8 @@ export interface DashboardQuickActionDefinition {
   title: string;
   description: string;
   icon: LucideIcon;
-  to: string;
+  to?: string;
+  action?: string;
   disabled?: boolean;
   visibleFor?: PositionCode[];
 }
@@ -166,6 +168,14 @@ const DASHBOARD_QUICK_ACTIONS: Record<
     },
   ],
   caregiver: [
+    {
+      id: 'daily_records_admin',
+      title: 'Registro Avulso',
+      description: 'Registrar atividade avulsa para um residente',
+      icon: ClipboardPlus,
+      action: 'quick-add-record',
+      visibleFor: [PositionCode.CAREGIVER],
+    },
     {
       id: 'daily_records',
       title: 'Registros Diários',
