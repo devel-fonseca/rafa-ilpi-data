@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
 import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, Printer, Map, NotebookPen, Landmark } from 'lucide-react'
@@ -33,11 +33,13 @@ import { WelcomeToActivePlanDialog } from '@/components/billing/WelcomeToActiveP
 import { useFeatures } from '@/hooks/useFeatures'
 import { ConnectionStatus } from '@/components/common/ConnectionStatus'
 import { LoadingScreen } from '@/components/LoadingScreen'
+import { useInactivityLogout } from '@/hooks/useInactivityLogout'
 
 export function DashboardLayout() {
   useScrollToTop()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const inactivityLogoutTriggeredRef = useRef(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [userPosition, setUserPosition] = useState<PositionCode | null>(null)
   const { data: profile } = useMyProfile()
@@ -124,6 +126,27 @@ export function DashboardLayout() {
       }
     }
   }
+
+  const handleInactivityTimeout = useCallback(async () => {
+    if (inactivityLogoutTriggeredRef.current) return
+    inactivityLogoutTriggeredRef.current = true
+    setIsLoggingOut(true)
+
+    try {
+      await logout('INACTIVITY_TIMEOUT')
+    } finally {
+      navigate('/session-expired')
+    }
+  }, [logout, navigate])
+
+  useEffect(() => {
+    inactivityLogoutTriggeredRef.current = false
+  }, [user?.id])
+
+  useInactivityLogout({
+    enabled: !!user?.id && !isLoggingOut,
+    onTimeout: handleInactivityTimeout,
+  })
 
   const toggleTheme = () => {
     const newTheme = preferences.theme === 'dark' ? 'light' : 'dark'

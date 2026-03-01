@@ -50,7 +50,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<{ requiresTenantSelection?: boolean; tenants?: Tenant[]; user?: User; accessToken?: string; refreshToken?: string }>
   selectTenant: (tenantId: string, email: string, password: string) => Promise<void>
   register: (data: Record<string, unknown>) => Promise<{ user: User; tenant: Tenant }>
-  logout: () => Promise<void>
+  logout: (reason?: string) => Promise<void>
   refreshAuth: () => Promise<void>
   clearError: () => void
   setAuth: (user: User, accessToken: string, refreshToken: string) => void
@@ -209,14 +209,14 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Logout
-      logout: async () => {
+      logout: async (reason?: string) => {
         set({ isLoading: true })
         try {
           const { accessToken, refreshToken } = get()
           if (accessToken) {
             api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
             // Enviar refreshToken para deletar apenas esta sessão específica
-            await api.post('/auth/logout', { refreshToken })
+            await api.post('/auth/logout', { refreshToken, reason })
           }
         } catch (error) {
           console.error('Erro ao fazer logout:', error)

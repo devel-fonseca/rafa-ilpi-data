@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   Crown,
@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
 import { LoadingScreen } from '@/components/LoadingScreen'
+import { useInactivityLogout } from '@/hooks/useInactivityLogout'
 
 /**
  * SuperAdminLayout
@@ -37,6 +38,7 @@ import { LoadingScreen } from '@/components/LoadingScreen'
  */
 export function SuperAdminLayout() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const inactivityLogoutTriggeredRef = useRef(false)
   const { data: unreadCount } = useUnreadCount()
   const { data: overdueMetrics } = useOverdueMetrics()
   const navigate = useNavigate()
@@ -48,6 +50,27 @@ export function SuperAdminLayout() {
     await logout()
     navigate('/login')
   }
+
+  const handleInactivityTimeout = useCallback(async () => {
+    if (inactivityLogoutTriggeredRef.current) return
+    inactivityLogoutTriggeredRef.current = true
+    setIsLoggingOut(true)
+
+    try {
+      await logout('INACTIVITY_TIMEOUT')
+    } finally {
+      navigate('/session-expired')
+    }
+  }, [logout, navigate])
+
+  useEffect(() => {
+    inactivityLogoutTriggeredRef.current = false
+  }, [])
+
+  useInactivityLogout({
+    enabled: !isLoggingOut,
+    onTimeout: handleInactivityTimeout,
+  })
 
   const navItems = [
     {

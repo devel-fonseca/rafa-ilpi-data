@@ -660,7 +660,13 @@ export class AuthService {
    * Se refreshToken for fornecido, remove apenas essa sessão específica.
    * Se não for fornecido, remove todas as sessões (comportamento antigo, mantido para compatibilidade).
    */
-  async logout(userId: string, refreshToken?: string, ipAddress?: string, userAgent?: string) {
+  async logout(
+    userId: string,
+    refreshToken?: string,
+    ipAddress?: string,
+    userAgent?: string,
+    reason?: string,
+  ) {
     // Buscar usuário para obter tenantId
     // ✅ Tentar primeiro em public (SUPERADMIN)
     // eslint-disable-next-line no-restricted-syntax
@@ -738,6 +744,7 @@ export class AuthService {
         'SUCCESS',
         ipAddress,
         userAgent,
+        reason,
       );
     }
 
