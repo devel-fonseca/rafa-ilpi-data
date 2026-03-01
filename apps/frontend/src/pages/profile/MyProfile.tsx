@@ -1007,6 +1007,19 @@ function AccessLogsTab({ userId }: { userId: string }) {
     FAILED: 'bg-danger/10 text-danger/90',
   }
 
+  const REASON_LABELS: Record<string, string> = {
+    INACTIVITY_TIMEOUT: 'Logout automático por inatividade',
+    SESSION_EXPIRED: 'Sessão expirada',
+    INVALID_PASSWORD: 'Senha inválida',
+    INVALID_CREDENTIALS: 'Credenciais inválidas',
+  }
+
+  const getReasonLabel = (reason?: string | null) => {
+    if (!reason) return '-'
+    if (REASON_LABELS[reason]) return REASON_LABELS[reason]
+    return reason
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -1095,7 +1108,7 @@ function AccessLogsTab({ userId }: { userId: string }) {
                         {log.device || '-'}
                       </td>
                       <td className="p-3 text-sm text-muted-foreground">
-                        {log.reason || '-'}
+                        {getReasonLabel(log.reason)}
                       </td>
                     </tr>
                   ))}
