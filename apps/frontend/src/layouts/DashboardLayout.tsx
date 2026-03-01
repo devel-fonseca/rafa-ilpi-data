@@ -32,10 +32,12 @@ import { MessagesDropdown } from '@/components/messages/MessagesDropdown'
 import { WelcomeToActivePlanDialog } from '@/components/billing/WelcomeToActivePlanDialog'
 import { useFeatures } from '@/hooks/useFeatures'
 import { ConnectionStatus } from '@/components/common/ConnectionStatus'
+import { LoadingScreen } from '@/components/LoadingScreen'
 
 export function DashboardLayout() {
   useScrollToTop()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [userPosition, setUserPosition] = useState<PositionCode | null>(null)
   const { data: profile } = useMyProfile()
@@ -101,6 +103,9 @@ export function DashboardLayout() {
   }, [profile, user?.profile?.profilePhoto, user?.profile?.positionCode])
 
   const handleLogout = async () => {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+
     try {
       await logout()
       toast.success('Você saiu com sucesso. Até logo!')
@@ -111,6 +116,7 @@ export function DashboardLayout() {
       const { isAuthenticated } = useAuthStore.getState()
       if (isAuthenticated) {
         toast.error('Erro ao fazer logout. Tente novamente.')
+        setIsLoggingOut(false)
       } else {
         // Logout foi bem-sucedido pelo interceptor, apenas navegar
         toast.success('Você saiu com sucesso. Até logo!')
@@ -1013,6 +1019,9 @@ export function DashboardLayout() {
 
       {/* Welcome to Active Plan Dialog (post-trial) */}
       <WelcomeToActivePlanDialog />
+
+      {/* Overlay durante logout para feedback visual de encerramento da sessão */}
+      {isLoggingOut && <LoadingScreen />}
     </div>
   )
 }

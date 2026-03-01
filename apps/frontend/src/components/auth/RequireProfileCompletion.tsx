@@ -23,7 +23,7 @@ export function RequireProfileCompletion({ children }: RequireProfileCompletionP
   const location = useLocation()
   const { user } = useAuthStore()
   const [isChecking, setIsChecking] = useState(true)
-  const [isProfileComplete, setIsProfileComplete] = useState(false)
+  const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null)
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
@@ -49,8 +49,9 @@ export function RequireProfileCompletion({ children }: RequireProfileCompletionP
         setIsProfileComplete(isComplete)
       } catch (error) {
         console.error('Erro ao verificar perfil:', error)
-        // Em caso de erro, assumir que perfil não está completo
-        setIsProfileComplete(false)
+        // Em caso de falha de conexão/backend, não forçar onboarding indevidamente.
+        // Mantém o estado conhecido; se ainda não houver estado, libera acesso.
+        setIsProfileComplete((prev) => prev ?? true)
       } finally {
         setIsChecking(false)
       }
@@ -60,7 +61,7 @@ export function RequireProfileCompletion({ children }: RequireProfileCompletionP
   }, [user?.tenantId, location.pathname])
 
   // Aguardando verificação
-  if (isChecking) {
+  if (isChecking || isProfileComplete === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5">
         <div className="text-center space-y-4">
@@ -72,7 +73,7 @@ export function RequireProfileCompletion({ children }: RequireProfileCompletionP
   }
 
   // Perfil incompleto → redireciona para onboarding
-  if (!isProfileComplete) {
+  if (isProfileComplete === false) {
     return <Navigate to="/onboarding" state={{ from: location }} replace />
   }
 

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   Crown,
@@ -21,6 +22,7 @@ import { useOverdueMetrics } from '@/hooks/useOverdueMetrics'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
+import { LoadingScreen } from '@/components/LoadingScreen'
 
 /**
  * SuperAdminLayout
@@ -34,12 +36,15 @@ import { useAuthStore } from '@/stores/auth.store'
  * - Content area para renderizar páginas filhas via <Outlet />
  */
 export function SuperAdminLayout() {
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { data: unreadCount } = useUnreadCount()
   const { data: overdueMetrics } = useOverdueMetrics()
   const navigate = useNavigate()
   const logout = useAuthStore((state) => state.logout)
 
   const handleLogout = async () => {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
     await logout()
     navigate('/login')
   }
@@ -177,6 +182,9 @@ export function SuperAdminLayout() {
           </div>
         </main>
       </div>
+
+      {/* Overlay durante logout para feedback visual de encerramento da sessão */}
+      {isLoggingOut && <LoadingScreen />}
     </div>
   )
 }
