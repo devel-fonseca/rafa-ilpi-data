@@ -108,8 +108,9 @@ export interface PrescriptionsViewProps extends MedicalViewProps {
  */
 export interface MedicationAdministration {
   id: string
-  type: 'ROUTINE' | 'SOS'
+  type: 'ROUTINE' | 'CONTINUOUS' | 'SOS'
   wasAdministered: boolean
+  date?: string
   scheduledTime?: string
   actualTime?: string
   administeredBy: string

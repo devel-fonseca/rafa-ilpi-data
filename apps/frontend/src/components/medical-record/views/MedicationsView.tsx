@@ -17,7 +17,7 @@ import { format, parseISO, addDays, subDays } from 'date-fns'
 import { api } from '@/services/api'
 import { tenantKey } from '@/lib/query-keys'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
-import { formatDateLongSafe, formatDateTimeSafe, getCurrentDate } from '@/utils/dateHelpers'
+import { formatDateLongSafe, formatDateOnlySafe, formatDateTimeSafe, getCurrentDate } from '@/utils/dateHelpers'
 import { formatMedicationPresentation } from '@/utils/formatters'
 import { MedicationsCalendarModal } from '../MedicationsCalendarModal'
 import type { MedicationsViewProps, MedicationAdministration } from '../types'
@@ -53,6 +53,24 @@ function formatMedicationTitle(name?: string, concentration?: string): string {
 function isAdministrationEdited(administration: MedicationAdministration): boolean {
   if (!administration.createdAt || !administration.updatedAt) return false
   return new Date(administration.updatedAt).getTime() > new Date(administration.createdAt).getTime()
+}
+
+function getAdministrationMomentLabel(administration: MedicationAdministration): string {
+  const administrationTime = administration.actualTime || administration.scheduledTime
+
+  if (administration.date && administrationTime) {
+    return `${formatDateOnlySafe(administration.date)} ${administrationTime}`
+  }
+
+  if (administration.date) {
+    return formatDateOnlySafe(administration.date)
+  }
+
+  if (administrationTime) {
+    return `${formatDateOnlySafe(administration.createdAt)} ${administrationTime}`
+  }
+
+  return formatDateTimeSafe(administration.createdAt)
 }
 
 // ========== COMPONENT ==========
@@ -346,7 +364,7 @@ export function MedicationsView({
                   )}
                   <span>Por {admin.administeredBy}</span>
                   <span>•</span>
-                  <span>{formatDateTimeSafe(admin.createdAt)}</span>
+                  <span>{getAdministrationMomentLabel(admin)}</span>
                   {admin.checkedBy && (
                     <>
                       <span>•</span>

@@ -18,7 +18,7 @@ import { MedicalReviewPrescriptionDto } from './dto/medical-review-prescription.
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { startOfDay, endOfDay, addDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
-import { formatDateOnly } from '../utils/date.helpers';
+import { formatDateOnly, parseDateOnly } from '../utils/date.helpers';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { Readable } from 'stream';
@@ -434,7 +434,19 @@ export class PrescriptionsService {
             select: {
               id: true,
               name: true,
+              presentation: true,
+              concentration: true,
+              dose: true,
+              route: true,
               indication: true,
+              indicationDetails: true,
+              minInterval: true,
+              maxDailyDoses: true,
+              startDate: true,
+              endDate: true,
+              instructions: true,
+              createdAt: true,
+              updatedAt: true,
             },
           },
         },
@@ -1522,19 +1534,20 @@ export class PrescriptionsService {
       throw new NotFoundException('Medicação SOS não encontrada');
     }
 
-    // Verificar limite diário
-    // FIX TIMESTAMPTZ: Usar parseISO + startOfDay/endOfDay para range correto
-    const dateObj = parseISO(dto.date);
-    const dayStart = startOfDay(dateObj);
-    const dayEnd = endOfDay(dateObj);
+    // Normalizar data civil para padrão YYYY-MM-DD
+    const administrationDate = parseDateOnly(dto.date);
+    // Prisma @db.Date exige DateTime: usar meio-dia para evitar timezone shifts
+    const administrationDateValue = parseISO(`${administrationDate}T12:00:00.000`);
+    const requestedDateTime = this.parseAdministrationDateTime(
+      administrationDate,
+      dto.time,
+    );
 
     const todayCount = await this.tenantContext.client.sOSAdministration.count({
       where: {
         sosMedicationId: dto.sosMedicationId,
-        date: {
-          gte: dayStart,
-          lte: dayEnd,
-        },
+        deletedAt: null,
+        date: administrationDateValue,
       },
     });
 
@@ -1544,15 +1557,56 @@ export class PrescriptionsService {
       );
     }
 
+    // Verificar intervalo mínimo entre doses (incluindo bloqueio de mesmo horário)
+    const minIntervalMinutes = this.parseSOSMinIntervalToMinutes(sosMedication.minInterval);
+    const latestAdministration = await this.tenantContext.client.sOSAdministration.findFirst({
+      where: {
+        sosMedicationId: dto.sosMedicationId,
+        deletedAt: null,
+        OR: [
+          { date: { lt: administrationDateValue } },
+          {
+            date: administrationDateValue,
+            time: { lte: dto.time },
+          },
+        ],
+      },
+      select: {
+        date: true,
+        time: true,
+      },
+      orderBy: [
+        { date: 'desc' },
+        { time: 'desc' },
+      ],
+    });
+
+    if (latestAdministration) {
+      const latestDate = formatDateOnly(latestAdministration.date);
+      const latestDateTime = this.parseAdministrationDateTime(
+        latestDate,
+        latestAdministration.time,
+      );
+      const elapsedMinutes = Math.floor(
+        (requestedDateTime.getTime() - latestDateTime.getTime()) / (1000 * 60),
+      );
+
+      if (elapsedMinutes < minIntervalMinutes) {
+        const remainingMinutes = minIntervalMinutes - Math.max(elapsedMinutes, 0);
+        throw new BadRequestException(
+          `Intervalo mínimo de ${sosMedication.minInterval} não respeitado. Aguarde ${this.formatMinutesLabel(remainingMinutes)} para nova administração.`,
+        );
+      }
+    }
+
     // Criar registro de administração SOS
-    // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
     const administration = await this.tenantContext.client.sOSAdministration.create({
       data: {
         tenantId: this.tenantContext.tenantId,
         prescriptionId: sosMedication.prescriptionId,
         sosMedicationId: dto.sosMedicationId,
         residentId: sosMedication.prescription.residentId,
-        date: parseISO(`${dto.date}T12:00:00.000`),
+        date: administrationDateValue,
         time: dto.time,
         indication: dto.indication,
         administeredBy: dto.administeredBy,
@@ -1635,10 +1689,13 @@ export class PrescriptionsService {
     // Validar residente existe
     await this.validateResidentExists(residentId);
 
-    // FIX TIMESTAMPTZ: Calcular primeiro e último dia do mês usando date-fns
+    // Calcular primeiro e último dia do mês como data civil (YYYY-MM-DD)
     const referenceDate = new Date(year, month - 1, 1);
-    const firstDay = startOfMonth(referenceDate);
-    const lastDay = endOfMonth(referenceDate);
+    const firstDay = formatDateOnly(startOfMonth(referenceDate));
+    const lastDay = formatDateOnly(endOfMonth(referenceDate));
+    // Prisma @db.Date exige DateTime: usar meio-dia para evitar timezone shifts
+    const firstDayValue = parseISO(`${firstDay}T12:00:00.000`);
+    const lastDayValue = parseISO(`${lastDay}T12:00:00.000`);
 
     // Buscar administrações contínuas do residente no período (excluindo soft deleted)
     const continuousAdministrations = await this.tenantContext.client.medicationAdministration.findMany({
@@ -1646,8 +1703,8 @@ export class PrescriptionsService {
         residentId,
         deletedAt: null,
         date: {
-          gte: firstDay,
-          lte: lastDay,
+          gte: firstDayValue,
+          lte: lastDayValue,
         },
       },
       select: {
@@ -1665,8 +1722,8 @@ export class PrescriptionsService {
         residentId,
         deletedAt: null,
         date: {
-          gte: firstDay,
-          lte: lastDay,
+          gte: firstDayValue,
+          lte: lastDayValue,
         },
       },
       select: {
@@ -1683,20 +1740,12 @@ export class PrescriptionsService {
 
     // Adicionar datas contínuas
     continuousAdministrations.forEach((admin) => {
-      const date = new Date(admin.date);
-      const yearStr = date.getFullYear();
-      const monthStr = String(date.getMonth() + 1).padStart(2, '0');
-      const dayStr = String(date.getDate()).padStart(2, '0');
-      allDates.add(`${yearStr}-${monthStr}-${dayStr}`);
+      allDates.add(formatDateOnly(admin.date));
     });
 
     // Adicionar datas SOS
     sosAdministrations.forEach((admin) => {
-      const date = new Date(admin.date);
-      const yearStr = date.getFullYear();
-      const monthStr = String(date.getMonth() + 1).padStart(2, '0');
-      const dayStr = String(date.getDate()).padStart(2, '0');
-      allDates.add(`${yearStr}-${monthStr}-${dayStr}`);
+      allDates.add(formatDateOnly(admin.date));
     });
 
     // Converter Set para Array e ordenar
@@ -1720,20 +1769,16 @@ export class PrescriptionsService {
       throw new BadRequestException('Data inválida. Use o formato YYYY-MM-DD');
     }
 
-    // FIX TIMESTAMPTZ: Converter string para Date range usando date-fns
-    const dateObj = parseISO(dateStr);
-    const dayStart = startOfDay(dateObj);
-    const dayEnd = endOfDay(dateObj);
+    const normalizedDate = parseDateOnly(dateStr);
+    // Prisma @db.Date exige DateTime: usar meio-dia para evitar timezone shifts
+    const normalizedDateValue = parseISO(`${normalizedDate}T12:00:00.000`);
 
     // Buscar administrações contínuas da data (excluindo soft deleted)
     const continuousAdministrations = await this.tenantContext.client.medicationAdministration.findMany({
       where: {
         residentId,
         deletedAt: null,
-        date: {
-          gte: dayStart,
-          lte: dayEnd,
-        },
+        date: normalizedDateValue,
       },
       include: {
         medication: {
@@ -1760,10 +1805,7 @@ export class PrescriptionsService {
       where: {
         residentId,
         deletedAt: null,
-        date: {
-          gte: dayStart,
-          lte: dayEnd,
-        },
+        date: normalizedDateValue,
       },
       include: {
         sosMedication: {
@@ -1796,6 +1838,7 @@ export class PrescriptionsService {
       id: admin.id,
       tenantId: admin.tenantId,
       residentId: admin.residentId,
+      sosMedicationId: admin.sosMedicationId,
       date: admin.date,
       scheduledTime: null, // SOS não tem horário programado
       actualTime: admin.time || null,
@@ -1819,7 +1862,8 @@ export class PrescriptionsService {
         requiresDoubleCheck: false,
       } : null,
       // Informações adicionais do SOS
-      indication: admin.sosMedication?.indication,
+      // Usa a indicação registrada na administração (texto livre), não o enum da prescrição
+      indication: admin.indication,
     }));
 
     // Combinar e ordenar por horário
@@ -1841,6 +1885,75 @@ export class PrescriptionsService {
   }
 
   // ========== VALIDAÇÕES PRIVADAS ==========
+
+  /**
+   * Converte data (YYYY-MM-DD) e horário (HH:mm) para Date local
+   */
+  private parseAdministrationDateTime(date: string, time: string): Date {
+    const dateTime = parseISO(`${date}T${time}:00`);
+    if (Number.isNaN(dateTime.getTime())) {
+      throw new BadRequestException(
+        'Data/hora da administração SOS inválida',
+      );
+    }
+    return dateTime;
+  }
+
+  /**
+   * Converte intervalo mínimo de SOS para minutos
+   * Formatos aceitos: "4h", "4 horas", "240min", "04:00", "6"
+   */
+  private parseSOSMinIntervalToMinutes(minInterval: string): number {
+    const normalized = minInterval?.trim().toLowerCase();
+    if (!normalized) {
+      throw new BadRequestException(
+        'Intervalo mínimo da medicação SOS está inválido. Revise a prescrição.',
+      );
+    }
+
+    const hhmmMatch = normalized.match(/^(\d{1,2}):([0-5]\d)$/);
+    if (hhmmMatch) {
+      const hours = parseInt(hhmmMatch[1], 10);
+      const minutes = parseInt(hhmmMatch[2], 10);
+      const totalMinutes = hours * 60 + minutes;
+      if (totalMinutes > 0) return totalMinutes;
+    }
+
+    const numberMatch = normalized.match(/(\d+(?:[.,]\d+)?)/);
+    if (!numberMatch) {
+      throw new BadRequestException(
+        'Intervalo mínimo da medicação SOS está inválido. Revise a prescrição.',
+      );
+    }
+
+    const numericValue = Number.parseFloat(numberMatch[1].replace(',', '.'));
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      throw new BadRequestException(
+        'Intervalo mínimo da medicação SOS está inválido. Revise a prescrição.',
+      );
+    }
+
+    // Se explicitamente em minutos, usa valor direto
+    if (normalized.includes('min')) {
+      return Math.round(numericValue);
+    }
+
+    // Padrão do domínio é horas (ex: "4h", "6 horas", "6")
+    return Math.round(numericValue * 60);
+  }
+
+  /**
+   * Formata minutos para mensagem amigável
+   */
+  private formatMinutesLabel(totalMinutes: number): string {
+    const safeMinutes = Math.max(0, Math.ceil(totalMinutes));
+    const hours = Math.floor(safeMinutes / 60);
+    const minutes = safeMinutes % 60;
+
+    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}min`;
+    if (hours > 0) return `${hours}h`;
+    return `${minutes}min`;
+  }
 
   /**
    * Valida formato de horários (HH:mm)

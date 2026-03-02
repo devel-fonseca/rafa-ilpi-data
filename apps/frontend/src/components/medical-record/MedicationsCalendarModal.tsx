@@ -20,14 +20,15 @@ import { tenantKey } from '@/lib/query-keys'
 import { RecordCalendar } from '@/components/calendar/RecordCalendar'
 import { useResidentMedicationDates } from '@/hooks/useResidentMedicationDates'
 import { formatMedicationPresentation } from '@/utils/formatters'
-import { formatDateTimeSafe } from '@/utils/dateHelpers'
+import { formatDateOnlySafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 
 // ========== TYPES ==========
 
 interface MedicationAdministration {
   id: string
-  type: 'ROUTINE' | 'SOS'
+  type: 'ROUTINE' | 'CONTINUOUS' | 'SOS'
   wasAdministered: boolean
+  date?: string
   scheduledTime?: string
   actualTime?: string
   administeredBy: string
@@ -55,6 +56,24 @@ function formatMedicationTitle(name?: string, concentration?: string): string {
   if (normalizedName.includes(normalizedConcentration)) return name
 
   return `${name} ${concentration}`
+}
+
+function getAdministrationMomentLabel(administration: MedicationAdministration): string {
+  const administrationTime = administration.actualTime || administration.scheduledTime
+
+  if (administration.date && administrationTime) {
+    return `${formatDateOnlySafe(administration.date)} ${administrationTime}`
+  }
+
+  if (administration.date) {
+    return formatDateOnlySafe(administration.date)
+  }
+
+  if (administrationTime) {
+    return `${formatDateOnlySafe(administration.createdAt)} ${administrationTime}`
+  }
+
+  return formatDateTimeSafe(administration.createdAt)
 }
 
 interface MedicationsCalendarModalProps {
@@ -268,7 +287,7 @@ export function MedicationsCalendarModal({
                           )}
                           <span>Por {admin.administeredBy}</span>
                           <span>•</span>
-                          <span>{formatDateTimeSafe(admin.createdAt)}</span>
+                          <span>{getAdministrationMomentLabel(admin)}</span>
                           {admin.checkedBy && (
                             <>
                               <span>•</span>
