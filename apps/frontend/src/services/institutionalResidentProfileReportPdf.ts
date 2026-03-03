@@ -493,7 +493,7 @@ class InstitutionalResidentProfileReportPDFGenerator {
         ['Sem contato de emergência', String(report.governanceQualityIndicators.residentsWithoutEmergencyContact)],
         ['Sem leito definido', String(report.governanceQualityIndicators.residentsWithoutBed)],
         ['Sem contrato vigente', String(report.governanceQualityIndicators.residentsWithoutActiveContract)],
-        ['Com campos críticos incompletos', String(report.governanceQualityIndicators.residentsWithCriticalIncompleteFields)],
+        ['Com pendências críticas', String(report.governanceQualityIndicators.residentsWithCriticalIncompleteFields)],
       ],
       theme: 'grid',
       styles: { fontSize: FONTS.body, cellPadding: 2, lineColor: COLORS.border, lineWidth: 0.1, fillColor: summaryFill },
@@ -509,7 +509,7 @@ class InstitutionalResidentProfileReportPDFGenerator {
     if (report.criticalIncompleteResidents.length > 0) {
       autoTable(this.doc, {
         startY: currentY + 4,
-        head: [['Residente', 'Leito', 'Qtd', 'Campos incompletos']],
+        head: [['Residente', 'Leito', 'Qtd. pendências', 'Pendências críticas']],
         body: report.criticalIncompleteResidents.map((item) => [
           item.residentName,
           item.bedCode || '-',

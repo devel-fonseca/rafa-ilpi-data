@@ -1491,6 +1491,7 @@ export class ReportsService {
     const timezone = tenant?.timezone || 'America/Sao_Paulo';
     const referenceDateOnly = asOfDate ? parseDateOnly(asOfDate) : getCurrentDateInTz(timezone);
     const referenceDate = new Date(`${referenceDateOnly}T12:00:00.000Z`);
+    const { end: referenceDayEnd } = getDayRangeInTz(referenceDateOnly, timezone);
     const normalizedTrendMonths = this.normalizeTrendMonths(trendMonths);
     const anthropometryRecencyDays = 90;
     const anthropometryRecentThreshold = new Date(referenceDate);
@@ -1498,23 +1499,50 @@ export class ReportsService {
 
     const residents = await this.tenantContext.client.resident.findMany({
       where: {
-        status: 'Ativo',
-        deletedAt: null,
+        admissionDate: { lte: referenceDate },
+        OR: [{ dischargeDate: null }, { dischargeDate: { gte: referenceDate } }],
+        AND: [
+          {
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+          },
+        ],
       },
       select: {
         id: true,
         fullName: true,
         gender: true,
         birthDate: true,
+        cns: true,
         admissionDate: true,
         legalGuardianName: true,
         emergencyContacts: true,
         bed: { select: { code: true } },
+        bloodTypeRecord: {
+          where: {
+            createdAt: { lte: referenceDayEnd },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+            AND: [{ OR: [{ confirmedAt: null }, { confirmedAt: { lte: referenceDate } }] }],
+          },
+          select: { bloodType: true },
+        },
+        bedTransferHistory: {
+          where: {
+            transferredAt: { lte: referenceDayEnd },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+          },
+          select: {
+            toBed: { select: { code: true } },
+          },
+          orderBy: { transferredAt: 'desc' },
+          take: 1,
+        },
         dependencyAssessments: {
           where: {
-            deletedAt: null,
             effectiveDate: { lte: referenceDate },
-            OR: [{ endDate: null }, { endDate: { gte: referenceDate } }],
+            AND: [
+              { OR: [{ endDate: null }, { endDate: { gte: referenceDate } }] },
+              { OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }] },
+            ],
           },
           select: {
             dependencyLevel: true,
@@ -1525,7 +1553,10 @@ export class ReportsService {
           take: 1,
         },
         anthropometryRecords: {
-          where: { deletedAt: null },
+          where: {
+            measurementDate: { lte: referenceDate },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+          },
           orderBy: [{ measurementDate: 'desc' }, { createdAt: 'desc' }],
           take: 1,
           select: {
@@ -1536,7 +1567,10 @@ export class ReportsService {
           },
         },
         clinicalProfile: {
-          where: { deletedAt: null },
+          where: {
+            createdAt: { lte: referenceDayEnd },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+          },
           select: {
             healthStatus: true,
             specialNeeds: true,
@@ -1544,33 +1578,64 @@ export class ReportsService {
           },
         },
         conditions: {
-          where: { deletedAt: null },
+          where: {
+            createdAt: { lte: referenceDayEnd },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+          },
           select: {
             condition: true,
             contraindications: true,
           },
         },
         allergies: {
-          where: { deletedAt: null },
+          where: {
+            createdAt: { lte: referenceDayEnd },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+          },
           select: {
             severity: true,
             contraindications: true,
           },
         },
         dietaryRestrictions: {
-          where: { deletedAt: null },
+          where: {
+            createdAt: { lte: referenceDayEnd },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+          },
           select: {
             restrictionType: true,
             contraindications: true,
           },
         },
         prescriptions: {
-          where: { isActive: true, deletedAt: null },
+          where: {
+            createdAt: { lte: referenceDayEnd },
+            prescriptionDate: { lte: referenceDate },
+            OR: [{ validUntil: null }, { validUntil: { gte: referenceDate } }],
+            AND: [
+              { OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }] },
+              {
+                OR: [
+                  { isActive: true },
+                  {
+                    AND: [
+                      { isActive: false },
+                      { updatedAt: { gt: referenceDayEnd } },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
           select: {
             medications: {
               where: {
-                deletedAt: null,
+                startDate: { lte: referenceDate },
                 OR: [{ endDate: null }, { endDate: { gte: referenceDate } }],
+                AND: [
+                  { createdAt: { lte: referenceDayEnd } },
+                  { OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }] },
+                ],
               },
               select: { id: true },
             },
@@ -1578,12 +1643,14 @@ export class ReportsService {
         },
         contracts: {
           where: {
-            deletedAt: null,
-            rescindedAt: null,
             startDate: { lte: referenceDate },
             OR: [
               { isIndefinite: true },
               { endDate: { gte: referenceDate } },
+            ],
+            AND: [
+              { OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }] },
+              { OR: [{ rescindedAt: null }, { rescindedAt: { gt: referenceDayEnd } }] },
             ],
           },
           select: { id: true },
@@ -1591,8 +1658,21 @@ export class ReportsService {
         },
         scheduleConfigs: {
           where: {
-            deletedAt: null,
-            isActive: true,
+            createdAt: { lte: referenceDayEnd },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+            AND: [
+              {
+                OR: [
+                  { isActive: true },
+                  {
+                    AND: [
+                      { isActive: false },
+                      { updatedAt: { gt: referenceDayEnd } },
+                    ],
+                  },
+                ],
+              },
+            ],
           },
           select: {
             recordType: true,
@@ -1683,13 +1763,15 @@ export class ReportsService {
     const residentRows = residents.map((resident) => {
       const age = this.calculateAge(resident.birthDate, referenceDate);
       const stayDays = this.calculateDaysDifference(resident.admissionDate, referenceDate);
+      const bedCodeAtReference =
+        resident.bedTransferHistory[0]?.toBed?.code || resident.bed?.code || null;
       totalAge += age;
       totalStayDays += stayDays;
       minAge = minAge === 0 ? age : Math.min(minAge, age);
       maxAge = Math.max(maxAge, age);
 
       if (resident.legalGuardianName) residentsWithLegalGuardian += 1;
-      if (!resident.bed?.code) residentsWithoutBed += 1;
+      if (!bedCodeAtReference) residentsWithoutBed += 1;
 
       if (age >= 60 && age <= 69) {
         ageRanges.set('60-69', (ageRanges.get('60-69') || 0) + 1);
@@ -1816,21 +1898,25 @@ export class ReportsService {
       if (hasContraindications) residentsWithContraindications += 1;
 
       const missingFields: string[] = [];
-      if (!resident.legalGuardianName) missingFields.push('Responsável legal');
-      if (!hasEmergencyContact) missingFields.push('Contato de emergência');
-      if (!resident.bed?.code) missingFields.push('Leito definido');
-      if (!hasActiveContract) missingFields.push('Contrato vigente');
-      if (!assessment) missingFields.push('Avaliação de dependência vigente');
-      if (!hasClinicalProfile) missingFields.push('Perfil clínico preenchido');
+      if (!resident.legalGuardianName) missingFields.push('Responsável legal não informado');
+      if (!hasEmergencyContact) missingFields.push('Contato de emergência não informado');
+      if (!resident.cns?.trim()) missingFields.push('CNS não informado');
+      if (!bedCodeAtReference) missingFields.push('Leito não definido');
+      if (!resident.bloodTypeRecord || resident.bloodTypeRecord.bloodType === 'NAO_INFORMADO') {
+        missingFields.push('Tipo sanguíneo não informado');
+      }
+      if (!hasActiveContract) missingFields.push('Contrato vigente ausente');
+      if (!assessment) missingFields.push('Avaliação de dependência vigente ausente');
+      if (!hasClinicalProfile) missingFields.push('Perfil clínico não preenchido');
       if (!hasRecentAnthropometry) {
-        missingFields.push(`Antropometria recente (${anthropometryRecencyDays} dias)`);
+        missingFields.push(`Antropometria recente ausente (últimos ${anthropometryRecencyDays} dias)`);
       }
       if (missingFields.length > 0) {
         residentsWithCriticalIncompleteFields += 1;
         criticalIncompleteResidents.push({
           residentId: resident.id,
           residentName: resident.fullName,
-          bedCode: resident.bed?.code || null,
+          bedCode: bedCodeAtReference,
           missingFieldsCount: missingFields.length,
           missingFields,
         });
@@ -1840,7 +1926,7 @@ export class ReportsService {
         id: resident.id,
         fullName: resident.fullName,
         age,
-        bedCode: resident.bed?.code || null,
+        bedCode: bedCodeAtReference,
         dependencyLevel: this.formatDependencyLevelCompact(assessment?.dependencyLevel),
         mobilityAid: Boolean(assessment?.mobilityAid),
         dependencyAssessmentDate: assessment?.effectiveDate
@@ -2181,17 +2267,17 @@ export class ReportsService {
       const [activeResidents, dailyRecordsCount, medicationAdministrationsCount] = await Promise.all([
         this.tenantContext.client.resident.findMany({
           where: {
-            deletedAt: null,
             admissionDate: { lte: window.endDate },
             OR: [{ dischargeDate: null }, { dischargeDate: { gte: window.endDate } }],
+            AND: [{ OR: [{ deletedAt: null }, { deletedAt: { gt: window.endDate } }] }],
           },
           select: {
             id: true,
             dependencyAssessments: {
               where: {
-                deletedAt: null,
                 effectiveDate: { lte: window.endDate },
                 OR: [{ endDate: null }, { endDate: { gte: window.endDate } }],
+                AND: [{ OR: [{ deletedAt: null }, { deletedAt: { gt: window.endDate } }] }],
               },
               select: { dependencyLevel: true },
               orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],

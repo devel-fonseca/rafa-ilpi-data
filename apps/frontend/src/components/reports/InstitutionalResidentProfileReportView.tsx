@@ -421,7 +421,7 @@ export function InstitutionalResidentProfileReportView({
               </p>
             </div>
             <div className="rounded-lg border bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Com campos críticos incompletos</p>
+              <p className="text-xs text-muted-foreground">Com pendências críticas</p>
               <p className="text-2xl font-semibold">
                 {report.governanceQualityIndicators.residentsWithCriticalIncompleteFields}
               </p>
@@ -435,8 +435,8 @@ export function InstitutionalResidentProfileReportView({
                   <TableRow>
                     <TableHead>Residente</TableHead>
                     <TableHead>Leito</TableHead>
-                    <TableHead className="text-center">Campos faltantes</TableHead>
-                    <TableHead>Itens críticos incompletos</TableHead>
+                    <TableHead className="text-center">Qtd. pendências</TableHead>
+                    <TableHead>Pendências críticas</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
