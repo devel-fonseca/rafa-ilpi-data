@@ -22,6 +22,14 @@ import {
 import type { CreateMedicationDto, MedicationPresentation, AdministrationRoute, MedicationFrequency } from '@/api/prescriptions.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { formatMedicationPresentation } from '@/utils/formatters'
+import {
+  formatScheduledWeekDays,
+  getRequiredWeekDaysForFrequency,
+  isWeeklyMedicationFrequency,
+  normalizeScheduledWeekDays,
+  WEEKDAY_OPTIONS,
+} from '@/utils/medicationSchedule'
+import { toast } from 'sonner'
 
 interface MedicationModalProps {
   open: boolean
@@ -53,6 +61,8 @@ const ROUTES = [
 const FREQUENCIES = [
   { value: 'UMA_VEZ_DIA', label: '1x ao dia', times: ['08:00'] },
   { value: 'DUAS_VEZES_DIA', label: '2x ao dia', times: ['08:00', '20:00'] },
+  { value: 'UMA_VEZ_SEMANA', label: '1x por semana', times: ['08:00'] },
+  { value: 'DUAS_VEZES_SEMANA', label: '2x por semana', times: ['08:00'] },
   { value: 'SEIS_SEIS_H', label: '6/6h', times: ['06:00', '12:00', '18:00', '00:00'] },
   { value: 'OITO_OITO_H', label: '8/8h', times: ['08:00', '16:00', '00:00'] },
   { value: 'DOZE_DOZE_H', label: '12/12h', times: ['08:00', '20:00'] },
@@ -82,6 +92,7 @@ export function MedicationModal({
       route: 'VO',
       frequency: 'UMA_VEZ_DIA',
       scheduledTimes: ['08:00'],
+      scheduledWeekDays: [],
       startDate: getCurrentDate(),
       isControlled: false,
       isHighRisk: false,
@@ -92,16 +103,51 @@ export function MedicationModal({
 
   const frequency = watch('frequency')
   const scheduledTimes = watch('scheduledTimes')
+  const scheduledWeekDays = watch('scheduledWeekDays')
+
+  const isWeekly = isWeeklyMedicationFrequency(frequency)
 
   // Atualizar horários quando frequência muda
   useEffect(() => {
     if (frequency !== 'PERSONALIZADO') {
       const freq = FREQUENCIES.find((f) => f.value === frequency)
-      if (freq && freq.times.length > 0) {
+      if (
+        freq &&
+        freq.times.length > 0 &&
+        JSON.stringify(scheduledTimes) !== JSON.stringify(freq.times)
+      ) {
         setValue('scheduledTimes', freq.times)
       }
     }
-  }, [frequency, setValue])
+
+    const normalizedDays = normalizeScheduledWeekDays(scheduledWeekDays)
+
+    if (isWeeklyMedicationFrequency(frequency)) {
+      const requiredDays = getRequiredWeekDaysForFrequency(frequency)
+      let nextWeekDays = normalizedDays
+
+      if (requiredDays === 1) {
+        nextWeekDays = normalizedDays.length > 0 ? [normalizedDays[0]] : [1]
+      } else if (requiredDays === 2) {
+        if (normalizedDays.length === 0) {
+          nextWeekDays = [1, 4]
+        } else if (normalizedDays.length === 1) {
+          const secondDay = normalizedDays[0] === 4 ? 1 : 4
+          nextWeekDays = normalizeScheduledWeekDays([normalizedDays[0], secondDay])
+        } else {
+          nextWeekDays = normalizedDays.slice(0, 2)
+        }
+      }
+
+      if (JSON.stringify(normalizedDays) !== JSON.stringify(nextWeekDays)) {
+        setValue('scheduledWeekDays', nextWeekDays)
+      }
+    } else {
+      if (normalizedDays.length > 0) {
+        setValue('scheduledWeekDays', [])
+      }
+    }
+  }, [frequency, scheduledTimes, scheduledWeekDays, setValue])
 
   // Reset form quando modal abre/fecha
   useEffect(() => {
@@ -117,6 +163,7 @@ export function MedicationModal({
 
       reset({
         ...initialData,
+        scheduledWeekDays: normalizeScheduledWeekDays(initialData.scheduledWeekDays),
         startDate: convertDateToLocal(initialData.startDate),
         endDate: initialData.endDate ? convertDateToLocal(initialData.endDate) : undefined,
       })
@@ -129,6 +176,7 @@ export function MedicationModal({
         route: 'VO',
         frequency: 'UMA_VEZ_DIA',
         scheduledTimes: ['08:00'],
+        scheduledWeekDays: [],
         startDate: getCurrentDate(),
         isControlled: false,
         isHighRisk: false,
@@ -139,7 +187,44 @@ export function MedicationModal({
   }, [open, initialData, reset])
 
   const onSubmit = (data: CreateMedicationDto) => {
-    onSave(data)
+    const normalizedTimes = (data.scheduledTimes || []).map((time) => time?.trim()).filter(Boolean)
+
+    if (normalizedTimes.length === 0) {
+      toast.error('Informe pelo menos um horário programado')
+      return
+    }
+
+    if (isWeeklyMedicationFrequency(data.frequency)) {
+      const normalizedDays = normalizeScheduledWeekDays(data.scheduledWeekDays)
+      const requiredDays = getRequiredWeekDaysForFrequency(data.frequency)
+
+      if (normalizedTimes.length !== 1) {
+        toast.error('Medicamentos semanais devem ter exatamente 1 horário programado')
+        return
+      }
+
+      if (normalizedDays.length !== requiredDays) {
+        toast.error(
+          requiredDays === 1
+            ? 'Selecione 1 dia da semana para a frequência semanal'
+            : 'Selecione 2 dias da semana para a frequência semanal',
+        )
+        return
+      }
+
+      onSave({
+        ...data,
+        scheduledTimes: normalizedTimes,
+        scheduledWeekDays: normalizedDays,
+      })
+      return
+    }
+
+    onSave({
+      ...data,
+      scheduledTimes: normalizedTimes,
+      scheduledWeekDays: [],
+    })
   }
 
   const handleAddTime = () => {
@@ -155,6 +240,30 @@ export function MedicationModal({
     const newTimes = [...scheduledTimes]
     newTimes[index] = value
     setValue('scheduledTimes', newTimes)
+  }
+
+  const handleWeekDayToggle = (day: number) => {
+    if (!isWeeklyMedicationFrequency(frequency)) return
+
+    const requiredDays = getRequiredWeekDaysForFrequency(frequency)
+    const normalizedDays = normalizeScheduledWeekDays(scheduledWeekDays)
+    const isSelected = normalizedDays.includes(day)
+
+    if (requiredDays === 1) {
+      setValue('scheduledWeekDays', [day])
+      return
+    }
+
+    if (isSelected) {
+      setValue(
+        'scheduledWeekDays',
+        normalizedDays.filter((weekDay) => weekDay !== day),
+      )
+      return
+    }
+
+    const nextDays = normalizeScheduledWeekDays([...normalizedDays, day]).slice(0, requiredDays)
+    setValue('scheduledWeekDays', nextDays)
   }
 
   return (
@@ -272,7 +381,7 @@ export function MedicationModal({
           {/* Horários Programados */}
           <div>
             <div className="flex justify-between items-center mb-2">
-              <Label>Horários Programados *</Label>
+              <Label>{isWeekly ? 'Horário Programado *' : 'Horários Programados *'}</Label>
               {frequency === 'PERSONALIZADO' && (
                 <Button
                   type="button"
@@ -291,7 +400,7 @@ export function MedicationModal({
                     type="time"
                     value={time}
                     onChange={(e) => handleTimeChange(index, e.target.value)}
-                    disabled={frequency !== 'PERSONALIZADO'}
+                    disabled={frequency !== 'PERSONALIZADO' && !isWeekly}
                   />
                   {frequency === 'PERSONALIZADO' && scheduledTimes.length > 1 && (
                     <Button
@@ -306,7 +415,39 @@ export function MedicationModal({
                 </div>
               ))}
             </div>
+            {isWeekly && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Dias selecionados: {formatScheduledWeekDays(scheduledWeekDays)}
+              </p>
+            )}
           </div>
+
+          {isWeekly && (
+            <div>
+              <Label>Dias da Semana *</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {WEEKDAY_OPTIONS.map((day) => {
+                  const selected = normalizeScheduledWeekDays(scheduledWeekDays).includes(day.value)
+                  return (
+                    <Button
+                      key={day.value}
+                      type="button"
+                      size="sm"
+                      variant={selected ? 'default' : 'outline'}
+                      onClick={() => handleWeekDayToggle(day.value)}
+                    >
+                      {day.label}
+                    </Button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {frequency === 'UMA_VEZ_SEMANA'
+                  ? 'Selecione 1 dia da semana.'
+                  : 'Selecione 2 dias da semana.'}
+              </p>
+            </div>
+          )}
 
           {/* Datas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

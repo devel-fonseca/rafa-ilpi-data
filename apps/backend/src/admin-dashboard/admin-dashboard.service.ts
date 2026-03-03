@@ -47,6 +47,31 @@ export class AdminDashboardService {
     return `admin-dashboard:overview:${this.tenantContext.tenantId}:${userId}`;
   }
 
+  private parseScheduledWeekDays(value: unknown): number[] {
+    if (!Array.isArray(value)) return [];
+
+    const validDays = value
+      .filter((day): day is number => Number.isInteger(day))
+      .filter((day) => day >= 0 && day <= 6);
+
+    return Array.from(new Set(validDays));
+  }
+
+  private shouldScheduleMedicationOnDay(
+    frequency: string,
+    scheduledWeekDays: unknown,
+    targetDate: Date,
+  ): boolean {
+    if (frequency !== 'UMA_VEZ_SEMANA' && frequency !== 'DUAS_VEZES_SEMANA') {
+      return true;
+    }
+
+    const weekDays = this.parseScheduledWeekDays(scheduledWeekDays);
+    if (weekDays.length === 0) return false;
+
+    return weekDays.includes(targetDate.getDay());
+  }
+
   private async getTenantTimezone(): Promise<string> {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: this.tenantContext.tenantId },
@@ -393,6 +418,16 @@ export class AdminDashboardService {
 
     for (const prescription of prescriptions) {
       for (const medication of prescription.medications) {
+        if (
+          !this.shouldScheduleMedicationOnDay(
+            medication.frequency,
+            medication.scheduledWeekDays,
+            today,
+          )
+        ) {
+          continue;
+        }
+
         const scheduledTimes = medication.scheduledTimes as string[]
         if (scheduledTimes && Array.isArray(scheduledTimes)) {
           for (const time of scheduledTimes) {
@@ -519,6 +554,16 @@ export class AdminDashboardService {
       let scheduled = 0
       for (const prescription of prescriptions) {
         for (const medication of prescription.medications) {
+          if (
+            !this.shouldScheduleMedicationOnDay(
+              medication.frequency,
+              medication.scheduledWeekDays,
+              dayStart,
+            )
+          ) {
+            continue;
+          }
+
           const scheduledTimes = medication.scheduledTimes as string[]
           if (scheduledTimes && Array.isArray(scheduledTimes)) {
             scheduled += scheduledTimes.length

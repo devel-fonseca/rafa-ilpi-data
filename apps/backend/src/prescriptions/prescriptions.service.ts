@@ -192,7 +192,11 @@ export class PrescriptionsService {
       // 3. Validar horários dos medicamentos contínuos (se houver)
       if (createPrescriptionDto.medications && createPrescriptionDto.medications.length > 0) {
         for (const medication of createPrescriptionDto.medications) {
-          this.validateScheduledTimes(medication.scheduledTimes);
+          this.validateMedicationSchedule(
+            medication.frequency,
+            medication.scheduledTimes,
+            medication.scheduledWeekDays,
+          );
         }
       }
 
@@ -230,6 +234,10 @@ export class PrescriptionsService {
                 route: med.route as AdministrationRoute,
                 frequency: med.frequency as MedicationFrequency,
                 scheduledTimes: med.scheduledTimes,
+                scheduledWeekDays: this.normalizeMedicationScheduledWeekDays(
+                  med.frequency,
+                  med.scheduledWeekDays,
+                ),
                 startDate: new Date(med.startDate),
                 endDate: med.endDate ? new Date(med.endDate) : null,
                 isControlled: med.isControlled || false,
@@ -406,6 +414,7 @@ export class PrescriptionsService {
               route: true,
               frequency: true,
               scheduledTimes: true,
+              scheduledWeekDays: true,
               startDate: true,
               endDate: true,
               isControlled: true,
@@ -1967,6 +1976,62 @@ export class PrescriptionsService {
           `Horário inválido: ${time}. Use o formato HH:mm`,
         );
       }
+    }
+  }
+
+  private normalizeScheduledWeekDays(weekDays: unknown): number[] {
+    if (!Array.isArray(weekDays)) return [];
+
+    const validWeekDays = weekDays
+      .filter((day): day is number => Number.isInteger(day))
+      .filter((day) => day >= 0 && day <= 6);
+
+    return Array.from(new Set(validWeekDays)).sort((a, b) => a - b);
+  }
+
+  private isWeeklyMedicationFrequency(frequency: string): boolean {
+    return frequency === 'UMA_VEZ_SEMANA' || frequency === 'DUAS_VEZES_SEMANA';
+  }
+
+  private normalizeMedicationScheduledWeekDays(
+    frequency: string,
+    scheduledWeekDays: unknown,
+  ): number[] {
+    if (!this.isWeeklyMedicationFrequency(frequency)) {
+      return [];
+    }
+    return this.normalizeScheduledWeekDays(scheduledWeekDays);
+  }
+
+  private validateMedicationSchedule(
+    frequency: string,
+    scheduledTimes: string[],
+    scheduledWeekDays?: unknown,
+  ): void {
+    if (!Array.isArray(scheduledTimes) || scheduledTimes.length === 0) {
+      throw new BadRequestException('Informe pelo menos um horário programado');
+    }
+
+    this.validateScheduledTimes(scheduledTimes);
+
+    if (!this.isWeeklyMedicationFrequency(frequency)) {
+      return;
+    }
+
+    if (scheduledTimes.length !== 1) {
+      throw new BadRequestException(
+        'Medicamentos semanais devem possuir exatamente 1 horário programado',
+      );
+    }
+
+    const normalizedWeekDays = this.normalizeScheduledWeekDays(scheduledWeekDays);
+    const requiredDays = frequency === 'UMA_VEZ_SEMANA' ? 1 : 2;
+
+    if (normalizedWeekDays.length !== requiredDays) {
+      const label = requiredDays === 1 ? '1 dia da semana' : '2 dias da semana';
+      throw new BadRequestException(
+        `Frequência semanal requer ${label} selecionado(s)`,
+      );
     }
   }
 

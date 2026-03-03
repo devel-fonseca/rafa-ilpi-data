@@ -4,6 +4,7 @@ import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import type { DailyTask } from './useResidentSchedule'
 import { tenantKey } from '@/lib/query-keys'
 import { useDailyEvents } from './useDailyEvents'
+import { isMedicationScheduledForDate } from '@/utils/medicationSchedule'
 
 // ──────────────────────────────────────────────────────────────────────────
 // INTERFACES
@@ -55,7 +56,9 @@ interface Prescription {
     concentration: string
     dose: string
     route: string
+    frequency: string
     scheduledTimes: string[]
+    scheduledWeekDays?: number[]
     requiresDoubleCheck?: boolean
     administrations: Array<{
       id: string
@@ -142,6 +145,10 @@ export function useCaregiverTasks(date?: string) {
 
       prescriptions.forEach((prescription) => {
         prescription.medications.forEach((medication) => {
+          if (!isMedicationScheduledForDate(medication.frequency, medication.scheduledWeekDays, today)) {
+            return
+          }
+
           // Para cada horário programado
           medication.scheduledTimes.forEach((scheduledTime) => {
             // Verificar se existe administração para ESTE horário HOJE

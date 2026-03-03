@@ -10,9 +10,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api } from '@/services/api'
 import { tenantKey } from '@/lib/query-keys'
 import { calculateAge } from '@/lib/utils'
-import { formatMedicationPresentation } from '@/utils/formatters'
+import { formatMedicationPresentation, formatMedicationFrequency } from '@/utils/formatters'
 import { SingleFileUpload } from '@/components/form/SingleFileUpload'
 import type { CreatePrescriptionDto } from '@/api/prescriptions.api'
+import { formatScheduledWeekDays, isWeeklyMedicationFrequency } from '@/utils/medicationSchedule'
 
 interface Resident {
   id: string
@@ -287,7 +288,7 @@ export function Step5Review() {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                     <div>
                       <span className="text-muted-foreground">Dose:</span>{' '}
                       <span className="font-medium">{med.dose}</span>
@@ -299,10 +300,21 @@ export function Step5Review() {
                       </span>
                     </div>
                     <div>
+                      <span className="text-muted-foreground">Frequência:</span>{' '}
+                      <span className="font-medium">
+                        {formatMedicationFrequency(med.frequency)}
+                      </span>
+                    </div>
+                    <div>
                       <span className="text-muted-foreground">Horários:</span>{' '}
                       <span className="font-medium">
                         {med.scheduledTimes.join(', ')}
                       </span>
+                      {isWeeklyMedicationFrequency(med.frequency) && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Dias: {formatScheduledWeekDays(med.scheduledWeekDays)}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

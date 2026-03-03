@@ -75,6 +75,31 @@ export class AgendaService {
     return !!config.dayOfMonth && config.dayOfMonth > lastDayOfMonth && dayOfMonth === lastDayOfMonth;
   }
 
+  private parseScheduledWeekDays(value: unknown): number[] {
+    if (!Array.isArray(value)) return [];
+
+    const validDays = value
+      .filter((day): day is number => Number.isInteger(day))
+      .filter((day) => day >= 0 && day <= 6);
+
+    return Array.from(new Set(validDays));
+  }
+
+  private shouldGenerateMedicationOnDate(
+    frequency: string,
+    scheduledWeekDays: unknown,
+    targetDate: Date,
+  ): boolean {
+    if (frequency !== 'UMA_VEZ_SEMANA' && frequency !== 'DUAS_VEZES_SEMANA') {
+      return true;
+    }
+
+    const weekDays = this.parseScheduledWeekDays(scheduledWeekDays);
+    if (weekDays.length === 0) return false;
+
+    return weekDays.includes(targetDate.getDay());
+  }
+
   private async generateRecurringRecordItemsForRange(
     startDate: Date,
     endDate: Date,
@@ -454,6 +479,13 @@ export class AgendaService {
             if (currentDayStr < medicationStartStr) continue;
             if (medicationEndStr && currentDayStr > medicationEndStr) continue;
             if (currentDayStr < medicationCreatedStr) continue;
+            if (
+              !this.shouldGenerateMedicationOnDate(
+                medication.frequency,
+                medication.scheduledWeekDays,
+                currentDay,
+              )
+            ) continue;
 
             const currentDayStart = startOfDay(currentDay);
 
@@ -1094,6 +1126,13 @@ export class AgendaService {
           if (currentDayStr < medicationStartStr) continue;
           if (medicationEndStr && currentDayStr > medicationEndStr) continue;
           if (currentDayStr < medicationCreatedStr) continue;
+          if (
+            !this.shouldGenerateMedicationOnDate(
+              medication.frequency,
+              medication.scheduledWeekDays,
+              currentDay,
+            )
+          ) continue;
 
           if (!counts[currentDayStr]) {
             counts[currentDayStr] = { total: 0, pending: 0, completed: 0, missed: 0 };

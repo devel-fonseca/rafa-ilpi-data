@@ -6,6 +6,9 @@ import {
   IsOptional,
   IsBoolean,
   IsArray,
+  IsInt,
+  Min,
+  Max,
 } from 'class-validator';
 import { IsDateOnly } from '../../common/validators/date.validators';
 
@@ -44,11 +47,29 @@ export class CreateMedicationDto {
   route: string;
 
   @ApiProperty({
-    enum: ['UMA_VEZ_DIA', 'DUAS_VEZES_DIA', 'SEIS_SEIS_H', 'OITO_OITO_H', 'DOZE_DOZE_H', 'PERSONALIZADO'],
+    enum: [
+      'UMA_VEZ_DIA',
+      'DUAS_VEZES_DIA',
+      'UMA_VEZ_SEMANA',
+      'DUAS_VEZES_SEMANA',
+      'SEIS_SEIS_H',
+      'OITO_OITO_H',
+      'DOZE_DOZE_H',
+      'PERSONALIZADO',
+    ],
     description: 'Frequência de administração',
     example: 'UMA_VEZ_DIA',
   })
-  @IsEnum(['UMA_VEZ_DIA', 'DUAS_VEZES_DIA', 'SEIS_SEIS_H', 'OITO_OITO_H', 'DOZE_DOZE_H', 'PERSONALIZADO'])
+  @IsEnum([
+    'UMA_VEZ_DIA',
+    'DUAS_VEZES_DIA',
+    'UMA_VEZ_SEMANA',
+    'DUAS_VEZES_SEMANA',
+    'SEIS_SEIS_H',
+    'OITO_OITO_H',
+    'DOZE_DOZE_H',
+    'PERSONALIZADO',
+  ])
   @IsNotEmpty()
   frequency: string;
 
@@ -60,6 +81,19 @@ export class CreateMedicationDto {
   @IsArray()
   @IsString({ each: true })
   scheduledTimes: string[];
+
+  @ApiProperty({
+    description: 'Dias da semana para frequências semanais (0=Domingo, 6=Sábado)',
+    example: [1, 4],
+    type: [Number],
+    required: false,
+  })
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  @IsOptional()
+  scheduledWeekDays?: number[];
 
   @ApiProperty({ description: 'Data de início (YYYY-MM-DD)', example: '2025-11-17' })
   @IsDateOnly()

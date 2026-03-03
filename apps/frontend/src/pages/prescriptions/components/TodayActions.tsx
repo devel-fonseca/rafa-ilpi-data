@@ -11,6 +11,7 @@ import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import { useMedicationLock } from '@/hooks/useMedicationLock'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { toast } from 'sonner'
+import { isMedicationScheduledForDate } from '@/utils/medicationSchedule'
 
 type ShiftType = 'morning' | 'afternoon' | 'night'
 
@@ -196,6 +197,10 @@ export function TodayActions() {
     prescriptions.forEach((prescription) => {
       // Para cada medicamento contínuo
       prescription.medications?.forEach((medication) => {
+        if (!isMedicationScheduledForDate(medication.frequency, medication.scheduledWeekDays, today)) {
+          return
+        }
+
         // Para cada horário programado
         medication.scheduledTimes?.forEach((time) => {
           const shift = getShift(time)

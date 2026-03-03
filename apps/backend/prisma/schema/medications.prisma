@@ -138,13 +138,14 @@ model Medication {
   prescriptionId String @db.Uuid
 
   // Dados do medicamento
-  name           String // DCB (Denominação Comum Brasileira)
-  presentation   MedicationPresentation
-  concentration  String // Ex: "500mg", "5mg/mL"
-  dose           String // Ex: "1 cp", "20 gotas"
-  route          AdministrationRoute
-  frequency      MedicationFrequency
-  scheduledTimes Json                   @default("[]") // Array de horários: ["06:00", "14:00", "22:00"]
+  name              String // DCB (Denominação Comum Brasileira)
+  presentation      MedicationPresentation
+  concentration     String // Ex: "500mg", "5mg/mL"
+  dose              String // Ex: "1 cp", "20 gotas"
+  route             AdministrationRoute
+  frequency         MedicationFrequency
+  scheduledTimes    Json                   @default("[]") // Array de horários: ["06:00", "14:00", "22:00"]
+  scheduledWeekDays Json                   @default("[]") // Dias da semana (0-6) para frequências semanais
 
   // Período
   startDate DateTime  @db.Date

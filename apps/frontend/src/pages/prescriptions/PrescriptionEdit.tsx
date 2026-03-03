@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { formatMedicationPresentation, formatMedicationFrequency } from '@/utils/formatters'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
+import { formatScheduledWeekDays, isWeeklyMedicationFrequency } from '@/utils/medicationSchedule'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
   ROTINA: 'Rotina',
@@ -349,6 +350,11 @@ export default function PrescriptionEdit() {
                     <p className="font-medium">
                       {medication.scheduledTimes?.join(', ') || '-'}
                     </p>
+                    {isWeeklyMedicationFrequency(medication.frequency) && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Dias: {formatScheduledWeekDays(medication.scheduledWeekDays)}
+                      </p>
+                    )}
                   </div>
                 </div>
 

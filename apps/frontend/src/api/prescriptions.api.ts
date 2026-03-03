@@ -32,7 +32,15 @@ export type AdministrationRoute = 'VO' | 'IM' | 'EV' | 'SC' | 'TOPICA' | 'SL' | 
 export type MedicationPresentation = 'COMPRIMIDO' | 'CAPSULA' | 'AMPOLA' | 'GOTAS' | 'SOLUCAO' | 'SUSPENSAO' | 'POMADA' | 'CREME' | 'SPRAY' | 'INALADOR' | 'ADESIVO' | 'SUPOSITORIO' | 'OUTRO'
 export type NotificationType = 'AMARELA' | 'AZUL' | 'BRANCA_ESPECIAL' | 'NAO_APLICA'
 export type ControlledClass = 'BZD' | 'PSICOFARMACO' | 'OPIOIDE' | 'ANTICONVULSIVANTE' | 'OUTRO'
-export type MedicationFrequency = 'UMA_VEZ_DIA' | 'DUAS_VEZES_DIA' | 'SEIS_SEIS_H' | 'OITO_OITO_H' | 'DOZE_DOZE_H' | 'PERSONALIZADO'
+export type MedicationFrequency =
+  | 'UMA_VEZ_DIA'
+  | 'DUAS_VEZES_DIA'
+  | 'UMA_VEZ_SEMANA'
+  | 'DUAS_VEZES_SEMANA'
+  | 'SEIS_SEIS_H'
+  | 'OITO_OITO_H'
+  | 'DOZE_DOZE_H'
+  | 'PERSONALIZADO'
 export type SOSIndicationType = 'DOR' | 'FEBRE' | 'ANSIEDADE' | 'AGITACAO' | 'NAUSEA' | 'INSONIA' | 'OUTRO'
 
 export interface MedicationAdministration {
@@ -57,6 +65,7 @@ export interface Medication {
   route: AdministrationRoute
   frequency: MedicationFrequency
   scheduledTimes: string[]
+  scheduledWeekDays?: number[]
   startDate: string
   endDate?: string
   isControlled: boolean
@@ -165,6 +174,7 @@ export interface CreateMedicationDto {
   route: AdministrationRoute
   frequency: MedicationFrequency
   scheduledTimes: string[]
+  scheduledWeekDays?: number[]
   startDate: string
   endDate?: string
   isControlled?: boolean

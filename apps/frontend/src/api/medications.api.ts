@@ -48,6 +48,8 @@ export type AdministrationRoute =
 export type MedicationFrequency =
   | 'UMA_VEZ_DIA'
   | 'DUAS_VEZES_DIA'
+  | 'UMA_VEZ_SEMANA'
+  | 'DUAS_VEZES_SEMANA'
   | 'SEIS_SEIS_H'
   | 'OITO_OITO_H'
   | 'DOZE_DOZE_H'
@@ -63,6 +65,7 @@ export interface Medication {
   route: AdministrationRoute
   frequency: MedicationFrequency
   scheduledTimes: string[] // Array de horários
+  scheduledWeekDays?: number[] // Dias da semana para frequência semanal (0=Dom ... 6=Sáb)
   startDate: string
   endDate: string | null
   isControlled: boolean
@@ -96,6 +99,7 @@ export interface CreateMedicationDto {
   route: AdministrationRoute
   frequency: MedicationFrequency
   scheduledTimes: string[]
+  scheduledWeekDays?: number[]
   startDate: string
   endDate?: string
   isControlled?: boolean
@@ -112,6 +116,7 @@ export interface UpdateMedicationDto {
   route?: AdministrationRoute
   frequency?: MedicationFrequency
   scheduledTimes?: string[]
+  scheduledWeekDays?: number[]
   startDate?: string
   endDate?: string
   isControlled?: boolean

@@ -336,6 +336,8 @@ export function formatMedicationFrequency(frequency: string | null | undefined):
   const labels: Record<string, string> = {
     UMA_VEZ_DIA: '1x ao dia',
     DUAS_VEZES_DIA: '2x ao dia',
+    UMA_VEZ_SEMANA: '1x por semana',
+    DUAS_VEZES_SEMANA: '2x por semana',
     TRES_VEZES_DIA: '3x ao dia',
     QUATRO_VEZES_DIA: '4x ao dia',
     SEIS_SEIS_H: '6/6h',

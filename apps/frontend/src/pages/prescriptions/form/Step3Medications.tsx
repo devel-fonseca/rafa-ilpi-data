@@ -9,6 +9,7 @@ import { MedicationModal } from './MedicationModal'
 import type { CreateMedicationDto } from '@/api/prescriptions.api'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { formatMedicationPresentation, formatMedicationFrequency } from '@/utils/formatters'
+import { formatScheduledWeekDays, isWeeklyMedicationFrequency } from '@/utils/medicationSchedule'
 
 const ROUTE_LABELS: Record<string, string> = {
   VO: 'Via Oral',
@@ -146,6 +147,11 @@ export function Step3Medications() {
                         <p className="font-medium text-foreground">
                           {medication.scheduledTimes.join(', ')}
                         </p>
+                        {isWeeklyMedicationFrequency(medication.frequency) && (
+                          <p className="text-xs text-muted-foreground">
+                            Dias: {formatScheduledWeekDays(medication.scheduledWeekDays)}
+                          </p>
+                        )}
                       </div>
                     </div>
 
