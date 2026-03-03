@@ -8,9 +8,11 @@ import { getResidentsListReport } from '@/services/reportsApi'
 import { ResidentsListReportView } from '@/components/reports/ResidentsListReportView'
 import { downloadResidentsListReportPDF } from '@/services/residentsListReportPdf'
 import { useAuthStore } from '@/stores/auth.store'
+import { useProfile } from '@/hooks/useInstitutionalProfile'
 
 export default function ResidentsListReportPage() {
   const { user } = useAuthStore()
+  const { data: institutionalProfile } = useProfile()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
   const { data: report, isLoading, error } = useQuery({
@@ -26,6 +28,10 @@ export default function ResidentsListReportPage() {
     try {
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
+      const cnes =
+        user.tenant?.profile?.cnesCode?.trim() ||
+        institutionalProfile?.profile?.cnesCode?.trim() ||
+        undefined
       const userName = user.name
       const printDate = new Date().toLocaleDateString('pt-BR', {
         day: '2-digit',
@@ -44,6 +50,7 @@ export default function ResidentsListReportPage() {
       downloadResidentsListReportPDF(report, {
         ilpiName,
         cnpj,
+        cnes,
         userName,
         printDate,
         printDateTime,

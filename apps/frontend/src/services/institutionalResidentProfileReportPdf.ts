@@ -7,6 +7,7 @@ import { getRecordTypeLabel, isRecordType } from '@/utils/recordTypeLabels'
 interface PDFGenerationOptions {
   ilpiName: string
   cnpj: string
+  cnes?: string
   userName: string
   printDate: string
   printDateTime: string
@@ -14,7 +15,7 @@ interface PDFGenerationOptions {
 
 const PAGE_MARGIN = 15
 const HEADER_HEIGHT = 30
-const FOOTER_HEIGHT = 15
+const FOOTER_HEIGHT = 20
 
 const FONTS = {
   title: 11,
@@ -101,7 +102,10 @@ class InstitutionalResidentProfileReportPDFGenerator {
 
     this.doc.setFontSize(FONTS.body)
     this.doc.setFont('helvetica', 'normal')
-    this.doc.text(`CNPJ: ${this.options.cnpj}`, PAGE_MARGIN, PAGE_MARGIN + 5)
+    const institutionIds = this.options.cnes
+      ? `CNPJ: ${this.options.cnpj} • CNES: ${this.options.cnes}`
+      : `CNPJ: ${this.options.cnpj}`
+    this.doc.text(institutionIds, PAGE_MARGIN, PAGE_MARGIN + 5)
 
     const reportTitle = 'Relatório Institucional • Perfil dos Residentes'
     this.doc.setFontSize(FONTS.title)
@@ -114,11 +118,6 @@ class InstitutionalResidentProfileReportPDFGenerator {
     this.doc.setFont('helvetica', 'normal')
     const dateWidth = this.doc.getTextWidth(dateText)
     this.doc.text(dateText, (pageWidth - dateWidth) / 2, PAGE_MARGIN + 15)
-
-    const systemInfo = 'Documento gerado automaticamente pelo Rafa ILPI'
-    this.doc.setFontSize(FONTS.body)
-    const systemInfoWidth = this.doc.getTextWidth(systemInfo)
-    this.doc.text(systemInfo, pageWidth - PAGE_MARGIN - systemInfoWidth, PAGE_MARGIN)
 
     this.doc.setLineWidth(0.5)
     this.doc.setDrawColor(...COLORS.border)
@@ -142,6 +141,10 @@ class InstitutionalResidentProfileReportPDFGenerator {
     const pageInfo = `Página ${pageNumber} de ${this.totalPages}`
     const pageInfoWidth = this.doc.getTextWidth(pageInfo)
     this.doc.text(pageInfo, pageWidth - PAGE_MARGIN - pageInfoWidth, footerY + 5)
+
+    const systemInfo = 'Documento gerado automaticamente pelo Rafa ILPI • Versão do relatório: 1.0'
+    const systemInfoWidth = this.doc.getTextWidth(systemInfo)
+    this.doc.text(systemInfo, (pageWidth - systemInfoWidth) / 2, footerY + 10)
   }
 
   private addSummary(report: InstitutionalResidentProfileReport, startY: number): number {

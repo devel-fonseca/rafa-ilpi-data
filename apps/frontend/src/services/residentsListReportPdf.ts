@@ -12,6 +12,7 @@ import type { ResidentsListReport } from '@/services/reportsApi'
 interface PDFGenerationOptions {
   ilpiName: string
   cnpj: string
+  cnes?: string
   userName: string
   printDate: string
   printDateTime: string
@@ -21,7 +22,7 @@ interface PDFGenerationOptions {
 
 const PAGE_MARGIN = 15 // mm
 const HEADER_HEIGHT = 30 // mm
-const FOOTER_HEIGHT = 15 // mm
+const FOOTER_HEIGHT = 20 // mm
 
 // Tipografia (conforme especificação)
 const FONTS = {
@@ -93,7 +94,10 @@ class ResidentsListReportPDFGenerator {
     // CNPJ
     doc.setFontSize(FONTS.body)
     doc.setFont('helvetica', 'normal')
-    doc.text(`CNPJ: ${this.options.cnpj}`, PAGE_MARGIN, PAGE_MARGIN + 5)
+    const institutionIds = this.options.cnes
+      ? `CNPJ: ${this.options.cnpj} • CNES: ${this.options.cnes}`
+      : `CNPJ: ${this.options.cnpj}`
+    doc.text(institutionIds, PAGE_MARGIN, PAGE_MARGIN + 5)
 
     // Título do relatório (centralizado)
     doc.setFontSize(FONTS.title)
@@ -108,13 +112,6 @@ class ResidentsListReportPDFGenerator {
     const dateText = `Data: ${this.options.printDate}`
     const dateWidth = doc.getTextWidth(dateText)
     doc.text(dateText, (pageWidth - dateWidth) / 2, PAGE_MARGIN + 15)
-
-    // Info do sistema (direita)
-    doc.setFontSize(FONTS.body)
-    doc.setFont('helvetica', 'normal')
-    const systemInfo = `Documento gerado automaticamente pelo Rafa ILPI`
-    const systemInfoWidth = doc.getTextWidth(systemInfo)
-    doc.text(systemInfo, pageWidth - PAGE_MARGIN - systemInfoWidth, PAGE_MARGIN)
 
     // Linha separadora
     doc.setLineWidth(0.5)
@@ -143,6 +140,10 @@ class ResidentsListReportPDFGenerator {
     const pageInfo = `Página ${pageNumber} de ${this.totalPages}`
     const pageInfoWidth = doc.getTextWidth(pageInfo)
     doc.text(pageInfo, pageWidth - PAGE_MARGIN - pageInfoWidth, footerY + 5)
+
+    const systemInfo = 'Documento gerado automaticamente pelo Rafa ILPI • Versão do relatório: 1.0'
+    const systemInfoWidth = doc.getTextWidth(systemInfo)
+    doc.text(systemInfo, (pageWidth - systemInfoWidth) / 2, footerY + 10)
   }
 
   private drawPageDecorations(pageNumber: number) {

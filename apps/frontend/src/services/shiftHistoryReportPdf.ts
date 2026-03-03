@@ -9,6 +9,7 @@ import { formatDateOnlySafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 interface PDFGenerationOptions {
   ilpiName: string
   cnpj: string
+  cnes?: string
   userName: string
   printDate: string
   printDateTime: string
@@ -16,7 +17,7 @@ interface PDFGenerationOptions {
 
 const PAGE_MARGIN = 15
 const HEADER_HEIGHT = 30
-const FOOTER_HEIGHT = 15
+const FOOTER_HEIGHT = 20
 
 const FONTS = {
   title: 11,
@@ -69,7 +70,10 @@ class ShiftHistoryReportPDFGenerator {
 
     this.doc.setFontSize(FONTS.body)
     this.doc.setFont('helvetica', 'normal')
-    this.doc.text(`CNPJ: ${this.options.cnpj}`, PAGE_MARGIN, PAGE_MARGIN + 5)
+    const institutionIds = this.options.cnes
+      ? `CNPJ: ${this.options.cnpj} • CNES: ${this.options.cnes}`
+      : `CNPJ: ${this.options.cnpj}`
+    this.doc.text(institutionIds, PAGE_MARGIN, PAGE_MARGIN + 5)
 
     this.doc.setFontSize(FONTS.title)
     this.doc.setFont('helvetica', 'bold')
@@ -82,11 +86,6 @@ class ShiftHistoryReportPDFGenerator {
     const subtitle = `Data: ${formatDateOnly(summary.date)} • ${summary.shiftName} (${summary.startTime}-${summary.endTime})`
     const subtitleWidth = this.doc.getTextWidth(subtitle)
     this.doc.text(subtitle, (pageWidth - subtitleWidth) / 2, PAGE_MARGIN + 15)
-
-    this.doc.setFontSize(FONTS.body)
-    const systemInfo = 'Documento gerado automaticamente pelo Rafa ILPI'
-    const infoWidth = this.doc.getTextWidth(systemInfo)
-    this.doc.text(systemInfo, pageWidth - PAGE_MARGIN - infoWidth, PAGE_MARGIN)
 
     this.doc.setLineWidth(0.5)
     this.doc.setDrawColor(...COLORS.border)
@@ -112,6 +111,10 @@ class ShiftHistoryReportPDFGenerator {
     const pageInfo = `Página ${pageNumber} de ${this.totalPages}`
     const pageInfoWidth = this.doc.getTextWidth(pageInfo)
     this.doc.text(pageInfo, pageWidth - PAGE_MARGIN - pageInfoWidth, footerY + 5)
+
+    const systemInfo = 'Documento gerado automaticamente pelo Rafa ILPI • Versão do relatório: 1.0'
+    const systemInfoWidth = this.doc.getTextWidth(systemInfo)
+    this.doc.text(systemInfo, (pageWidth - systemInfoWidth) / 2, footerY + 10)
   }
 
   private drawPageDecorations(summary: ShiftHistoryReport['summary'], pageNumber: number) {

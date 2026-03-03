@@ -209,6 +209,7 @@ export class AuthService {
             profile: {
               select: {
                 tradeName: true,
+                cnesCode: true,
               },
             },
             subscriptions: {
@@ -274,6 +275,7 @@ export class AuthService {
           where: { tenantId: tenant.id },
           select: {
             tradeName: true,
+            cnesCode: true,
           },
         });
 
@@ -400,6 +402,7 @@ export class AuthService {
         profile: {
           select: {
             tradeName: true,
+            cnesCode: true,
           },
         },
         subscriptions: {

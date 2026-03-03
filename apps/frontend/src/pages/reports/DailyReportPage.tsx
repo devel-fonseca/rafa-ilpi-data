@@ -12,6 +12,7 @@ import { applyOperationalReportFilter } from '@/services/operationalReports'
 import { useAuthStore } from '@/stores/auth.store'
 import { useEffect, useState } from 'react'
 import { getRecordTypeLabel } from '@/utils/recordTypeLabels'
+import { useProfile } from '@/hooks/useInstitutionalProfile'
 import type { ReportType, RecordTypeFilter } from '@/types/reportsHub'
 import {
   Dialog,
@@ -33,6 +34,7 @@ export default function DailyReportPage() {
   const periodType = (searchParams.get('periodType') as 'DAY' | 'MONTH' | null) || 'DAY'
   const yearMonth = searchParams.get('yearMonth') || undefined
   const { user } = useAuthStore()
+  const { data: institutionalProfile } = useProfile()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [noShiftDialogOpen, setNoShiftDialogOpen] = useState(false)
 
@@ -91,6 +93,10 @@ export default function DailyReportPage() {
     try {
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
+      const cnes =
+        user.tenant?.profile?.cnesCode?.trim() ||
+        institutionalProfile?.profile?.cnesCode?.trim() ||
+        undefined
       const userName = user.name
       const printDate = new Date().toLocaleString('pt-BR', {
         day: '2-digit',
@@ -103,6 +109,7 @@ export default function DailyReportPage() {
       downloadDailyReportPDF(filteredReport, {
         ilpiName,
         cnpj,
+        cnes,
         userName,
         printDate,
         reportType,

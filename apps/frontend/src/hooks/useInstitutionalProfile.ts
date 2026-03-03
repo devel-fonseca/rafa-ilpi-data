@@ -67,6 +67,7 @@ export function useUpdateProfile() {
               profile: {
                 ...state.user.tenant?.profile,
                 tradeName: updatedProfile.profile?.tradeName ?? null,
+                cnesCode: updatedProfile.profile?.cnesCode ?? null,
               },
             },
           },

@@ -33,12 +33,14 @@ import { useQuery } from '@tanstack/react-query'
 import { getAvailableShiftTemplates } from '@/api/care-shifts/shift-templates.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { useFeatures } from '@/hooks/useFeatures'
+import { useProfile } from '@/hooks/useInstitutionalProfile'
 
 // ========== COMPONENT ==========
 
 export default function ReportsHub() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { data: institutionalProfile } = useProfile()
   const [isGenerating, setIsGenerating] = React.useState(false)
   const [recentReports, setRecentReports] = React.useState<RecentReport[]>([])
   const [isShiftDialogOpen, setIsShiftDialogOpen] = React.useState(false)
@@ -129,6 +131,10 @@ export default function ReportsHub() {
         // Gerar e baixar PDF
         const ilpiName = user?.tenant?.profile?.tradeName || user?.tenant?.name || 'ILPI'
         const cnpj = user?.tenant?.cnpj || 'CNPJ não cadastrado'
+        const cnes =
+          user?.tenant?.profile?.cnesCode?.trim() ||
+          institutionalProfile?.profile?.cnesCode?.trim() ||
+          undefined
         const userName = user?.name || 'Usuário'
         const printDate = new Date().toLocaleString('pt-BR', {
           day: '2-digit',
@@ -141,6 +147,7 @@ export default function ReportsHub() {
         downloadDailyReportPDF(filteredReport, {
           ilpiName,
           cnpj,
+          cnes,
           userName,
           printDate,
           reportType: filters.reportType,

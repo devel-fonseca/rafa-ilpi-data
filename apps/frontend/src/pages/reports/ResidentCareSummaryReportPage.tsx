@@ -12,12 +12,14 @@ import { getResidentCareSummaryReport } from '@/services/reportsApi'
 import { ResidentCareSummaryReportView } from '@/components/reports/ResidentCareSummaryReportView'
 import { downloadResidentCareSummaryReportPDF } from '@/services/residentCareSummaryReportPdf'
 import { ResidentSearchSelect } from '@/components/residents/ResidentSearchSelect'
+import { useProfile } from '@/hooks/useInstitutionalProfile'
 
 export default function ResidentCareSummaryReportPage() {
   const [searchParams] = useSearchParams()
   const [selectedResidentId, setSelectedResidentId] = useState(searchParams.get('residentId') || '')
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const { user } = useAuthStore()
+  const { data: institutionalProfile } = useProfile()
 
   const { data: residentsResponse, isLoading: isLoadingResidents } = useQuery({
     queryKey: ['residents', 'active-for-care-summary'],
@@ -59,6 +61,10 @@ export default function ResidentCareSummaryReportPage() {
     try {
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
+      const cnes =
+        user.tenant?.profile?.cnesCode?.trim() ||
+        institutionalProfile?.profile?.cnesCode?.trim() ||
+        undefined
       const userName = user.name
       const printDate = new Date().toLocaleDateString('pt-BR', {
         day: '2-digit',
@@ -76,6 +82,7 @@ export default function ResidentCareSummaryReportPage() {
       downloadResidentCareSummaryReportPDF(report, {
         ilpiName,
         cnpj,
+        cnes,
         userName,
         printDate,
         printDateTime,

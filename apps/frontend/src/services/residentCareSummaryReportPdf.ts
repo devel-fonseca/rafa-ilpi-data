@@ -6,6 +6,7 @@ import { formatDateOnlySafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 interface PDFGenerationOptions {
   ilpiName: string
   cnpj: string
+  cnes?: string
   userName: string
   printDate: string
   printDateTime: string
@@ -13,8 +14,7 @@ interface PDFGenerationOptions {
 
 const PAGE_MARGIN = 15
 const HEADER_HEIGHT = 30
-const FOOTER_HEIGHT = 15
-const FOOTER_RAISE_OFFSET = 5
+const FOOTER_HEIGHT = 20
 
 const FONTS = {
   title: 11,
@@ -159,7 +159,6 @@ class ResidentCareSummaryReportPDFGenerator {
   private addHeader() {
     const reportTitle = 'Resumo Assistencial do Residente'
     const subtitleText = `Documento consolidado para consulta institucional - ${this.options.printDateTime}.`
-    const systemInfo = 'Documento gerado automaticamente pelo Rafa ILPI'
 
     this.doc.setFontSize(FONTS.title)
     this.doc.setFont('helvetica', 'bold')
@@ -167,7 +166,10 @@ class ResidentCareSummaryReportPDFGenerator {
 
     this.doc.setFontSize(FONTS.body)
     this.doc.setFont('helvetica', 'normal')
-    this.doc.text(`CNPJ: ${this.options.cnpj}`, PAGE_MARGIN, PAGE_MARGIN + 5)
+    const institutionIds = this.options.cnes
+      ? `CNPJ: ${this.options.cnpj} • CNES: ${this.options.cnes}`
+      : `CNPJ: ${this.options.cnpj}`
+    this.doc.text(institutionIds, PAGE_MARGIN, PAGE_MARGIN + 5)
 
     this.doc.setFontSize(FONTS.title)
     this.doc.setFont('helvetica', 'bold')
@@ -179,17 +181,13 @@ class ResidentCareSummaryReportPDFGenerator {
     const subtitleWidth = this.doc.getTextWidth(subtitleText)
     this.doc.text(subtitleText, (this.pageWidth - subtitleWidth) / 2, PAGE_MARGIN + 15)
 
-    this.doc.setFontSize(FONTS.body)
-    const infoWidth = this.doc.getTextWidth(systemInfo)
-    this.doc.text(systemInfo, this.pageWidth - PAGE_MARGIN - infoWidth, PAGE_MARGIN)
-
     this.doc.setLineWidth(0.5)
     this.doc.setDrawColor(...COLORS.border)
     this.doc.line(PAGE_MARGIN, HEADER_HEIGHT + 2, this.pageWidth - PAGE_MARGIN, HEADER_HEIGHT + 2)
   }
 
   private addFooter(pageNumber: number) {
-    const footerY = this.pageHeight - FOOTER_HEIGHT - FOOTER_RAISE_OFFSET
+    const footerY = this.pageHeight - FOOTER_HEIGHT
     this.doc.setLineWidth(0.5)
     this.doc.setDrawColor(...COLORS.border)
     this.doc.line(PAGE_MARGIN, footerY, this.pageWidth - PAGE_MARGIN, footerY)
@@ -197,16 +195,22 @@ class ResidentCareSummaryReportPDFGenerator {
     this.doc.setFontSize(FONTS.footer)
     this.doc.setFont('helvetica', 'normal')
     this.doc.setTextColor(...COLORS.textSecondary)
+    const legalText =
+      'Este documento consolida as principais informações assistenciais do residente na data de sua emissão.'
+    this.doc.setFont('helvetica', 'bolditalic')
+    this.doc.text(legalText, PAGE_MARGIN, footerY + 5)
+
+    this.doc.setFont('helvetica', 'normal')
     const footerText = `Impresso por ${this.options.userName} em ${this.options.printDateTime}`
-    this.doc.text(footerText, PAGE_MARGIN, footerY + 5)
+    this.doc.text(footerText, PAGE_MARGIN, footerY + 9)
 
     const pageInfo = `Página ${pageNumber} de ${this.totalPages}`
     const pageInfoWidth = this.doc.getTextWidth(pageInfo)
-    this.doc.text(pageInfo, this.pageWidth - PAGE_MARGIN - pageInfoWidth, footerY + 5)
+    this.doc.text(pageInfo, this.pageWidth - PAGE_MARGIN - pageInfoWidth, footerY + 9)
 
-    const legalText =
-      'Este documento consolida as principais informações assistenciais do residente na data de sua emissão.'
-    this.doc.text(legalText, PAGE_MARGIN, footerY + 9)
+    const systemInfo = 'Documento gerado automaticamente pelo Rafa ILPI • Versão do relatório: 1.0'
+    const systemInfoWidth = this.doc.getTextWidth(systemInfo)
+    this.doc.text(systemInfo, (this.pageWidth - systemInfoWidth) / 2, footerY + 13)
   }
 
   private drawPageDecorations(pageNumber: number) {

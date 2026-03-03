@@ -19,6 +19,7 @@ export interface User {
     cnpj?: string | null
     profile?: {
       tradeName?: string | null
+      cnesCode?: string | null
     }
   }
   profile?: {

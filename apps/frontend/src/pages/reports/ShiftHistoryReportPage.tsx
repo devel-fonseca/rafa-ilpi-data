@@ -9,10 +9,12 @@ import { getShiftHistoryReport } from '@/services/reportsApi'
 import { ShiftHistoryReportView } from '@/components/reports/ShiftHistoryReportView'
 import { downloadShiftHistoryReportPDF } from '@/services/shiftHistoryReportPdf'
 import { useAuthStore } from '@/stores/auth.store'
+import { useProfile } from '@/hooks/useInstitutionalProfile'
 
 export default function ShiftHistoryReportPage() {
   const { shiftId } = useParams<{ shiftId: string }>()
   const { user } = useAuthStore()
+  const { data: institutionalProfile } = useProfile()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
   const { data: report, isLoading, error } = useQuery({
@@ -29,6 +31,10 @@ export default function ShiftHistoryReportPage() {
     try {
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
+      const cnes =
+        user.tenant?.profile?.cnesCode?.trim() ||
+        institutionalProfile?.profile?.cnesCode?.trim() ||
+        undefined
       const userName = user.name
       const printDate = new Date().toLocaleDateString('pt-BR')
       const printDateTime = new Date().toLocaleString('pt-BR', {
@@ -42,6 +48,7 @@ export default function ShiftHistoryReportPage() {
       downloadShiftHistoryReportPDF(report, {
         ilpiName,
         cnpj,
+        cnes,
         userName,
         printDate,
         printDateTime,
