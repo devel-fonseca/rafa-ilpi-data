@@ -34,7 +34,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth.store';
-import { generateRdcPdfReport } from '@/utils/rdcPdfExport';
+import { generateMonthlyIndicatorsPdfReport } from '@/utils/monthlyIndicatorsPdfExport';
+import { useProfile } from '@/hooks/useInstitutionalProfile';
 import {
   formatDateOnlySafe,
   formatDateTimeSafe,
@@ -162,8 +163,9 @@ function clampDateToMonth(date: string, bounds: { start: string; end: string }) 
   return date;
 }
 
-export function ConformidadeRDCPage() {
+export function IndicadoresMensaisPage() {
   const { user } = useAuthStore();
+  const { data: institutionalProfile } = useProfile();
   const now = new Date();
 
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -520,11 +522,21 @@ export function ConformidadeRDCPage() {
     }
 
     try {
-      await generateRdcPdfReport({
+      const ilpiName = user?.tenant?.profile?.tradeName || user?.tenant?.name || 'ILPI';
+      const cnpj = user?.tenant?.cnpj || 'CNPJ não cadastrado';
+      const cnes =
+        user?.tenant?.profile?.cnesCode?.trim() ||
+        institutionalProfile?.profile?.cnesCode?.trim() ||
+        undefined;
+
+      await generateMonthlyIndicatorsPdfReport({
         year: selectedYear,
         month: selectedMonth,
         indicators,
         history: history || [],
+        ilpiName,
+        cnpj,
+        cnes,
         tenantName: user?.tenant?.name,
         generatedBy: user?.name,
       });

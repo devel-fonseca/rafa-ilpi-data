@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, Minus, AlertCircle, Eye } from 'lucide-react';
 import { RdcIndicatorType, RDC_INDICATOR_LABELS } from '@/types/incidents';
+import { getMonthlyIndicatorStatus } from '@/utils/monthlyIndicatorStatus';
 
 interface RdcIndicatorCardProps {
   indicatorType: RdcIndicatorType;
@@ -40,18 +41,32 @@ export function RdcIndicatorCard({
       ? ((rate - previousRate) / previousRate) * 100
       : null;
 
-  // Cores baseadas no indicador (quanto menor, melhor)
-  const getColorClass = (value: number) => {
-    if (value === 0) return 'text-green-600 dark:text-green-400';
-    if (value < 5) return 'text-yellow-600 dark:text-yellow-400';
-    if (value < 10) return 'text-orange-600 dark:text-orange-400';
+  const status = getMonthlyIndicatorStatus({
+    numerator,
+    denominator,
+    rate,
+  });
+
+  // Cores baseadas na classificação (quanto menor, melhor)
+  const getColorClass = (statusLevel: ReturnType<typeof getMonthlyIndicatorStatus>['level']) => {
+    if (statusLevel === 'excellent') return 'text-green-600 dark:text-green-400';
+    if (statusLevel === 'good') return 'text-yellow-600 dark:text-yellow-400';
+    if (statusLevel === 'warning' || statusLevel === 'warning_small_population') {
+      return 'text-orange-600 dark:text-orange-400';
+    }
     return 'text-red-600 dark:text-red-400';
   };
 
-  const getBgColorClass = (value: number) => {
-    if (value === 0) return 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800';
-    if (value < 5) return 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800';
-    if (value < 10) return 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800';
+  const getBgColorClass = (statusLevel: ReturnType<typeof getMonthlyIndicatorStatus>['level']) => {
+    if (statusLevel === 'excellent') {
+      return 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800';
+    }
+    if (statusLevel === 'good') {
+      return 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800';
+    }
+    if (statusLevel === 'warning' || statusLevel === 'warning_small_population') {
+      return 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800';
+    }
     return 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800';
   };
 
@@ -72,7 +87,7 @@ export function RdcIndicatorCard({
   }
 
   return (
-    <Card className={`border-2 ${getBgColorClass(rate)}`}>
+    <Card className={`border-2 ${getBgColorClass(status.level)}`}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {RDC_INDICATOR_LABELS[indicatorType]}
@@ -81,7 +96,7 @@ export function RdcIndicatorCard({
       <CardContent>
         <div className="flex items-baseline justify-between">
           <div>
-            <span className={`text-3xl font-bold ${getColorClass(rate)}`}>
+            <span className={`text-3xl font-bold ${getColorClass(status.level)}`}>
               {rate.toFixed(2)}%
             </span>
             <p className="text-xs text-muted-foreground mt-1">
@@ -114,11 +129,19 @@ export function RdcIndicatorCard({
           )}
         </div>
 
-        {/* Alerta se taxa > 10% */}
-        {rate > 10 && (
+        {/* Alerta contextual para status crítico */}
+        {status.level === 'critical' && (
           <div className="mt-3 flex items-start gap-2 text-xs text-red-700 dark:text-red-300">
             <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
             <span>Taxa acima do recomendado. Atenção necessária.</span>
+          </div>
+        )}
+
+        {/* Alerta contextual para base populacional pequena */}
+        {status.level === 'warning_small_population' && (
+          <div className="mt-3 flex items-start gap-2 text-xs text-orange-700 dark:text-orange-300">
+            <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+            <span>{status.label}</span>
           </div>
         )}
 

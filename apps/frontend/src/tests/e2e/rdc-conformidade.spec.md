@@ -223,7 +223,7 @@ Para cada um dos 6 indicadores:
 
 **Resultado Esperado:**
 - Toast "Gerando relatório PDF..." exibido
-- Arquivo PDF baixado com nome formatado (ex: "RDC_502_2021_janeiro_de_2024.pdf")
+- Arquivo PDF baixado com nome formatado (ex: "Indicadores_Mensais_janeiro_de_2024.pdf")
 - Toast "Relatório PDF gerado com sucesso!" exibido
 - PDF contém:
   - Cabeçalho com título "RELATÓRIO DE CONFORMIDADE"

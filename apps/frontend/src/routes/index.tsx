@@ -121,8 +121,8 @@ const withSuspense = (element: ReactNode) => (
 const ConformidadePage = lazy(() =>
   import('@/pages/dashboards/ConformidadePage').then((m) => ({ default: m.ConformidadePage })),
 )
-const ConformidadeRDCPage = lazy(() =>
-  import('@/pages/dashboards/ConformidadeRDCPage').then((m) => ({ default: m.ConformidadeRDCPage })),
+const IndicadoresMensaisPage = lazy(() =>
+  import('@/pages/dashboards/IndicadoresMensaisPage').then((m) => ({ default: m.IndicadoresMensaisPage })),
 )
 const EventosSentinelaPage = lazy(() =>
   import('@/pages/dashboards/EventosSentinelaPage').then((m) => ({ default: m.EventosSentinelaPage })),
@@ -436,7 +436,7 @@ export const router = createBrowserRouter([
               <ProtectedRoute
                 requiredPermissions={[PermissionType.VIEW_COMPLIANCE_DASHBOARD]}
               >
-                {withSuspense(<ConformidadeRDCPage />)}
+                {withSuspense(<IndicadoresMensaisPage />)}
               </ProtectedRoute>
             ),
           },
