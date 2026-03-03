@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  DependencyLevel,
+  Gender,
   IncidentMonthlyIndicator,
   IncidentCategory,
   IncidentSeverity,
@@ -25,6 +27,23 @@ import {
 
 type TenantDbClient = PrismaClient | Prisma.TransactionClient;
 type ReviewDecision = 'CONFIRMED' | 'DISCARDED' | 'PENDING';
+type GenderBucket = 'F' | 'M' | 'O';
+type DependencyBucket = DependencyLevel | 'SEM_AVALIACAO';
+
+type PopulationDependencyRow = {
+  dependencyLevel: DependencyBucket;
+  total: number;
+  female: number;
+  male: number;
+  other: number;
+  percentage: number;
+};
+
+type PopulationProfileSnapshot = {
+  referenceDate: string;
+  totalResidents: number;
+  byDependency: PopulationDependencyRow[];
+};
 
 type IndicatorCaseRecord = {
   id: string;
@@ -47,6 +66,13 @@ const RDC_INDICATOR_ORDER: RdcIndicatorType[] = [
   RdcIndicatorType.DESIDRATACAO,
   RdcIndicatorType.ULCERA_DECUBITO,
   RdcIndicatorType.DESNUTRICAO,
+];
+
+const POPULATION_DEPENDENCY_ORDER: DependencyBucket[] = [
+  DependencyLevel.GRAU_I,
+  DependencyLevel.GRAU_II,
+  DependencyLevel.GRAU_III,
+  'SEM_AVALIACAO',
 ];
 
 @Injectable()
@@ -197,6 +223,91 @@ export class RdcIndicatorsService {
         deletedAt: null,
       },
     });
+  }
+
+  private mapGenderToBucket(gender: Gender): GenderBucket {
+    if (gender === Gender.FEMININO) return 'F';
+    if (gender === Gender.MASCULINO) return 'M';
+    return 'O';
+  }
+
+  private roundPercentage(value: number): number {
+    return Math.round(value * 10) / 10;
+  }
+
+  private async getPopulationProfileOnReferenceDate(
+    tenantClient: TenantDbClient,
+    referenceDate: Date,
+    referenceDateLabel: string,
+  ): Promise<PopulationProfileSnapshot> {
+    const residents = await tenantClient.resident.findMany({
+      where: {
+        admissionDate: { lte: referenceDate },
+        OR: [{ dischargeDate: null }, { dischargeDate: { gte: referenceDate } }],
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        gender: true,
+        dependencyAssessments: {
+          where: {
+            deletedAt: null,
+            effectiveDate: { lte: referenceDate },
+            OR: [{ endDate: null }, { endDate: { gte: referenceDate } }],
+          },
+          select: {
+            dependencyLevel: true,
+          },
+          orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
+          take: 1,
+        },
+      },
+    });
+
+    const rowsByDependency = new Map<DependencyBucket, PopulationDependencyRow>(
+      POPULATION_DEPENDENCY_ORDER.map((dependencyLevel) => [
+        dependencyLevel,
+        {
+          dependencyLevel,
+          total: 0,
+          female: 0,
+          male: 0,
+          other: 0,
+          percentage: 0,
+        },
+      ]),
+    );
+
+    for (const resident of residents) {
+      const dependencyLevel =
+        resident.dependencyAssessments[0]?.dependencyLevel ?? 'SEM_AVALIACAO';
+      const row = rowsByDependency.get(dependencyLevel);
+      if (!row) continue;
+
+      const genderBucket = this.mapGenderToBucket(resident.gender);
+      row.total += 1;
+      if (genderBucket === 'F') row.female += 1;
+      else if (genderBucket === 'M') row.male += 1;
+      else row.other += 1;
+    }
+
+    const totalResidents = residents.length;
+    const byDependency = POPULATION_DEPENDENCY_ORDER.map((dependencyLevel) => {
+      const row = rowsByDependency.get(dependencyLevel)!;
+      return {
+        ...row,
+        percentage:
+          totalResidents > 0
+            ? this.roundPercentage((row.total / totalResidents) * 100)
+            : 0,
+      };
+    });
+
+    return {
+      referenceDate: referenceDateLabel,
+      totalResidents,
+      byDependency,
+    };
   }
 
   private async getIndicatorCasesInPeriod(
@@ -388,7 +499,10 @@ export class RdcIndicatorsService {
     return 'Caso identificado para revisão do indicador.';
   }
 
-  private buildIndicatorResult(indicator: IncidentMonthlyIndicator): RdcIndicatorResult {
+  private buildIndicatorResult(
+    indicator: IncidentMonthlyIndicator,
+    extraMetadata: Record<string, unknown> = {},
+  ): RdcIndicatorResult {
     const totalCandidates = this.readIndicatorField<number>(
       indicator,
       'totalCandidates',
@@ -448,6 +562,7 @@ export class RdcIndicatorsService {
       incidentIds: this.parseIncidentIds(indicator.incidentIds),
       metadata: {
         ...metadata,
+        ...extraMetadata,
         totalCandidates,
         pendingCount,
         confirmedCount,
@@ -663,9 +778,19 @@ export class RdcIndicatorsService {
       });
     }
 
+    const { populationReferenceDate, populationReferenceDateObj } =
+      this.getMonthDateRange(year, month);
+    const populationProfile = await this.getPopulationProfileOnReferenceDate(
+      tenantClient,
+      populationReferenceDateObj,
+      populationReferenceDate,
+    );
+
     const result: RdcIndicatorsByType = {};
     for (const indicator of indicators) {
-      result[indicator.indicatorType] = this.buildIndicatorResult(indicator);
+      result[indicator.indicatorType] = this.buildIndicatorResult(indicator, {
+        populationProfile,
+      });
     }
 
     return result;
