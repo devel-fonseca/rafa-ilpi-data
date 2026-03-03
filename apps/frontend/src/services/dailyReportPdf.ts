@@ -14,6 +14,7 @@ import { formatShiftStatusLabel } from '@/utils/shiftStatus'
 interface PDFGenerationOptions {
   ilpiName: string
   cnpj: string
+  cnes?: string
   userName: string
   printDate: string
   reportType?: ReportType
@@ -25,7 +26,7 @@ interface PDFGenerationOptions {
 
 const PAGE_MARGIN = 15 // mm
 const HEADER_HEIGHT = 30 // mm
-const FOOTER_HEIGHT = 15 // mm
+const FOOTER_HEIGHT = 20 // mm
 const TOTAL_PAGES_PLACEHOLDER = '{total_pages_count_string}'
 
 // Tipografia (conforme especificação)
@@ -132,11 +133,24 @@ class DailyReportPDFGenerator {
         if (recordType === 'MEDICACAO') {
           const due = report.summary.totalMedicationsScheduled
           const done = report.summary.totalMedicationsAdministered
+          const sos = report.sosMedicationAdministrations?.length || 0
           const pending = Math.max(due - done, 0)
           const residents = new Set(
-            report.medicationAdministrations.map((item) => `${item.residentCpf}-${item.residentName}`),
+            [
+              ...report.medicationAdministrations.map((item) => `${item.residentCpf}-${item.residentName}`),
+              ...(report.sosMedicationAdministrations || []).map(
+                (item) => `${item.residentCpf}-${item.residentName}`,
+              ),
+            ],
           ).size
-          return [day, String(report.medicationAdministrations.length), String(residents), `${due > 0 ? Math.round((done / due) * 100) : 0}%`, String(pending), '0']
+          return [
+            day,
+            String(report.medicationAdministrations.length + sos),
+            String(residents),
+            `${due > 0 ? Math.round((done / due) * 100) : 0}%`,
+            String(pending),
+            String(sos),
+          ]
         }
 
         if (recordType === 'AGENDAMENTOS_PONTUAIS') {
@@ -231,7 +245,10 @@ class DailyReportPDFGenerator {
     // CNPJ
     doc.setFontSize(FONTS.body)
     doc.setFont('helvetica', 'normal')
-    doc.text(`CNPJ: ${this.options.cnpj}`, PAGE_MARGIN, PAGE_MARGIN + 5)
+    const institutionIds = this.options.cnes
+      ? `CNPJ: ${this.options.cnpj} • CNES: ${this.options.cnes}`
+      : `CNPJ: ${this.options.cnpj}`
+    doc.text(institutionIds, PAGE_MARGIN, PAGE_MARGIN + 5)
 
     // Título do relatório (centralizado)
     doc.setFontSize(FONTS.title)
@@ -251,13 +268,6 @@ class DailyReportPDFGenerator {
     }
     const dateWidth = doc.getTextWidth(dateText)
     doc.text(dateText, (pageWidth - dateWidth) / 2, PAGE_MARGIN + 15)
-
-    // Info do sistema e paginação (direita)
-    doc.setFontSize(FONTS.body)
-    doc.setFont('helvetica', 'normal')
-    const systemInfo = `Documento gerado automaticamente pelo Rafa ILPI • Versão do relatório: 1.0`
-    const systemInfoWidth = doc.getTextWidth(systemInfo)
-    doc.text(systemInfo, pageWidth - PAGE_MARGIN - systemInfoWidth, PAGE_MARGIN)
 
     // Linha separadora
     doc.setLineWidth(0.5)
@@ -286,6 +296,11 @@ class DailyReportPDFGenerator {
     const pageInfo = `Página ${pageNumber} de ${this.totalPages}`
     const pageInfoWidth = doc.getTextWidth(pageInfo)
     doc.text(pageInfo, pageWidth - PAGE_MARGIN - pageInfoWidth, footerY + 5)
+
+    // Assinatura do sistema na linha abaixo da paginação (centralizada)
+    const systemInfo = 'Documento gerado automaticamente pelo Rafa ILPI • Versão do relatório: 1.0'
+    const systemInfoWidth = doc.getTextWidth(systemInfo)
+    doc.text(systemInfo, (pageWidth - systemInfoWidth) / 2, footerY + 10)
   }
 
   private drawPageDecorations(
@@ -731,6 +746,62 @@ class DailyReportPDFGenerator {
     return (this.doc as any).lastAutoTable.finalY
   }
 
+  private addSOSMedicationsTable(report: DailyReport, startY: number): number {
+    const sosAdministrations = report.sosMedicationAdministrations || []
+
+    if (sosAdministrations.length === 0) {
+      return startY
+    }
+
+    this.doc.setFontSize(FONTS.bodyLarge)
+    this.doc.setFont('helvetica', 'bold')
+    this.doc.setTextColor(...COLORS.textPrimary)
+    this.doc.text('ADMINISTRAÇÃO DE MEDICAMENTOS SOS', PAGE_MARGIN, startY)
+
+    const sosRows = sosAdministrations.map((med) => [
+      med.residentName,
+      med.bedCode,
+      med.time || '--:--',
+      `${med.medicationName} ${med.concentration || ''} ${med.dose || ''} – Indicação: ${med.indication || 'N/A'}`,
+      this.abbreviateRecordedBy(med.administeredBy || '-'),
+    ])
+
+    autoTable(this.doc, {
+      startY: startY + 4,
+      head: [['Residente', 'Leito', 'Hora', 'Registro', 'Registrado por']],
+      body: sosRows,
+      theme: 'grid',
+      styles: {
+        fontSize: FONTS.body,
+        cellPadding: 2,
+        lineColor: COLORS.border,
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: COLORS.headerBg,
+        textColor: COLORS.textPrimary,
+        fontStyle: 'bold',
+        fontSize: FONTS.bodyLarge,
+        halign: 'left',
+      },
+      columnStyles: {
+        0: { cellWidth: 55 },
+        1: { cellWidth: 18 },
+        2: { cellWidth: 15 },
+        3: { cellWidth: 'auto' },
+        4: { cellWidth: 35 },
+      },
+      alternateRowStyles: {
+        fillColor: COLORS.zebraEven,
+      },
+      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: HEADER_HEIGHT + 5, bottom: FOOTER_HEIGHT + 5 },
+      rowPageBreak: 'avoid',
+      didDrawPage: undefined,
+    })
+
+    return (this.doc as any).lastAutoTable.finalY
+  }
+
   private addScheduledEventsTable(report: DailyReport, startY: number): number {
     const scheduledEvents = report.scheduledEvents || []
 
@@ -964,6 +1035,13 @@ class DailyReportPDFGenerator {
 
     currentY = this.addMedicationsTable(report, currentY) + 5
 
+    if (currentY > pageHeight - FOOTER_HEIGHT - 40) {
+      this.doc.addPage()
+      currentY = HEADER_HEIGHT + 5
+    }
+
+    currentY = this.addSOSMedicationsTable(report, currentY) + 5
+
     for (const category of categoriesAfterMedications) {
       renderCategory(category)
     }
@@ -973,7 +1051,7 @@ class DailyReportPDFGenerator {
     const recordType = this.options.recordType
 
     if (recordType === 'MEDICACAO') {
-      return report.medicationAdministrations.map((item) => ({
+      const continuousRows = report.medicationAdministrations.map((item) => ({
         residentName: item.residentName,
         bedCode: item.bedCode,
         type: 'Medicação',
@@ -983,6 +1061,19 @@ class DailyReportPDFGenerator {
         recordedBy: this.abbreviateRecordedBy(item.administeredBy || 'Não informado'),
         details: `${item.medicationName} ${item.concentration || ''} ${item.dose || ''} • Via: ${item.route || 'N/A'} • ${item.wasAdministered ? 'Administrado' : 'Não administrado'}`,
       }))
+
+      const sosRows = (report.sosMedicationAdministrations || []).map((item) => ({
+        residentName: item.residentName,
+        bedCode: item.bedCode,
+        type: 'Medicação SOS',
+        title: '',
+        status: '',
+        time: item.time || '--:--',
+        recordedBy: this.abbreviateRecordedBy(item.administeredBy || 'Não informado'),
+        details: `${item.medicationName} ${item.concentration || ''} ${item.dose || ''} • Via: ${item.route || 'N/A'} • Indicação: ${item.indication || 'N/A'} • Administrado`,
+      }))
+
+      return [...continuousRows, ...sosRows]
     }
 
     if (recordType === 'AGENDAMENTOS_PONTUAIS') {

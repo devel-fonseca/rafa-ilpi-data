@@ -138,6 +138,7 @@ const CATEGORY_CONFIG = [
 // Componente para renderizar um único dia
 function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCardProps) {
   const { summary, dailyRecords, medicationAdministrations, shifts } = report
+  const sosMedicationAdministrations = report.sosMedicationAdministrations || []
   const scheduledEvents = report.scheduledEvents || []
   const immunizations = report.immunizations || []
 
@@ -151,6 +152,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
   })
 
   const [isMedicationsOpen, setIsMedicationsOpen] = useState(true)
+  const [isSosMedicationsOpen, setIsSosMedicationsOpen] = useState(true)
 
   // Agrupar registros por categoria
   const groupedRecords = CATEGORY_CONFIG.map(category => ({
@@ -170,6 +172,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
     (category) => category.records.length > 0,
   )
   const hasMedicationRecords = medicationAdministrations.length > 0
+  const hasSosMedicationRecords = sosMedicationAdministrations.length > 0
   const hasScheduledEvents = scheduledEvents.length > 0
   const hasImmunizations = immunizations.length > 0
   const hasShiftRecords = shifts.length > 0
@@ -177,6 +180,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
     visibleCategoriesBeforeMedications.length > 0 ||
     visibleCategoriesAfterMedications.length > 0 ||
     hasMedicationRecords ||
+    hasSosMedicationRecords ||
     hasScheduledEvents ||
     hasImmunizations
 
@@ -931,6 +935,87 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
                 </Collapsible>
               )}
 
+              {/* Administração de Medicamentos SOS */}
+              {hasSosMedicationRecords && (
+                <Collapsible open={isSosMedicationsOpen} onOpenChange={setIsSosMedicationsOpen}>
+                  <Card className="border-l-4 border-severity-warning/50 overflow-hidden">
+                    <CardHeader className="bg-severity-warning/10">
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center justify-between cursor-pointer">
+                          <CardTitle className="text-lg font-bold">
+                            ⚠ ADMINISTRAÇÃO DE MEDICAMENTOS SOS
+                            <span className="ml-2 text-sm font-normal text-muted-foreground">
+                              ({sosMedicationAdministrations.length} registros)
+                            </span>
+                          </CardTitle>
+                          <Button variant="ghost" size="sm">
+                            {isSosMedicationsOpen ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="pt-4">
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Residente</TableHead>
+                                <TableHead>Leito</TableHead>
+                                <TableHead>Medicamento</TableHead>
+                                <TableHead>Dose</TableHead>
+                                <TableHead>Via</TableHead>
+                                <TableHead>Hora</TableHead>
+                                <TableHead>Indicação</TableHead>
+                                <TableHead>Administrado Por</TableHead>
+                                <TableHead>Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {sosMedicationAdministrations.map((med, index) => (
+                                <TableRow key={index}>
+                                  <TableCell className="text-xs font-medium">
+                                    {med.residentName}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">{med.bedCode}</TableCell>
+                                  <TableCell className="text-xs font-medium">
+                                    {med.medicationName} {med.concentration}
+                                  </TableCell>
+                                  <TableCell className="text-xs">{med.dose}</TableCell>
+                                  <TableCell className="text-xs">{med.route}</TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {med.time || '-'}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {med.indication || '-'}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {med.administeredBy || '-'}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs bg-severity-warning/10 text-severity-warning border-severity-warning/30"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Administrado
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              )}
+
               {visibleCategoriesAfterMedications.map(renderCategory)}
 
               {!hasAnyOperationalRecords && (
@@ -1019,7 +1104,7 @@ export function DailyReportView({
 
   const getRowsForMonthlyDay = (report: DailyReport, selectedType?: RecordTypeFilter) => {
     if (selectedType === 'MEDICACAO') {
-      return report.medicationAdministrations.map((item, index) => ({
+      const continuousRows = report.medicationAdministrations.map((item, index) => ({
         key: `med-${report.summary.date}-${index}`,
         residentName: item.residentName,
         bedCode: item.bedCode,
@@ -1028,6 +1113,18 @@ export function DailyReportView({
         recordedBy: item.administeredBy || 'Não informado',
         details: `${item.medicationName} ${item.concentration || ''} ${item.dose || ''} • Via: ${item.route || 'N/A'} • ${item.wasAdministered ? 'Administrado' : 'Não administrado'}`,
       }))
+
+      const sosRows = (report.sosMedicationAdministrations || []).map((item, index) => ({
+        key: `sos-${report.summary.date}-${index}`,
+        residentName: item.residentName,
+        bedCode: item.bedCode,
+        type: 'Medicação SOS',
+        time: item.time || '--:--',
+        recordedBy: item.administeredBy || 'Não informado',
+        details: `${item.medicationName} ${item.concentration || ''} ${item.dose || ''} • Via: ${item.route || 'N/A'} • Indicação: ${item.indication || 'N/A'} • Administrado`,
+      }))
+
+      return [...continuousRows, ...sosRows]
     }
 
     if (selectedType === 'AGENDAMENTOS_PONTUAIS') {
@@ -1091,11 +1188,15 @@ export function DailyReportView({
           (sum, entry) => sum + entry.report.summary.totalMedicationsAdministered,
           0,
         )
+        const sos = dayReportsWithRows.reduce(
+          (sum, entry) => sum + (entry.report.sosMedicationAdministrations?.length || 0),
+          0,
+        )
         const pending = Math.max(due - done, 0)
         return {
           compliance: due > 0 ? Math.round((done / due) * 100) : 0,
           pending,
-          extras: 0,
+          extras: sos,
         }
       }
       if (recordType === 'AGENDAMENTOS_PONTUAIS') {
@@ -1178,7 +1279,7 @@ export function DailyReportView({
         return {
           compliance: 'Aderência medicamentosa',
           pending: 'Não administradas',
-          extras: 'Doses extras',
+          extras: 'Doses SOS',
         }
       }
       if (recordType === 'AGENDAMENTOS_PONTUAIS') {

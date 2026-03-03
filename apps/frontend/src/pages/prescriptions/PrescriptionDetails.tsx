@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import {
   Edit,
@@ -48,6 +48,9 @@ import {
   formatDateOnlySafe,
 } from '@/utils/dateHelpers'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
+import { formatScheduledWeekDays, isWeeklyMedicationFrequency } from '@/utils/medicationSchedule'
+import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
   ROTINA: 'Rotina',
@@ -70,6 +73,23 @@ const ROUTE_LABELS: Record<string, string> = {
   NASAL: 'Nasal',
   INALATORIA: 'Inalatória',
   OUTRA: 'Outra',
+}
+
+interface ResidentAdministrationResponse {
+  id: string
+  type: 'CONTINUOUS' | 'SOS'
+  date: string
+  actualTime?: string | null
+  administeredBy?: string | null
+  sosMedicationId?: string | null
+  indication?: string | null
+}
+
+interface SOSCardViewModel {
+  medication: SOSMedication
+  administrations: ResidentAdministrationResponse[]
+  latestAdministration: ResidentAdministrationResponse | null
+  isAdministered: boolean
 }
 
 export default function PrescriptionDetails() {
@@ -101,6 +121,22 @@ export default function PrescriptionDetails() {
   const [viewDate, setViewDate] = useState(getCurrentDate())
   const [sortMode, setSortMode] = useState<'medication' | 'time'>('medication')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'administered'>('all')
+  const [sosStatusFilter, setSosStatusFilter] = useState<'all' | 'administered'>('all')
+
+  const residentId = prescription?.residentId
+
+  const { data: residentAdministrations = [], isLoading: isLoadingResidentAdministrations } = useQuery<ResidentAdministrationResponse[]>({
+    queryKey: tenantKey('prescription-details-administrations', residentId || 'none', viewDate),
+    enabled: !!residentId,
+    queryFn: async () => {
+      if (!residentId) return []
+      const response = await api.get(
+        `/prescriptions/medication-administrations/resident/${residentId}/date/${viewDate}`,
+      )
+      return Array.isArray(response.data) ? response.data : []
+    },
+    staleTime: 30 * 1000,
+  })
 
 
   // Handlers de navegação por data (NOVO)
@@ -300,6 +336,60 @@ export default function PrescriptionDetails() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prescription?.medications, viewDate])
+
+  const sosCards = useMemo<SOSCardViewModel[]>(() => {
+    if (!prescription?.sosMedications || prescription.sosMedications.length === 0) {
+      return []
+    }
+
+    const sosAdministrationsByMedication = new Map<string, ResidentAdministrationResponse[]>()
+
+    residentAdministrations
+      .filter((administration) => administration.type === 'SOS' && !!administration.sosMedicationId)
+      .forEach((administration) => {
+        const medicationId = administration.sosMedicationId as string
+        const current = sosAdministrationsByMedication.get(medicationId) || []
+        current.push(administration)
+        sosAdministrationsByMedication.set(medicationId, current)
+      })
+
+    const cards = prescription.sosMedications.map((medication) => {
+      const administrations = sosAdministrationsByMedication.get(medication.id) || []
+      const sortedAdministrations = [...administrations].sort((a, b) => {
+        const timeA = a.actualTime || ''
+        const timeB = b.actualTime || ''
+        return timeB.localeCompare(timeA)
+      })
+
+      return {
+        medication,
+        administrations: sortedAdministrations,
+        latestAdministration: sortedAdministrations[0] || null,
+        isAdministered: sortedAdministrations.length > 0,
+      }
+    })
+
+    if (sosStatusFilter === 'administered') {
+      return cards.filter((card) => card.isAdministered)
+    }
+
+    return cards
+  }, [prescription?.sosMedications, residentAdministrations, sosStatusFilter])
+
+  const sosStatusCounts = useMemo(() => {
+    const all = prescription?.sosMedications?.length || 0
+
+    const administeredIds = new Set(
+      residentAdministrations
+        .filter((administration) => administration.type === 'SOS' && !!administration.sosMedicationId)
+        .map((administration) => administration.sosMedicationId as string),
+    )
+
+    return {
+      all,
+      administered: administeredIds.size,
+    }
+  }, [prescription?.sosMedications, residentAdministrations])
 
   // Early returns após hooks
   if (isLoading) {
@@ -821,6 +911,11 @@ export default function PrescriptionDetails() {
                           <div>
                             <span className="text-muted-foreground">Frequência:</span>
                             <p className="font-medium">{formatMedicationFrequency(medication.frequency)}</p>
+                            {isWeeklyMedicationFrequency(medication.frequency) && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Dias: {formatScheduledWeekDays(medication.scheduledWeekDays)}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -901,60 +996,137 @@ export default function PrescriptionDetails() {
         </TabsContent>
 
         <TabsContent value="sos" className="space-y-4 mt-6">
+          <div className="flex items-center justify-between gap-2 bg-muted/30 p-3 sm:p-4 rounded-lg">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousDay}
+              className="shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2 justify-center flex-1 min-w-0">
+              <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="font-medium text-sm sm:text-base truncate">
+                {formatDateLongSafe(viewDate + 'T12:00:00')}
+              </span>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextDay}
+                disabled={isViewingToday}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              {!isViewingToday && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToToday}
+                  className="hidden sm:flex"
+                >
+                  Hoje
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <Tabs
+            value={sosStatusFilter}
+            onValueChange={(v) => setSosStatusFilter(v as 'all' | 'administered')}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="all">
+                Todos ({sosStatusCounts.all})
+              </TabsTrigger>
+              <TabsTrigger value="administered">
+                Administrados ({sosStatusCounts.administered})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {!prescriptionData.sosMedications || prescriptionData.sosMedications.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center text-muted-foreground">
                 Nenhuma medicação SOS cadastrada
               </CardContent>
             </Card>
+          ) : isLoadingResidentAdministrations ? (
+            <Card>
+              <CardContent className="p-6 text-center text-muted-foreground">
+                Carregando administrações SOS...
+              </CardContent>
+            </Card>
+          ) : sosCards.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center text-muted-foreground">
+                Nenhuma medicação SOS encontrada para o filtro selecionado
+              </CardContent>
+            </Card>
           ) : (
-            prescriptionData.sosMedications.map((sos) => (
-              <Card key={sos.id} className="border-l-4 border-l-orange-500">
+            sosCards.map((card) => (
+              <Card key={card.medication.id} className="border-l-4 border-l-orange-500">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
                         <AlertCircle className="h-5 w-5 text-severity-warning" />
                         <div>
-                          <h3 className="font-semibold text-lg">{sos.name}</h3>
+                          <h3 className="font-semibold text-lg">{card.medication.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {formatMedicationPresentation(sos.presentation)} - {sos.concentration}
+                            {formatMedicationPresentation(card.medication.presentation)} - {card.medication.concentration}
                           </p>
                         </div>
                         <Badge variant="outline" className="bg-severity-warning/5 text-severity-warning/80">
                           SOS
                         </Badge>
+                        {card.isAdministered && (
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+                            Administrado
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
                         <div>
                           <span className="text-muted-foreground">Indicação:</span>
-                          <p className="font-medium">{sos.indication}</p>
+                          <p className="font-medium">{card.medication.indication}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Dose:</span>
-                          <p className="font-medium">{sos.dose}</p>
+                          <p className="font-medium">{card.medication.dose}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Intervalo Mín.:</span>
-                          <p className="font-medium">{sos.minInterval}</p>
+                          <p className="font-medium">{card.medication.minInterval}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Máx. Diária:</span>
-                          <p className="font-medium">{sos.maxDailyDoses}x</p>
+                          <p className="font-medium">{card.medication.maxDailyDoses}x</p>
                         </div>
                       </div>
 
-                      {sos.indicationDetails && (
+                      {card.latestAdministration && (
+                        <div className="p-3 bg-success/5 rounded border border-success/30 text-sm mb-3">
+                          <span className="font-medium">Última administração do dia:</span>{' '}
+                          {card.latestAdministration.actualTime || '--:--'} por{' '}
+                          {card.latestAdministration.administeredBy || 'Profissional não informado'}
+                        </div>
+                      )}
+
+                      {card.medication.indicationDetails && (
                         <div className="p-3 bg-severity-warning/5 rounded border border-severity-warning/30 text-sm">
-                          <span className="font-medium">Detalhes:</span> {sos.indicationDetails}
+                          <span className="font-medium">Detalhes:</span> {card.medication.indicationDetails}
                         </div>
                       )}
                     </div>
 
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => handleAdministerSOS(sos)}
+                        onClick={() => handleAdministerSOS(card.medication)}
                         size="sm"
                         variant="outline"
                       >
@@ -972,7 +1144,7 @@ export default function PrescriptionDetails() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => handleDeleteSOSMedication(sos)}
+                              onClick={() => handleDeleteSOSMedication(card.medication)}
                               className="text-danger focus:text-danger"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />

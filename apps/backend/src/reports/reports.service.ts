@@ -11,6 +11,7 @@ import type {
   DailyReportDto,
   DailyRecordReportDto,
   MedicationAdministrationReportDto,
+  SOSMedicationAdministrationReportDto,
   VitalSignsReportDto,
   DailyReportSummaryDto,
   ShiftReportDto,
@@ -138,6 +139,7 @@ export class ReportsService {
     const [
       dailyRecords,
       medicationAdministrations,
+      sosMedicationAdministrations,
       activeResidents,
       shifts,
       medicationScheduled,
@@ -147,6 +149,7 @@ export class ReportsService {
       await Promise.all([
         this.getDailyRecords(dateOnly, dateUtc, shiftWindow),
         this.getMedicationAdministrations(dateOnly, dateUtc, shiftWindow),
+        this.getSOSMedicationAdministrations(dateOnly, dateUtc, shiftWindow),
         this.getActiveResidentsOnDate(dateUtc),
         this.getShiftsOnDate(dateUtc, shiftTemplateId, sharedCache),
         this.getMedicationScheduleCount(dayStart, dayEnd, shiftWindow),
@@ -178,6 +181,7 @@ export class ReportsService {
       summary,
       dailyRecords,
       medicationAdministrations,
+      sosMedicationAdministrations,
       vitalSigns,
       shifts,
       scheduledEvents,
@@ -340,6 +344,7 @@ export class ReportsService {
     const administrations = await this.tenantContext.client.medicationAdministration.findMany(
       {
         where: {
+          deletedAt: null,
           ...(shiftWindow
             ? shiftWindow.crossesMidnight
               ? {
@@ -403,6 +408,75 @@ export class ReportsService {
       wasAdministered: admin.wasAdministered,
       administeredBy: admin.administeredBy || undefined,
       reason: admin.reason || undefined,
+      notes: admin.notes || undefined,
+    }));
+  }
+
+  private async getSOSMedicationAdministrations(
+    date: string,
+    dateUtc: Date,
+    shiftWindow?: { startTime: string; endTime: string; crossesMidnight: boolean } | null,
+  ): Promise<SOSMedicationAdministrationReportDto[]> {
+    const nextDateUtc = new Date(dateUtc);
+    nextDateUtc.setDate(nextDateUtc.getDate() + 1);
+
+    const administrations = await this.tenantContext.client.sOSAdministration.findMany({
+      where: {
+        deletedAt: null,
+        ...(shiftWindow
+          ? shiftWindow.crossesMidnight
+            ? {
+                OR: [
+                  { date: dateUtc },
+                  { date: nextDateUtc },
+                ],
+              }
+            : {
+                date: dateUtc,
+              }
+          : { date: dateUtc }),
+      },
+      include: {
+        resident: {
+          select: {
+            fullName: true,
+            cpf: true,
+            cns: true,
+            bed: {
+              select: {
+                code: true,
+              },
+            },
+          },
+        },
+        sosMedication: {
+          select: {
+            name: true,
+            concentration: true,
+            dose: true,
+            route: true,
+          },
+        },
+      },
+      orderBy: [{ time: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const filtered = shiftWindow
+      ? administrations.filter((admin) => this.isTimeInWindow(admin.time, shiftWindow))
+      : administrations;
+
+    return filtered.map((admin) => ({
+      residentName: admin.resident.fullName,
+      residentCpf: admin.resident.cpf || '',
+      residentCns: admin.resident.cns || undefined,
+      bedCode: admin.resident.bed?.code || 'N/A',
+      medicationName: admin.sosMedication.name,
+      concentration: admin.sosMedication.concentration || '',
+      dose: admin.sosMedication.dose || 'N/A',
+      route: admin.sosMedication.route || 'N/A',
+      time: admin.time,
+      indication: admin.indication,
+      administeredBy: admin.administeredBy || undefined,
       notes: admin.notes || undefined,
     }));
   }
@@ -2723,6 +2797,8 @@ export class ReportsService {
       INTERVALO_24H: 'A cada 24 horas',
       UMA_VEZ_DIA: '1x ao dia',
       DUAS_VEZES_DIA: '2x ao dia',
+      UMA_VEZ_SEMANA: '1x por semana',
+      DUAS_VEZES_SEMANA: '2x por semana',
       TRES_VEZES_DIA: '3x ao dia',
       QUATRO_VEZES_DIA: '4x ao dia',
       SE_NECESSARIO: 'Se necessário',

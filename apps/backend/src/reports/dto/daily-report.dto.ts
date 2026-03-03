@@ -89,6 +89,44 @@ export class MedicationAdministrationReportDto {
   notes?: string;
 }
 
+export class SOSMedicationAdministrationReportDto {
+  @ApiProperty()
+  residentName: string;
+
+  @ApiProperty()
+  residentCpf: string;
+
+  @ApiProperty({ required: false })
+  residentCns?: string;
+
+  @ApiProperty()
+  bedCode: string;
+
+  @ApiProperty()
+  medicationName: string;
+
+  @ApiProperty()
+  concentration: string;
+
+  @ApiProperty()
+  dose: string;
+
+  @ApiProperty()
+  route: string;
+
+  @ApiProperty()
+  time: string;
+
+  @ApiProperty()
+  indication: string;
+
+  @ApiProperty({ required: false })
+  administeredBy?: string;
+
+  @ApiProperty({ required: false })
+  notes?: string;
+}
+
 export class VitalSignsReportDto {
   @ApiProperty()
   residentName: string;
@@ -266,6 +304,9 @@ export class DailyReportDto {
 
   @ApiProperty({ type: [MedicationAdministrationReportDto] })
   medicationAdministrations: MedicationAdministrationReportDto[];
+
+  @ApiProperty({ type: [SOSMedicationAdministrationReportDto] })
+  sosMedicationAdministrations: SOSMedicationAdministrationReportDto[];
 
   @ApiProperty({ type: [VitalSignsReportDto] })
   vitalSigns: VitalSignsReportDto[];

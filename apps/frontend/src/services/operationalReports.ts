@@ -62,6 +62,10 @@ export function applyOperationalReportFilter(
       ? dayReport.medicationAdministrations
       : []
 
+    const filteredSosMedicationAdministrations = isMedicationOnly
+      ? (dayReport.sosMedicationAdministrations || [])
+      : []
+
     const filteredImmunizations = isImmunizationsOnly
       ? dayReport.immunizations || []
       : []
@@ -83,6 +87,9 @@ export function applyOperationalReportFilter(
     filteredMedicationAdministrations.forEach((medication) =>
       residentIds.add(`${medication.residentCpf}-${medication.residentName}`),
     )
+    filteredSosMedicationAdministrations.forEach((medication) =>
+      residentIds.add(`${medication.residentCpf}-${medication.residentName}`),
+    )
     filteredScheduledEvents.forEach((event) =>
       residentIds.add(`${event.residentCpf}-${event.residentName}`),
     )
@@ -94,6 +101,7 @@ export function applyOperationalReportFilter(
       ...dayReport,
       dailyRecords: filteredDailyRecords,
       medicationAdministrations: filteredMedicationAdministrations,
+      sosMedicationAdministrations: filteredSosMedicationAdministrations,
       immunizations: filteredImmunizations,
       scheduledEvents: filteredScheduledEvents,
       summary: {

@@ -33,6 +33,21 @@ export interface MedicationAdministrationReport {
   notes?: string
 }
 
+export interface SOSMedicationAdministrationReport {
+  residentName: string
+  residentCpf: string
+  residentCns?: string
+  bedCode: string
+  medicationName: string
+  concentration: string
+  dose: string
+  route: string
+  time: string
+  indication: string
+  administeredBy?: string
+  notes?: string
+}
+
 export interface VitalSignsReport {
   residentName: string
   residentCpf: string
@@ -107,6 +122,7 @@ export interface DailyReport {
   summary: DailyReportSummary
   dailyRecords: DailyRecordReport[]
   medicationAdministrations: MedicationAdministrationReport[]
+  sosMedicationAdministrations?: SOSMedicationAdministrationReport[]
   vitalSigns: VitalSignsReport[]
   shifts: ShiftReport[]
   scheduledEvents: ScheduledEventReport[]
