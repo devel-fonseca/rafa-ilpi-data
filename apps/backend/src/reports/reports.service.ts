@@ -1641,6 +1641,15 @@ export class ReportsService {
             },
           },
         },
+        residentDocuments: {
+          where: {
+            createdAt: { lte: referenceDayEnd },
+            OR: [{ deletedAt: null }, { deletedAt: { gt: referenceDayEnd } }],
+          },
+          select: {
+            type: true,
+          },
+        },
         contracts: {
           where: {
             startDate: { lte: referenceDate },
@@ -1759,6 +1768,14 @@ export class ReportsService {
       missingFieldsCount: number;
       missingFields: string[];
     }> = [];
+    const criticalRequiredResidentDocuments: Array<{ type: string; label: string }> = [
+      { type: 'TERMO_ADMISSAO', label: 'Termo de admissão do residente' },
+      { type: 'TERMO_CONSENTIMENTO_IMAGEM', label: 'Termo de consentimento de imagem' },
+      { type: 'TERMO_CONSENTIMENTO_LGPD', label: 'Termo de consentimento LGPD' },
+      { type: 'DOCUMENTOS_PESSOAIS', label: 'Documentos pessoais do residente' },
+      { type: 'DOCUMENTOS_RESPONSAVEL_LEGAL', label: 'Documentos do responsável legal' },
+      { type: 'LAUDO_MEDICO', label: 'Laudo médico do residente' },
+    ];
 
     const residentRows = residents.map((resident) => {
       const age = this.calculateAge(resident.birthDate, referenceDate);
@@ -1897,20 +1914,54 @@ export class ReportsService {
         contraindicationsFromResident > 0;
       if (hasContraindications) residentsWithContraindications += 1;
 
-      const missingFields: string[] = [];
-      if (!resident.legalGuardianName) missingFields.push('Responsável legal não informado');
-      if (!hasEmergencyContact) missingFields.push('Contato de emergência não informado');
-      if (!resident.cns?.trim()) missingFields.push('CNS não informado');
-      if (!bedCodeAtReference) missingFields.push('Leito não definido');
+      const residentDocumentTypes = new Set(
+        resident.residentDocuments
+          .map((document) => document.type?.trim())
+          .filter((type): type is string => Boolean(type)),
+      );
+      const missingCadastroDocumental: string[] = [];
+      const missingAssistencialOperacional: string[] = [];
+
+      if (!resident.legalGuardianName) {
+        missingCadastroDocumental.push('Responsável legal não informado');
+      }
+      if (!hasEmergencyContact) {
+        missingCadastroDocumental.push('Contato de emergência não informado');
+      }
+      if (!resident.cns?.trim()) {
+        missingCadastroDocumental.push('CNS não informado');
+      }
+      if (!bedCodeAtReference) {
+        missingCadastroDocumental.push('Leito não definido');
+      }
+      if (!hasActiveContract) {
+        missingCadastroDocumental.push('Contrato vigente ausente');
+      }
+      for (const requiredDocument of criticalRequiredResidentDocuments) {
+        if (!residentDocumentTypes.has(requiredDocument.type)) {
+          missingCadastroDocumental.push(`${requiredDocument.label} ausente`);
+        }
+      }
+
       if (!resident.bloodTypeRecord || resident.bloodTypeRecord.bloodType === 'NAO_INFORMADO') {
-        missingFields.push('Tipo sanguíneo não informado');
+        missingAssistencialOperacional.push('Tipo sanguíneo não informado');
       }
-      if (!hasActiveContract) missingFields.push('Contrato vigente ausente');
-      if (!assessment) missingFields.push('Avaliação de dependência vigente ausente');
-      if (!hasClinicalProfile) missingFields.push('Perfil clínico não preenchido');
+      if (!assessment) {
+        missingAssistencialOperacional.push('Avaliação de dependência vigente ausente');
+      }
+      if (!hasClinicalProfile) {
+        missingAssistencialOperacional.push('Perfil clínico não preenchido');
+      }
       if (!hasRecentAnthropometry) {
-        missingFields.push(`Antropometria recente ausente (últimos ${anthropometryRecencyDays} dias)`);
+        missingAssistencialOperacional.push(
+          `Antropometria recente ausente (últimos ${anthropometryRecencyDays} dias)`,
+        );
       }
+
+      const missingFields = [
+        ...missingCadastroDocumental,
+        ...missingAssistencialOperacional,
+      ];
       if (missingFields.length > 0) {
         residentsWithCriticalIncompleteFields += 1;
         criticalIncompleteResidents.push({
