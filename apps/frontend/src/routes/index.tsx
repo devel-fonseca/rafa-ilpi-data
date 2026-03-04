@@ -140,6 +140,9 @@ const ReportsHub = lazy(() => import('@/pages/reports/ReportsHub'))
 const DailyReportPage = lazy(() => import('@/pages/reports/DailyReportPage'))
 const ResidentsListReportPage = lazy(() => import('@/pages/reports/ResidentsListReportPage'))
 const ResidentCareSummaryReportPage = lazy(() => import('@/pages/reports/ResidentCareSummaryReportPage'))
+const ResidentRegistrationReportPage = lazy(
+  () => import('@/pages/reports/ResidentRegistrationReportPage'),
+)
 const ShiftHistoryReportPage = lazy(() => import('@/pages/reports/ShiftHistoryReportPage'))
 const InstitutionalResidentProfileReportPage = lazy(
   () => import('@/pages/reports/InstitutionalResidentProfileReportPage'),
@@ -754,6 +757,10 @@ export const router = createBrowserRouter([
           {
             path: 'resumo-assistencial',
             element: withSuspense(<ResidentCareSummaryReportPage />),
+          },
+          {
+            path: 'cadastro-residente',
+            element: withSuspense(<ResidentRegistrationReportPage />),
           },
           {
             path: 'perfil-residentes',

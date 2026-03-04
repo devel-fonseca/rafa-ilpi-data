@@ -17,6 +17,7 @@ export interface Resident {
   // Dados Pessoais (English names from backend)
   fullName: string
   socialName?: string
+  email?: string
   cpf?: string
   rg?: string
   rgIssuer?: string
@@ -43,6 +44,9 @@ export interface Resident {
   currentComplement?: string
   currentDistrict?: string
   currentPhone?: string
+  // Procedência atual do formulário é texto livre.
+  // Campos estruturados de origem podem existir apenas em dados legados.
+  origin?: string
   originCep?: string
   originState?: string
   originCity?: string
@@ -195,6 +199,7 @@ export interface ResidentStats {
 export interface CreateResidentDto {
   fullName: string
   socialName?: string
+  email?: string
   cpf?: string
   rg?: string
   rgIssuer?: string
@@ -219,6 +224,7 @@ export interface CreateResidentDto {
   currentComplement?: string
   currentDistrict?: string
   currentPhone?: string
+  origin?: string
   originCep?: string
   originState?: string
   originCity?: string
@@ -278,6 +284,7 @@ export interface CreateResidentDto {
 export interface UpdateResidentDto {
   fullName?: string
   socialName?: string
+  email?: string
   cpf?: string
   rg?: string
   rgIssuer?: string
@@ -302,6 +309,7 @@ export interface UpdateResidentDto {
   currentComplement?: string
   currentDistrict?: string
   currentPhone?: string
+  origin?: string
   originCep?: string
   originState?: string
   originCity?: string

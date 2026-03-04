@@ -42,15 +42,25 @@ export const RESIDENT_DOCUMENT_TYPES = [
 ] as const
 
 class ResidentDocumentsAPI {
+  private normalizeDocumentsPayload(payload: unknown): ResidentDocument[] {
+    if (Array.isArray(payload)) return payload as ResidentDocument[]
+    if (payload && typeof payload === 'object') {
+      const maybeObject = payload as { data?: unknown; documents?: unknown }
+      if (Array.isArray(maybeObject.data)) return maybeObject.data as ResidentDocument[]
+      if (Array.isArray(maybeObject.documents)) return maybeObject.documents as ResidentDocument[]
+    }
+    return []
+  }
+
   /**
    * Lista documentos de um residente
    */
   async getDocuments(residentId: string, type?: string): Promise<ResidentDocument[]> {
     const params = type ? { type } : {}
-    const response = await api.get<ResidentDocument[]>(`/residents/${residentId}/documents`, {
+    const response = await api.get(`/residents/${residentId}/documents`, {
       params,
     })
-    return response.data
+    return this.normalizeDocumentsPayload(response.data)
   }
 
   /**

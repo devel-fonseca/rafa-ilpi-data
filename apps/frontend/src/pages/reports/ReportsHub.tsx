@@ -201,12 +201,13 @@ export default function ReportsHub() {
       return
     }
 
-    if (
-      itemId === 'resident-report' ||
-      itemId === 'resident-card' ||
-      itemId === 'resident-care-summary'
-    ) {
+    if (itemId === 'resident-report' || itemId === 'resident-care-summary') {
       navigate('/dashboard/relatorios/resumo-assistencial')
+      return
+    }
+
+    if (itemId === 'resident-card') {
+      navigate('/dashboard/relatorios/cadastro-residente')
       return
     }
 
