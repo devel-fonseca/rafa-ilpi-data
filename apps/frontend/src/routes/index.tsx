@@ -588,7 +588,13 @@ export const router = createBrowserRouter([
       },
       {
         path: 'perfil-institucional',
-        element: <InstitutionalProfile />,
+        element: (
+          <ProtectedRoute
+            requiredPermissions={[PermissionType.UPDATE_INSTITUTIONAL_PROFILE]}
+          >
+            <InstitutionalProfile />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'meu-perfil',

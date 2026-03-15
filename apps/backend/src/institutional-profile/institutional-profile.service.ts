@@ -249,9 +249,10 @@ export class InstitutionalProfileService {
     const profile = await this.getProfile(tenantId)
 
     // Remover logo anterior se existir
-    if (profile?.logoKey) {
+    const currentLogoKey = profile?.logoUrl || profile?.logoKey
+    if (currentLogoKey) {
       try {
-        await this.filesService.deleteFile(profile.logoKey)
+        await this.filesService.deleteFile(currentLogoKey)
       } catch (error) {
         // Ignorar erro se arquivo não existir
         console.warn('Erro ao deletar logo anterior:', error)
@@ -271,11 +272,39 @@ export class InstitutionalProfileService {
       create: {
         tenantId,
         logoUrl: uploadResult.fileUrl,
-        logoKey: uploadResult.fileId,
+        logoKey: uploadResult.fileUrl,
       },
       update: {
         logoUrl: uploadResult.fileUrl,
-        logoKey: uploadResult.fileId,
+        logoKey: uploadResult.fileUrl,
+      },
+    })
+  }
+
+  /**
+   * Remove logo institucional atual
+   */
+  async removeLogo(tenantId: string) {
+    const profile = await this.getProfile(tenantId)
+
+    if (!profile) {
+      throw new NotFoundException('Perfil institucional não encontrado')
+    }
+
+    const currentLogoKey = profile.logoUrl || profile.logoKey
+    if (currentLogoKey) {
+      try {
+        await this.filesService.deleteFile(currentLogoKey)
+      } catch (error) {
+        console.warn('Erro ao deletar logo institucional:', error)
+      }
+    }
+
+    return this.tenantContext.client.tenantProfile.update({
+      where: { tenantId },
+      data: {
+        logoUrl: null,
+        logoKey: null,
       },
     })
   }

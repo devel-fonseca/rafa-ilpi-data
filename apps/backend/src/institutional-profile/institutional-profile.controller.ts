@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, UseInterceptors, UploadedFile, ParseFilePipeBuilder, HttpStatus } from '@nestjs/common'
+import { Controller, Get, Post, Delete, Body, UseGuards, UseInterceptors, UploadedFile, ParseFilePipeBuilder, HttpStatus } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../permissions/guards/permissions.guard'
@@ -63,6 +63,16 @@ export class InstitutionalProfileController {
     file: Express.Multer.File
   ) {
     return this.service.uploadLogo(tenantId, file)
+  }
+
+  /**
+   * DELETE /institutional-profile/logo
+   * Remove logo institucional atual
+   */
+  @Delete('logo')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
+  async removeLogo(@CurrentUser('tenantId') tenantId: string) {
+    return this.service.removeLogo(tenantId)
   }
 
 }

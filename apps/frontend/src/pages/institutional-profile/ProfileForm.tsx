@@ -9,12 +9,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { useProfile, useUpdateProfile, useUploadLogo } from '@/hooks/useInstitutionalProfile'
-import { Upload, Loader2, Building2 } from 'lucide-react'
+import { useProfile, useUpdateProfile, useUploadLogo, useRemoveLogo } from '@/hooks/useInstitutionalProfile'
+import { Upload, Loader2, Building2, Trash2, X } from 'lucide-react'
 import type { LegalNature } from '@/api/institutional-profile.api'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { buscarCEP } from '@/services/viacep'
 import { formatLegalNature } from '@/utils/formatters'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 
 const profileSchema = z.object({
   // Dados do Profile
@@ -49,6 +50,8 @@ export function ProfileForm() {
   const { data: fullProfile, isLoading } = useProfile()
   const updateMutation = useUpdateProfile()
   const uploadLogoMutation = useUploadLogo()
+  const removeLogoMutation = useRemoveLogo()
+  const { ConfirmDialog, confirm } = useConfirmDialog()
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
 
@@ -67,6 +70,8 @@ export function ProfileForm() {
   const legalNature = watch('legalNature')
   const isProfileComplete = !!legalNature
   const hasLogo = !!logoPreview
+  const savedLogoUrl = fullProfile?.profile?.logoUrl || null
+  const hasSavedLogo = !!savedLogoUrl
   const sectionLinks = [
     { id: 'section-logo', label: 'Logo institucional' },
     { id: 'section-basic', label: 'Dados básicos' },
@@ -252,6 +257,40 @@ export function ProfileForm() {
     reader.readAsDataURL(file)
   }
 
+  const handleDiscardLogoSelection = () => {
+    setLogoFile(null)
+    setLogoPreview(savedLogoUrl)
+  }
+
+  const handleRemoveLogo = async () => {
+    const confirmed = await confirm({
+      title: 'Remover logo institucional?',
+      description: 'O logo atual será removido do perfil institucional e do armazenamento. Esta ação não pode ser desfeita.',
+      confirmText: 'Remover logo',
+      cancelText: 'Cancelar',
+      variant: 'destructive',
+    })
+
+    if (!confirmed) return
+
+    try {
+      await removeLogoMutation.mutateAsync()
+      setLogoFile(null)
+      setLogoPreview(null)
+      toast({
+        title: 'Sucesso',
+        description: 'Logo institucional removido com sucesso',
+      })
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast({
+        title: 'Erro ao remover logo',
+        description: errorResponse?.data?.message || 'Erro ao remover o logo institucional',
+        variant: 'destructive',
+      })
+    }
+  }
+
   if (isLoading) {
     return (
       <Card>
@@ -263,8 +302,9 @@ export function ProfileForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_260px] gap-6">
+    <>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_260px] gap-6">
         <div className="space-y-6">
           {/* Logo */}
           <Card id="section-logo" aria-labelledby="section-logo-title">
@@ -300,12 +340,40 @@ export function ProfileForm() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <Label htmlFor="logo-upload" className="cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 inline-flex">
-                      <Upload className="h-4 w-4" />
-                      {logoFile ? 'Trocar logo' : 'Selecionar logo'}
-                    </div>
-                  </Label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Label htmlFor="logo-upload" className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 inline-flex">
+                        <Upload className="h-4 w-4" />
+                        {logoFile ? 'Trocar logo' : 'Selecionar logo'}
+                      </div>
+                    </Label>
+                    {logoFile ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleDiscardLogoSelection}
+                        disabled={uploadLogoMutation.isPending || updateMutation.isPending}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Descartar troca
+                      </Button>
+                    ) : hasSavedLogo ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleRemoveLogo}
+                        disabled={removeLogoMutation.isPending || uploadLogoMutation.isPending || updateMutation.isPending}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        {removeLogoMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-2" />
+                        )}
+                        Remover logo
+                      </Button>
+                    ) : null}
+                  </div>
                   <Input
                     id="logo-upload"
                     type="file"
@@ -614,33 +682,35 @@ export function ProfileForm() {
             </CardContent>
           </Card>
         </aside>
-      </div>
+        </div>
 
-      {/* Botões */}
-      <div className="flex justify-end gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            reset()
-            setLogoFile(null)
-            setLogoPreview(fullProfile?.profile?.logoUrl || null)
-          }}
-          disabled={!isDirty && !logoFile}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={updateMutation.isPending || uploadLogoMutation.isPending || (!isDirty && !logoFile)}>
-          {updateMutation.isPending || uploadLogoMutation.isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Salvando...
-            </>
-          ) : (
-            'Salvar Alterações'
-          )}
-        </Button>
-      </div>
-    </form>
+        {/* Botões */}
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              reset()
+              setLogoFile(null)
+              setLogoPreview(savedLogoUrl)
+            }}
+            disabled={!isDirty && !logoFile}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={updateMutation.isPending || uploadLogoMutation.isPending || (!isDirty && !logoFile)}>
+            {updateMutation.isPending || uploadLogoMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Salvando...
+              </>
+            ) : (
+              'Salvar Alterações'
+            )}
+          </Button>
+        </div>
+      </form>
+      <ConfirmDialog />
+    </>
   )
 }

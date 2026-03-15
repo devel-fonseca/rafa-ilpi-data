@@ -95,6 +95,20 @@ export function useUploadLogo() {
   })
 }
 
+/**
+ * Hook para remover logo
+ */
+export function useRemoveLogo() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => institutionalProfileAPI.removeLogo(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.profile() })
+    },
+  })
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // DOCUMENTS HOOKS
 // ──────────────────────────────────────────────────────────────────────────────

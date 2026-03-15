@@ -116,6 +116,11 @@ class InstitutionalProfileAPI {
     })
     return response.data
   }
+
+  async removeLogo(): Promise<TenantProfile> {
+    const response = await api.delete<TenantProfile>(`${this.baseUrl}/logo`)
+    return response.data
+  }
 }
 
 export const institutionalProfileAPI = new InstitutionalProfileAPI()

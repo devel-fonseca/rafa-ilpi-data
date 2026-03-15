@@ -76,7 +76,7 @@ export function DashboardLayout() {
   const { hasFeature } = useFeatures()
 
   // Verificar permissões
-  const canViewInstitutionalProfile = hasPermission(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
+  const canUpdateInstitutionalProfile = hasPermission(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE)
   const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
                              hasPermission(PermissionType.UPDATE_RESIDENTS) ||
@@ -237,6 +237,15 @@ export function DashboardLayout() {
   const desktopTrayButtonClass =
     'h-[34px] w-[34px] rounded-md text-muted-foreground hover:bg-accent/70 hover:text-foreground'
   const desktopTrayIconClass = 'h-5 w-5'
+  const sidebarBrandFallbackClass =
+    'flex items-center justify-center rounded-xl text-sidebar-foreground'
+  const institutionalProfileHref = '/dashboard/perfil-institucional'
+  const brandingWrapperClass = cn(
+    'transition-colors',
+    canUpdateInstitutionalProfile
+      ? 'cursor-pointer hover:bg-sidebar-hover'
+      : 'cursor-default'
+  )
 
   const userMenuLabel = (
     <DropdownMenuLabel className="font-normal">
@@ -367,13 +376,6 @@ export function DashboardLayout() {
         to: '/dashboard/conformidade',
         icon: ShieldCheck,
         visible: canViewCompliance,
-      },
-      {
-        kind: 'link',
-        label: 'Perfil Institucional',
-        to: '/dashboard/perfil-institucional',
-        icon: Building2,
-        visible: canViewInstitutionalProfile,
       },
       {
         kind: 'link',
@@ -520,6 +522,118 @@ export function DashboardLayout() {
     )
   }
 
+  const renderDesktopBranding = () => {
+    const brandingContent = preferences.sidebarCollapsed ? (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl', brandingWrapperClass)}>
+            {institutionalLogoUrl && !hideInstitutionalLogo ? (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-sidebar-border/80 bg-white/95 p-1.5 shadow-sm dark:bg-slate-50/95">
+                <img
+                  src={institutionalLogoUrl}
+                  alt="Logo institucional"
+                  className="h-full w-full object-contain"
+                  onError={() => setHideInstitutionalLogo(true)}
+                />
+              </div>
+            ) : (
+              <div className={cn(sidebarBrandFallbackClass, 'h-10 w-10')}>
+                <Building2 className={`${desktopSidebarIconClass} text-current`} />
+              </div>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          {canUpdateInstitutionalProfile ? institutionalName : `${institutionalName} • sem permissão de edição`}
+        </TooltipContent>
+      </Tooltip>
+    ) : (
+      <div
+        className={cn(
+          'flex flex-col items-center gap-3 text-center rounded-xl px-2 py-2',
+          brandingWrapperClass
+        )}
+      >
+        {institutionalLogoUrl && !hideInstitutionalLogo ? (
+          <div className="flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-sidebar-border/80 bg-white/95 px-2 py-1.5 shadow-sm dark:bg-slate-50/95">
+            <img
+              src={institutionalLogoUrl}
+              alt="Logo institucional"
+              className="h-full w-full object-contain"
+              onError={() => setHideInstitutionalLogo(true)}
+            />
+          </div>
+        ) : (
+          <div className={cn(sidebarBrandFallbackClass, 'h-14 w-14 shrink-0')}>
+            <Building2 className="h-8 w-8 shrink-0 text-current" />
+          </div>
+        )}
+
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-semibold text-sidebar-foreground">
+            {institutionalName}
+          </h1>
+          <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
+        </div>
+      </div>
+    )
+
+    if (!canUpdateInstitutionalProfile) {
+      return brandingContent
+    }
+
+    return (
+      <Link to={institutionalProfileHref} className="block rounded-xl">
+        {brandingContent}
+      </Link>
+    )
+  }
+
+  const renderMobileBranding = () => {
+    const content = (
+      <>
+        {institutionalLogoUrl && !hideInstitutionalLogo ? (
+          <div className="flex h-8 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-white/95 px-1.5 py-1 shadow-sm dark:bg-slate-50/95 sm:h-9 sm:w-12">
+            <img
+              src={institutionalLogoUrl}
+              alt="Logo institucional"
+              className="h-full w-full object-contain"
+              onError={() => setHideInstitutionalLogo(true)}
+            />
+          </div>
+        ) : (
+          <div className={cn(sidebarBrandFallbackClass, 'h-8 w-8 shrink-0')}>
+            <Building2 className="h-7 w-7 text-current" />
+          </div>
+        )}
+        <div className="hidden sm:block">
+          <h1 className="text-lg font-semibold text-foreground">
+            {institutionalName}
+          </h1>
+          <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
+        </div>
+        <div className="sm:hidden">
+          <h1 className="max-w-[110px] truncate text-sm font-semibold text-foreground">
+            {institutionalName}
+          </h1>
+        </div>
+      </>
+    )
+
+    if (!canUpdateInstitutionalProfile) {
+      return <div className="flex items-center gap-3 md:hidden">{content}</div>
+    }
+
+    return (
+      <Link
+        to={institutionalProfileHref}
+        className="flex items-center gap-3 rounded-lg transition-colors hover:bg-accent/60 md:hidden"
+      >
+        {content}
+      </Link>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background md:grid md:grid-cols-[auto_minmax(0,1fr)] md:grid-rows-[2.5rem_minmax(0,1fr)]">
       {/* Header */}
@@ -538,31 +652,7 @@ export function DashboardLayout() {
                   <Menu className="h-4 w-4" />
                 </Button>
               )}
-              <div className="flex items-center gap-3 md:hidden">
-                {institutionalLogoUrl && !hideInstitutionalLogo ? (
-                  <div className="flex h-8 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-white/95 px-1.5 py-1 shadow-sm dark:bg-slate-50/95 sm:h-9 sm:w-12">
-                    <img
-                      src={institutionalLogoUrl}
-                      alt="Logo institucional"
-                      className="h-full w-full object-contain"
-                      onError={() => setHideInstitutionalLogo(true)}
-                    />
-                  </div>
-                ) : (
-                  <Building2 className="h-7 w-7 text-primary" />
-                )}
-                <div className="hidden sm:block">
-                  <h1 className="text-lg font-semibold text-foreground">
-                    {institutionalName}
-                  </h1>
-                  <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
-                </div>
-                <div className="sm:hidden">
-                  <h1 className="max-w-[110px] truncate text-sm font-semibold text-foreground">
-                    {institutionalName}
-                  </h1>
-                </div>
-              </div>
+              {renderMobileBranding()}
             </div>
 
             {/* Desktop: System Tray */}
@@ -678,54 +768,8 @@ export function DashboardLayout() {
             <nav className="h-full overflow-y-auto p-2">
               <div className={cn('space-y-1', preferences.sidebarCollapsed ? 'pt-3' : 'pt-2')}>
               <div className={cn('px-2', preferences.sidebarCollapsed ? 'mb-5' : 'mb-4')}>
-                <div
-                  className={cn(
-                    preferences.sidebarCollapsed
-                      ? 'flex justify-center'
-                      : 'flex flex-col items-center gap-3 text-center'
-                  )}
-                >
-                  {preferences.sidebarCollapsed ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex h-12 w-12 cursor-default items-center justify-center rounded-xl transition-colors hover:bg-sidebar-hover">
-                          {institutionalLogoUrl && !hideInstitutionalLogo ? (
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-sidebar-border/80 bg-white/95 p-1.5 shadow-sm dark:bg-slate-50/95">
-                              <img
-                                src={institutionalLogoUrl}
-                                alt="Logo institucional"
-                                className="h-full w-full object-contain"
-                                onError={() => setHideInstitutionalLogo(true)}
-                              />
-                            </div>
-                          ) : (
-                            <Building2 className={`${desktopSidebarIconClass} text-primary`} />
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">{institutionalName}</TooltipContent>
-                    </Tooltip>
-                  ) : institutionalLogoUrl && !hideInstitutionalLogo ? (
-                    <div className="flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-sidebar-border/80 bg-white/95 px-2 py-1.5 shadow-sm dark:bg-slate-50/95">
-                      <img
-                        src={institutionalLogoUrl}
-                        alt="Logo institucional"
-                        className="h-full w-full object-contain"
-                        onError={() => setHideInstitutionalLogo(true)}
-                      />
-                    </div>
-                  ) : (
-                    <Building2 className="h-8 w-8 shrink-0 text-primary" />
-                  )}
-
-                  {!preferences.sidebarCollapsed && (
-                    <div className="min-w-0">
-                      <h1 className="truncate text-sm font-semibold text-sidebar-foreground">
-                        {institutionalName}
-                      </h1>
-                      <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
-                    </div>
-                  )}
+                <div className={cn(preferences.sidebarCollapsed ? 'flex justify-center' : 'flex justify-center')}>
+                  {renderDesktopBranding()}
                 </div>
               </div>
 
