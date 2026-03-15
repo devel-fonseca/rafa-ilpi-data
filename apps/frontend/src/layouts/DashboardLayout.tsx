@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
 import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, Printer, Map, NotebookPen, Landmark, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -444,13 +444,17 @@ export function DashboardLayout() {
     )
   }
 
-  const renderSidebarItemContent = (item: SidebarItem, iconClassName: string) => {
+  const renderSidebarItemContent = (
+    item: SidebarItem,
+    iconClassName: string,
+    showLabel = !preferences.sidebarCollapsed
+  ) => {
     const Icon = item.icon
 
     return (
       <>
         <Icon className={iconClassName} />
-        {!preferences.sidebarCollapsed && <span>{item.label}</span>}
+        {showLabel && <span>{item.label}</span>}
       </>
     )
   }
@@ -498,7 +502,7 @@ export function DashboardLayout() {
           onClick={() => setIsSidebarOpen(false)}
           className={itemClassName}
         >
-          {renderSidebarItemContent(item, mobileSidebarIconClass)}
+          {renderSidebarItemContent(item, mobileSidebarIconClass, true)}
         </Link>
       )
     }
@@ -511,7 +515,7 @@ export function DashboardLayout() {
         }}
         className={itemClassName}
       >
-        {renderSidebarItemContent(item, mobileSidebarIconClass)}
+        {renderSidebarItemContent(item, mobileSidebarIconClass, true)}
       </button>
     )
   }
@@ -751,8 +755,15 @@ export function DashboardLayout() {
         {/* Mobile Sidebar */}
         {!isCaregiver && (
           <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-            <SheetContent side="left" className="w-64 border-sidebar-border bg-sidebar p-0 md:hidden">
-              <nav className="p-4">
+            <SheetContent
+              side="left"
+              className="flex h-full w-64 flex-col overflow-hidden border-sidebar-border bg-sidebar p-0 md:hidden"
+            >
+              <SheetTitle className="sr-only">Menu principal</SheetTitle>
+              <SheetDescription className="sr-only">
+                Navegação principal do sistema.
+              </SheetDescription>
+              <nav className="h-full overflow-y-auto overscroll-contain p-4 pr-3 touch-pan-y">
                 <div className="space-y-1">
                   {sidebarGroups.map((group, groupIndex) => (
                     <div key={`mobile-group-${groupIndex}`} className="space-y-1">
