@@ -131,6 +131,21 @@
   --muted: 217 20% 16%;
   --muted-foreground: 215 20% 70%;
 
+  /* ========== LAYOUT SHELL ========== */
+
+  /** Sidebar principal: base fria e contida, coerente com card/accent do dark */
+  --sidebar: 217 24% 12%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-border: 217 20% 18%;
+  --sidebar-hover: 217 22% 16%;
+  --sidebar-active: var(--primary);
+  --sidebar-active-foreground: var(--primary-foreground);
+
+  /** Header: próximo do card, porém com tint institucional leve */
+  --header: 217 24% 11%;
+  --header-foreground: 210 40% 98%;
+  --header-border: 217 20% 18%;
+
   /** Border padrão (clean, baixo ruído) */
   --border: 217 20% 18%;
 

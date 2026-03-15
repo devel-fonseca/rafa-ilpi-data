@@ -166,6 +166,21 @@
   --muted: 210 25% 96%;
   --muted-foreground: 215 16% 45%;
 
+  /* ========== LAYOUT SHELL ========== */
+
+  /** Sidebar principal: azul-clínico suave, separado do conteúdo sem pesar */
+  --sidebar: 210 28% 95%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-border: 214 25% 88%;
+  --sidebar-hover: 210 30% 91%;
+  --sidebar-active: var(--primary);
+  --sidebar-active-foreground: var(--primary-foreground);
+
+  /** Header: superfície fria e discreta, mais leve que o sidebar */
+  --header: 210 32% 98%;
+  --header-foreground: 222 47% 11%;
+  --header-border: 214 25% 88%;
+
   /** Border padrão (ligeiramente azulada, "clean") */
   --border: 214 25% 90%;
 

@@ -51,6 +51,19 @@ export default {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
+  			header: {
+  				DEFAULT: 'hsl(var(--header))',
+  				foreground: 'hsl(var(--header-foreground))',
+  				border: 'hsl(var(--header-border))'
+  			},
+  			sidebar: {
+  				DEFAULT: 'hsl(var(--sidebar))',
+  				foreground: 'hsl(var(--sidebar-foreground))',
+  				border: 'hsl(var(--sidebar-border))',
+  				hover: 'hsl(var(--sidebar-hover))',
+  				active: 'hsl(var(--sidebar-active))',
+  				'active-foreground': 'hsl(var(--sidebar-active-foreground))'
+  			},
   			// ========== Design System RAFA ILPI - Cores Semânticas ==========
   			success: {
   				DEFAULT: 'hsl(var(--success))',

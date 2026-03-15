@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, Printer, Map, NotebookPen, Landmark } from 'lucide-react'
+import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, Printer, Map, NotebookPen, Landmark, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -34,6 +34,29 @@ import { useFeatures } from '@/hooks/useFeatures'
 import { ConnectionStatus } from '@/components/common/ConnectionStatus'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { useInactivityLogout } from '@/hooks/useInactivityLogout'
+import { useProfile as useInstitutionalProfile } from '@/hooks/useInstitutionalProfile'
+import { cn } from '@/lib/utils'
+
+type SidebarLinkItem = {
+  kind: 'link'
+  label: string
+  to: string
+  icon: LucideIcon
+  end?: boolean
+  visible?: boolean
+}
+
+type SidebarActionItem = {
+  kind: 'action'
+  label: string
+  icon: LucideIcon
+  onClick: () => void
+  danger?: boolean
+  visible?: boolean
+}
+
+type SidebarItem = SidebarLinkItem | SidebarActionItem
+type SidebarGroup = SidebarItem[]
 
 export function DashboardLayout() {
   useScrollToTop()
@@ -42,9 +65,12 @@ export function DashboardLayout() {
   const inactivityLogoutTriggeredRef = useRef(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [userPosition, setUserPosition] = useState<PositionCode | null>(null)
-  const { data: profile } = useMyProfile()
+  const [hideInstitutionalLogo, setHideInstitutionalLogo] = useState(false)
+  const { data: myProfile } = useMyProfile()
+  const { data: institutionalProfile } = useInstitutionalProfile()
   const { user, logout } = useAuthStore()
   const { preferences, updatePreference } = usePreferences()
+  const location = useLocation()
   const navigate = useNavigate()
   const { hasPermission } = usePermissions()
   const { hasFeature } = useFeatures()
@@ -65,6 +91,7 @@ export function DashboardLayout() {
   const canViewCareShifts = hasPermission(PermissionType.VIEW_CARE_SHIFTS)
   const canViewReports = hasPermission(PermissionType.VIEW_REPORTS)
   const canViewFinancialOperations = hasPermission(PermissionType.VIEW_FINANCIAL_OPERATIONS)
+  const isAdmin = user?.role?.toUpperCase() === 'ADMIN'
 
   // Cuidadores não veem sidebar (usam toolbar no dashboard)
   const isCaregiver = user?.profile?.positionCode === 'CAREGIVER'
@@ -73,8 +100,8 @@ export function DashboardLayout() {
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        const profilePhoto = profile?.profilePhoto || user?.profile?.profilePhoto || null
-        const positionCode = profile?.positionCode || user?.profile?.positionCode || null
+        const profilePhoto = myProfile?.profilePhoto || user?.profile?.profilePhoto || null
+        const positionCode = myProfile?.positionCode || user?.profile?.positionCode || null
 
         // Carregar foto de perfil
         if (profilePhoto) {
@@ -102,7 +129,14 @@ export function DashboardLayout() {
     }
 
     loadUserProfile()
-  }, [profile, user?.profile?.profilePhoto, user?.profile?.positionCode])
+  }, [myProfile, user?.profile?.profilePhoto, user?.profile?.positionCode])
+
+  const institutionalLogoUrl = institutionalProfile?.profile?.logoUrl || null
+  const institutionalName = user?.tenant?.profile?.tradeName || user?.tenant?.name || 'Rafa ILPI'
+
+  useEffect(() => {
+    setHideInstitutionalLogo(false)
+  }, [institutionalLogoUrl])
 
   const handleLogout = async () => {
     if (isLoggingOut) return
@@ -173,161 +207,423 @@ export function DashboardLayout() {
   }
 
   const desktopSidebarIconClass = preferences.sidebarCollapsed
-    ? 'h-5 w-5 flex-shrink-0'
-    : 'h-4 w-4 flex-shrink-0'
+    ? 'h-7 w-7 flex-shrink-0'
+    : 'h-5 w-5 flex-shrink-0'
+  const mobileSidebarIconClass = 'h-5 w-5 flex-shrink-0'
+  const desktopSidebarItemBaseClass = cn(
+    'relative flex w-full cursor-pointer items-center rounded-lg text-sm font-medium transition-colors duration-150',
+    preferences.sidebarCollapsed
+      ? 'h-12 justify-center px-0 py-0'
+      : 'gap-2 px-3 py-2'
+  )
+  const getDesktopSidebarItemClass = (item: SidebarItem, isActive: boolean) =>
+    cn(
+      desktopSidebarItemBaseClass,
+      item.kind === 'action' && item.danger
+        ? 'text-danger hover:bg-sidebar-hover hover:text-danger'
+        : isActive
+          ? cn(
+              'bg-sidebar-hover text-primary shadow-sm ring-1 ring-sidebar-border',
+              !preferences.sidebarCollapsed &&
+                'before:absolute before:left-1 before:bottom-2 before:top-2 before:w-0.5 before:rounded-full before:bg-primary'
+            )
+          : 'text-sidebar-foreground hover:bg-sidebar-hover hover:text-foreground hover:shadow-sm hover:ring-1 hover:ring-sidebar-border'
+    )
+  const mobileSidebarItemClass =
+    'flex w-full items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-hover hover:text-foreground'
+  const mobileSidebarDangerItemClass =
+    'flex w-full items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-sidebar-hover hover:text-danger'
+  const sidebarSeparatorClass = 'border-t border-sidebar-border my-2'
+  const desktopTrayButtonClass =
+    'h-[34px] w-[34px] rounded-md text-muted-foreground hover:bg-accent/70 hover:text-foreground'
+  const desktopTrayIconClass = 'h-5 w-5'
+
+  const userMenuLabel = (
+    <DropdownMenuLabel className="font-normal">
+      <div className="flex flex-col space-y-1">
+        <p className="text-sm font-medium leading-none text-foreground">
+          {user?.name}
+        </p>
+        <p className="text-xs leading-none text-muted-foreground">
+          {getPositionLabel()}
+        </p>
+        <p className="text-xs leading-none text-muted-foreground">
+          {user?.email}
+        </p>
+      </div>
+    </DropdownMenuLabel>
+  )
+
+  const renderUserMenuItems = () => (
+    <>
+      <DropdownMenuItem onClick={toggleTheme}>
+        {preferences.theme === 'dark' ? (
+          <Sun className="mr-2 h-4 w-4" />
+        ) : (
+          <Moon className="mr-2 h-4 w-4" />
+        )}
+        <span>{preferences.theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}</span>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={() => navigate('/dashboard/meu-perfil')}>
+        <User2 className="mr-2 h-4 w-4" />
+        <span>Meu Perfil</span>
+      </DropdownMenuItem>
+      {canViewCareShifts && (
+        <DropdownMenuItem onClick={() => navigate('/dashboard/meus-plantoes')}>
+          <CalendarClock className="mr-2 h-4 w-4" />
+          <span>Meus Plantões</span>
+        </DropdownMenuItem>
+      )}
+      {isAdmin && (
+        <>
+          <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>
+            <Shield className="mr-2 h-4 w-4" />
+            <span>Gerenciar Usuários</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/dashboard/settings/billing')}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            <span>Gerenciar Plano</span>
+          </DropdownMenuItem>
+        </>
+      )}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        onClick={handleLogout}
+        className="text-danger focus:text-danger"
+      >
+        <LogOut className="mr-2 h-4 w-4" />
+        <span>Sair</span>
+      </DropdownMenuItem>
+    </>
+  )
+
+  const sidebarGroups: SidebarGroup[] = [
+    [
+      {
+        kind: 'link',
+        label: 'Dashboard',
+        to: '/dashboard',
+        icon: LayoutDashboard,
+        end: true,
+      },
+    ],
+    [
+      { kind: 'link', label: 'Agenda', to: '/dashboard/agenda', icon: CalendarDays },
+      {
+        kind: 'link',
+        label: 'Residentes',
+        to: '/dashboard/residentes',
+        icon: Users,
+        visible: canManageResidents,
+      },
+      {
+        kind: 'link',
+        label: 'Mapa de Ocupação',
+        to: '/dashboard/beds/map',
+        icon: Map,
+        visible: hasFeature('mapa_leitos'),
+      },
+      { kind: 'link', label: 'Prescrições', to: '/dashboard/prescricoes', icon: Pill },
+      {
+        kind: 'link',
+        label: 'Registros Diários',
+        to: '/dashboard/registros-diarios',
+        icon: NotebookPen,
+      },
+    ],
+    [
+      {
+        kind: 'link',
+        label: 'Contratos',
+        to: '/dashboard/contratos',
+        icon: FileSignature,
+        visible: canViewContracts,
+      },
+      {
+        kind: 'link',
+        label: 'Financeiro',
+        to: '/dashboard/financeiro',
+        icon: Landmark,
+        visible: canViewFinancialOperations,
+      },
+      {
+        kind: 'link',
+        label: 'Relatórios',
+        to: '/dashboard/relatorios',
+        icon: Printer,
+        visible: canViewReports,
+      },
+      {
+        kind: 'link',
+        label: 'Leitos',
+        to: '/dashboard/beds/management',
+        icon: Bed,
+        visible: hasFeature('gestao_leitos') && canManageInfrastructure,
+      },
+      {
+        kind: 'link',
+        label: 'Hub de Conformidade',
+        to: '/dashboard/conformidade',
+        icon: ShieldCheck,
+        visible: canViewCompliance,
+      },
+      {
+        kind: 'link',
+        label: 'Perfil Institucional',
+        to: '/dashboard/perfil-institucional',
+        icon: Building2,
+        visible: canViewInstitutionalProfile,
+      },
+      {
+        kind: 'link',
+        label: 'POPs',
+        to: '/dashboard/pops',
+        icon: FileText,
+        visible: canViewPops,
+      },
+      {
+        kind: 'link',
+        label: 'Escalas e Plantões',
+        to: '/dashboard/escala-cuidados',
+        icon: CalendarClock,
+        visible: canViewCareShifts,
+      },
+      {
+        kind: 'link',
+        label: 'Usuários',
+        to: '/dashboard/usuarios',
+        icon: Shield,
+        visible: isAdmin,
+      },
+    ],
+    [
+      {
+        kind: 'link',
+        label: 'Mensagens',
+        to: '/dashboard/mensagens',
+        icon: Mail,
+        visible: canViewMessages,
+      },
+      {
+        kind: 'link',
+        label: 'Notificações',
+        to: '/dashboard/notificacoes',
+        icon: Bell,
+      },
+    ],
+    [
+      {
+        kind: 'link',
+        label: 'Meu Perfil',
+        to: '/dashboard/meu-perfil',
+        icon: User2,
+      },
+      {
+        kind: 'action',
+        label: 'Sair',
+        icon: LogOut,
+        onClick: handleLogout,
+        danger: true,
+      },
+    ],
+  ]
+    .map((group) => group.filter((item) => item.visible !== false))
+    .filter((group) => group.length > 0)
+
+  const isSidebarItemActive = (item: SidebarItem) => {
+    if (item.kind !== 'link') return false
+
+    if (item.end) {
+      return location.pathname === item.to
+    }
+
+    return (
+      location.pathname === item.to ||
+      location.pathname.startsWith(`${item.to}/`)
+    )
+  }
+
+  const renderSidebarItemContent = (item: SidebarItem, iconClassName: string) => {
+    const Icon = item.icon
+
+    return (
+      <>
+        <Icon className={iconClassName} />
+        {!preferences.sidebarCollapsed && <span>{item.label}</span>}
+      </>
+    )
+  }
+
+  const renderDesktopSidebarItem = (item: SidebarItem) => {
+    const isActive = isSidebarItemActive(item)
+    const itemClassName = getDesktopSidebarItemClass(item, isActive)
+
+    const itemNode =
+      item.kind === 'link' ? (
+        <Link to={item.to} className={itemClassName}>
+          {renderSidebarItemContent(item, desktopSidebarIconClass)}
+        </Link>
+      ) : (
+        <button onClick={item.onClick} className={itemClassName}>
+          {renderSidebarItemContent(item, desktopSidebarIconClass)}
+        </button>
+      )
+
+    if (!preferences.sidebarCollapsed) {
+      return itemNode
+    }
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{itemNode}</TooltipTrigger>
+        <TooltipContent side="right">{item.label}</TooltipContent>
+      </Tooltip>
+    )
+  }
+
+  const renderMobileSidebarItem = (item: SidebarItem) => {
+    const isActive = isSidebarItemActive(item)
+    const itemClassName = cn(
+      item.kind === 'action' && item.danger
+        ? mobileSidebarDangerItemClass
+        : mobileSidebarItemClass,
+      isActive && item.kind === 'link' && 'bg-sidebar-hover text-primary'
+    )
+
+    if (item.kind === 'link') {
+      return (
+        <Link
+          to={item.to}
+          onClick={() => setIsSidebarOpen(false)}
+          className={itemClassName}
+        >
+          {renderSidebarItemContent(item, mobileSidebarIconClass)}
+        </Link>
+      )
+    }
+
+    return (
+      <button
+        onClick={() => {
+          setIsSidebarOpen(false)
+          item.onClick()
+        }}
+        className={itemClassName}
+      >
+        {renderSidebarItemContent(item, mobileSidebarIconClass)}
+      </button>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background md:grid md:grid-cols-[auto_minmax(0,1fr)] md:grid-rows-[2.5rem_minmax(0,1fr)]">
       {/* Header */}
-      <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <header className="border-b border-header-border bg-header text-header-foreground shadow-sm md:sticky md:top-0 md:col-start-2 md:row-start-1 md:z-20">
+        <div className="flex h-10 items-center justify-between px-4 sm:px-6 lg:px-8">
             {/* Mobile: Menu + Logo + Name */}
-            <div className="flex items-center gap-3 md:flex-1">
+            <div className="flex min-w-0 items-center gap-2.5 md:flex-1">
               {!isCaregiver && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsSidebarOpen(true)}
-                  className="md:hidden"
+                  className="h-8 w-8 md:hidden"
                   aria-label="Abrir menu de navegação"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-4 w-4" />
                 </Button>
               )}
-              <Building2 className="h-8 w-8 text-primary" />
-              <div className="hidden sm:block">
-                <h1 className="text-xl font-semibold text-foreground">
-                  {user?.tenant?.profile?.tradeName || user?.tenant?.name || 'Rafa ILPI'}
-                </h1>
-                <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
-              </div>
-              <div className="sm:hidden">
-                <h1 className="text-sm font-semibold text-foreground truncate max-w-[120px]">
-                  {user?.tenant?.profile?.tradeName || user?.tenant?.name || 'Rafa ILPI'}
-                </h1>
+              <div className="flex items-center gap-3 md:hidden">
+                {institutionalLogoUrl && !hideInstitutionalLogo ? (
+                  <div className="flex h-8 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-white/95 px-1.5 py-1 shadow-sm dark:bg-slate-50/95 sm:h-9 sm:w-12">
+                    <img
+                      src={institutionalLogoUrl}
+                      alt="Logo institucional"
+                      className="h-full w-full object-contain"
+                      onError={() => setHideInstitutionalLogo(true)}
+                    />
+                  </div>
+                ) : (
+                  <Building2 className="h-7 w-7 text-primary" />
+                )}
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-semibold text-foreground">
+                    {institutionalName}
+                  </h1>
+                  <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
+                </div>
+                <div className="sm:hidden">
+                  <h1 className="max-w-[110px] truncate text-sm font-semibold text-foreground">
+                    {institutionalName}
+                  </h1>
+                </div>
               </div>
             </div>
 
-            {/* Desktop: Connection Status + Notifications + Messages + Theme + User Avatar + Dropdown */}
+            {/* Desktop: System Tray */}
             <div className="hidden md:flex items-center gap-2">
-              {/* Indicador de Status de Conexão WebSocket */}
-              <ConnectionStatus />
+              <div className="flex items-center gap-1">
+                <ConnectionStatus
+                  containerClassName="h-[34px] w-[34px]"
+                  iconClassName={desktopTrayIconClass}
+                />
+              </div>
 
-              {/* Dropdown de Notificações */}
-              <NotificationsDropdown />
+              <div className="h-3.5 w-px bg-border/40" />
 
-              {/* Dropdown de Mensagens */}
-              <MessagesDropdown />
+              <div className="flex items-center gap-1">
+                <NotificationsDropdown
+                  triggerClassName={desktopTrayButtonClass}
+                  iconClassName={desktopTrayIconClass}
+                  badgeClassName="h-[18px] min-w-[18px] -top-0.5 -right-0.5 px-1 text-[10px]"
+                />
 
-              {/* Botão de Toggle Tema */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleTheme}
-                    >
-                      {preferences.theme === 'dark' ? (
-                        <Sun className="h-5 w-5" />
-                      ) : (
-                        <Moon className="h-5 w-5" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{preferences.theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                <MessagesDropdown
+                  triggerClassName={desktopTrayButtonClass}
+                  iconClassName={desktopTrayIconClass}
+                  badgeClassName="h-[18px] min-w-[18px] -top-0.5 -right-0.5 px-1 text-[10px]"
+                />
+              </div>
 
-              {/* User Avatar + Nome + Cargo */}
+              <div className="h-3.5 w-px bg-border/40" />
+
+              {/* User Avatar + Nome */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-3 h-auto py-2 px-3">
-                    <Avatar className="h-10 w-10">
+                  <Button variant="ghost" className="flex h-[34px] items-center gap-2 rounded-lg px-2 py-1 hover:bg-accent/70">
+                    <Avatar className="h-7 w-7">
                       <AvatarImage src={avatarUrl || undefined} alt={user?.name} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
                         {getUserInitials()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-medium leading-none">{user?.name}</span>
-                      <span className="text-xs text-muted-foreground mt-1">{getPositionLabel()}</span>
+                      <span className="max-w-[132px] truncate text-sm font-medium leading-none">{user?.name}</span>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
+                  {userMenuLabel}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/dashboard/meu-perfil')}>
-                    <User2 className="mr-2 h-4 w-4" />
-                    <span>Meu Perfil</span>
-                  </DropdownMenuItem>
-                  {canViewCareShifts && (
-                    <DropdownMenuItem onClick={() => navigate('/dashboard/meus-plantoes')}>
-                      <CalendarClock className="mr-2 h-4 w-4" />
-                      <span>Meus Plantões</span>
-                    </DropdownMenuItem>
-                  )}
-                  {user?.role?.toUpperCase() === 'ADMIN' && (
-                    <>
-                      <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>
-                        <Shield className="mr-2 h-4 w-4" />
-                        <span>Gerenciar Usuários</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/dashboard/settings/billing')}>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        <span>Gerenciar Plano</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="text-danger focus:text-danger"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sair</span>
-                  </DropdownMenuItem>
+                  {renderUserMenuItems()}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
 
             {/* Mobile: Notifications + Messages + Theme + Avatar + Dropdown */}
-            <div className="md:hidden flex items-center gap-1">
+            <div className="flex items-center gap-0.5 md:hidden">
               {/* Dropdown de Notificações Mobile */}
               <NotificationsDropdown />
 
               {/* Dropdown de Mensagens Mobile */}
               <MessagesDropdown />
 
-              {/* Botão de Toggle Tema Mobile */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={toggleTheme}
-              >
-                {preferences.theme === 'dark' ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </Button>
-
               {/* Avatar + Dropdown Mobile */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-9 w-9">
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
                       <AvatarImage src={avatarUrl || undefined} alt={user?.name} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
                         {getUserInitials()}
@@ -336,701 +632,147 @@ export function DashboardLayout() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {getPositionLabel()}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground mt-1">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
+                  {userMenuLabel}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/dashboard/meu-perfil')}>
-                    <User2 className="mr-2 h-4 w-4" />
-                    <span>Meu Perfil</span>
-                  </DropdownMenuItem>
-                  {canViewCareShifts && (
-                    <DropdownMenuItem onClick={() => navigate('/dashboard/meus-plantoes')}>
-                      <CalendarClock className="mr-2 h-4 w-4" />
-                      <span>Meus Plantões</span>
-                    </DropdownMenuItem>
-                  )}
-                  {user?.role?.toUpperCase() === 'ADMIN' && (
-                    <>
-                      <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>
-                        <Shield className="mr-2 h-4 w-4" />
-                        <span>Gerenciar Usuários</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/dashboard/settings/billing')}>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        <span>Gerenciar Plano</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="text-danger focus:text-danger"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sair</span>
-                  </DropdownMenuItem>
+                  {renderUserMenuItems()}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
         </div>
       </header>
 
       {/* Sidebar + Content */}
-      <div className="flex min-h-[calc(100vh-4rem)]">
+      <div className="flex min-h-[calc(100vh-2.5rem)] md:contents">
         {/* Desktop Sidebar */}
-        <aside className={`hidden ${isCaregiver ? '' : 'md:block'} bg-card border-r transition-all duration-300 ${
+        <aside className={`relative hidden ${isCaregiver ? '' : 'md:block'} bg-sidebar border-r border-sidebar-border transition-all duration-300 md:col-start-1 md:row-span-2 md:row-start-1 md:h-screen md:sticky md:top-0 ${
           preferences.sidebarCollapsed ? 'w-16' : 'w-64'
         }`}>
-          <nav className="p-2 space-y-1">
-            {/* Toggle Button */}
-            <div className="flex justify-end mb-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleSidebar}
-                className="h-8 w-8"
-                title={preferences.sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-              >
-                {preferences.sidebarCollapsed ? (
-                  <ChevronRight className="h-4 w-4" />
-                ) : (
-                  <ChevronLeft className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
-            <TooltipProvider>
-              {/* Menu Items */}
-              {/* Dashboard */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <LayoutDashboard className={desktopSidebarIconClass} />
-                    {!preferences.sidebarCollapsed && 'Dashboard'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Dashboard</TooltipContent>
-                )}
-              </Tooltip>
-
-              {/* Separator 1 */}
-              {!preferences.sidebarCollapsed && <div className="border-t my-2" />}
-
-              {/* Agenda */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/agenda"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <CalendarDays className={desktopSidebarIconClass} />
-                    {!preferences.sidebarCollapsed && 'Agenda'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Agenda</TooltipContent>
-                )}
-              </Tooltip>
-
-              {/* Residentes */}
-              {canManageResidents && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/residentes"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Users className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Residentes'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Residentes</TooltipContent>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleSidebar}
+                  className="absolute -right-2.5 top-16 z-20 hidden h-8 w-5 rounded-full border border-sidebar-border border-l-0 bg-sidebar text-muted-foreground shadow-sm transition-colors hover:bg-sidebar-hover hover:text-foreground md:flex"
+                  aria-label={preferences.sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+                >
+                  {preferences.sidebarCollapsed ? (
+                    <ChevronRight className="h-4 w-4" />
+                  ) : (
+                    <ChevronLeft className="h-4 w-4" />
                   )}
-                </Tooltip>
-              )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {preferences.sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-              {/* Mapa de Ocupação */}
-              {hasFeature('mapa_leitos') && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/beds/map"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Map className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Mapa de Ocupação'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Mapa de Ocupação</TooltipContent>
+          <TooltipProvider>
+            <nav className="h-full overflow-y-auto p-2">
+              <div className={cn('space-y-1', preferences.sidebarCollapsed ? 'pt-3' : 'pt-2')}>
+              <div className={cn('px-2', preferences.sidebarCollapsed ? 'mb-5' : 'mb-4')}>
+                <div
+                  className={cn(
+                    preferences.sidebarCollapsed
+                      ? 'flex justify-center'
+                      : 'flex flex-col items-center gap-3 text-center'
                   )}
-                </Tooltip>
-              )}
-
-              {/* Prescrições */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/prescricoes"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <Pill className={desktopSidebarIconClass} />
-                    {!preferences.sidebarCollapsed && 'Prescrições'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Prescrições</TooltipContent>
-                )}
-              </Tooltip>
-
-              {/* Registros Diários */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/registros-diarios"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <NotebookPen className={desktopSidebarIconClass} />
-                    {!preferences.sidebarCollapsed && 'Registros Diários'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Registros Diários</TooltipContent>
-                )}
-              </Tooltip>
-
-              {/* Separator 2 */}
-              {!preferences.sidebarCollapsed && <div className="border-t my-2" />}
-
-              {/* Contratos */}
-              {canViewContracts && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/contratos"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <FileSignature className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Contratos'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Contratos</TooltipContent>
+                >
+                  {preferences.sidebarCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex h-12 w-12 cursor-default items-center justify-center rounded-xl transition-colors hover:bg-sidebar-hover">
+                          {institutionalLogoUrl && !hideInstitutionalLogo ? (
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-sidebar-border/80 bg-white/95 p-1.5 shadow-sm dark:bg-slate-50/95">
+                              <img
+                                src={institutionalLogoUrl}
+                                alt="Logo institucional"
+                                className="h-full w-full object-contain"
+                                onError={() => setHideInstitutionalLogo(true)}
+                              />
+                            </div>
+                          ) : (
+                            <Building2 className={`${desktopSidebarIconClass} text-primary`} />
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">{institutionalName}</TooltipContent>
+                    </Tooltip>
+                  ) : institutionalLogoUrl && !hideInstitutionalLogo ? (
+                    <div className="flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-sidebar-border/80 bg-white/95 px-2 py-1.5 shadow-sm dark:bg-slate-50/95">
+                      <img
+                        src={institutionalLogoUrl}
+                        alt="Logo institucional"
+                        className="h-full w-full object-contain"
+                        onError={() => setHideInstitutionalLogo(true)}
+                      />
+                    </div>
+                  ) : (
+                    <Building2 className="h-8 w-8 shrink-0 text-primary" />
                   )}
-                </Tooltip>
-              )}
 
-              {/* Financeiro Operacional */}
-              {canViewFinancialOperations && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/financeiro"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Landmark className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Financeiro'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Financeiro</TooltipContent>
+                  {!preferences.sidebarCollapsed && (
+                    <div className="min-w-0">
+                      <h1 className="truncate text-sm font-semibold text-sidebar-foreground">
+                        {institutionalName}
+                      </h1>
+                      <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
+                    </div>
                   )}
-                </Tooltip>
-              )}
+                </div>
+              </div>
 
-              {/* Relatórios */}
-              {canViewReports && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/relatorios"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Printer className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Relatórios'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Relatórios</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
+                {sidebarGroups.map((group, groupIndex) => (
+                  <div key={`desktop-group-${groupIndex}`} className="space-y-1">
+                    {groupIndex > 0 && (
+                      <div
+                        className={cn(
+                          sidebarSeparatorClass,
+                          preferences.sidebarCollapsed ? 'mx-2 my-3' : 'my-2'
+                        )}
+                      />
+                    )}
 
-              {/* Leitos (antiga Gestão de Leitos, agora usando ícone Building2) */}
-              {hasFeature('gestao_leitos') && canManageInfrastructure && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/beds/management"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Bed className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Leitos'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Leitos</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {/* Hub de Conformidade */}
-              {canViewCompliance && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/conformidade"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <ShieldCheck className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Hub de Conformidade'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Hub de Conformidade</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {/* Perfil Institucional */}
-              {canViewInstitutionalProfile && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/perfil-institucional"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Building2 className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Perfil Institucional'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Perfil Institucional</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {/* POPs */}
-              {canViewPops && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/pops"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <FileText className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'POPs'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">POPs</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {/* Escalas e Plantões */}
-              {canViewCareShifts && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/escala-cuidados"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <CalendarClock className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Escalas e Plantões'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Escalas e Plantões</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {/* Usuários (antiga Gerenciar Usuários) */}
-              {user?.role?.toUpperCase() === 'ADMIN' && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/usuarios"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Shield className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Usuários'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Usuários</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {/* Separator 3 */}
-              {!preferences.sidebarCollapsed && <div className="border-t my-2" />}
-
-              {/* Mensagens */}
-              {canViewMessages && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/mensagens"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Mail className={desktopSidebarIconClass} />
-                      {!preferences.sidebarCollapsed && 'Mensagens'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Mensagens</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {/* Notificações */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/notificacoes"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <Bell className={desktopSidebarIconClass} />
-                    {!preferences.sidebarCollapsed && 'Notificações'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Notificações</TooltipContent>
-                )}
-              </Tooltip>
-
-              {/* Separator 4 */}
-              {!preferences.sidebarCollapsed && <div className="border-t my-2" />}
-
-              {/* Meu Perfil */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/meu-perfil"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <User2 className={desktopSidebarIconClass} />
-                    {!preferences.sidebarCollapsed && 'Meu Perfil'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Meu Perfil</TooltipContent>
-                )}
-              </Tooltip>
-
-              {/* Sair */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={handleLogout}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-danger hover:bg-accent rounded-lg transition-colors w-full ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <LogOut className={desktopSidebarIconClass} />
-                    {!preferences.sidebarCollapsed && 'Sair'}
-                  </button>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Sair</TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-          </nav>
+                    {group.map((item) => (
+                      <div key={`desktop-item-${item.label}`}>
+                        {renderDesktopSidebarItem(item)}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </nav>
+          </TooltipProvider>
         </aside>
 
         {/* Mobile Sidebar */}
         {!isCaregiver && (
-        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-          <SheetContent side="left" className="w-64 p-0 md:hidden">
-            <nav className="p-4 space-y-1">
-              {/* Dashboard */}
-              <Link
-                to="/dashboard"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </Link>
+          <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+            <SheetContent side="left" className="w-64 border-sidebar-border bg-sidebar p-0 md:hidden">
+              <nav className="p-4">
+                <div className="space-y-1">
+                  {sidebarGroups.map((group, groupIndex) => (
+                    <div key={`mobile-group-${groupIndex}`} className="space-y-1">
+                      {groupIndex > 0 && <div className={sidebarSeparatorClass} />}
 
-              {/* Separator 1 */}
-              <div className="border-t my-2" />
-
-              {/* Agenda */}
-              <Link
-                to="/dashboard/agenda"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <CalendarDays className="h-4 w-4" />
-                Agenda
-              </Link>
-
-              {/* Residentes */}
-              {canManageResidents && (
-                <Link
-                  to="/dashboard/residentes"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Users className="h-4 w-4" />
-                  Residentes
-                </Link>
-              )}
-
-              {/* Mapa de Ocupação */}
-              {hasFeature('mapa_leitos') && (
-                <Link
-                  to="/dashboard/beds/map"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Map className="h-4 w-4" />
-                  Mapa de Ocupação
-                </Link>
-              )}
-
-              {/* Prescrições */}
-              <Link
-                to="/dashboard/prescricoes"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <Pill className="h-4 w-4" />
-                Prescrições
-              </Link>
-
-              {/* Registros Diários */}
-              <Link
-                to="/dashboard/registros-diarios"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <NotebookPen className="h-4 w-4" />
-                Registros Diários
-              </Link>
-
-              {/* Separator 2 */}
-              <div className="border-t my-2" />
-
-              {/* Contratos */}
-              {canViewContracts && (
-                <Link
-                  to="/dashboard/contratos"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <FileSignature className="h-4 w-4" />
-                  Contratos
-                </Link>
-              )}
-
-              {/* Financeiro Operacional */}
-              {canViewFinancialOperations && (
-                <Link
-                  to="/dashboard/financeiro"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Landmark className="h-4 w-4" />
-                  Financeiro
-                </Link>
-              )}
-
-              {/* Relatórios */}
-              {canViewReports && (
-                <Link
-                  to="/dashboard/relatorios"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Printer className="h-4 w-4" />
-                  Relatórios
-                </Link>
-              )}
-
-              {/* Leitos */}
-              {hasFeature('gestao_leitos') && canManageInfrastructure && (
-                <Link
-                  to="/dashboard/beds/management"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Bed className="h-4 w-4" />
-                  Leitos
-                </Link>
-              )}
-
-              {/* Hub de Conformidade */}
-              {canViewCompliance && (
-                <Link
-                  to="/dashboard/conformidade"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Hub de Conformidade
-                </Link>
-              )}
-
-              {/* Perfil Institucional */}
-              {canViewInstitutionalProfile && (
-                <Link
-                  to="/dashboard/perfil-institucional"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Building2 className="h-4 w-4" />
-                  Perfil Institucional
-                </Link>
-              )}
-
-              {/* POPs */}
-              {canViewPops && (
-                <Link
-                  to="/dashboard/pops"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <FileText className="h-4 w-4" />
-                  POPs
-                </Link>
-              )}
-
-              {/* Escalas e Plantões */}
-              {canViewCareShifts && (
-                <Link
-                  to="/dashboard/escala-cuidados"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <CalendarClock className="h-4 w-4" />
-                  Escalas e Plantões
-                </Link>
-              )}
-
-              {/* Usuários */}
-              {user?.role?.toUpperCase() === 'ADMIN' && (
-                <Link
-                  to="/dashboard/usuarios"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Shield className="h-4 w-4" />
-                  Usuários
-                </Link>
-              )}
-
-              {/* Separator 3 */}
-              <div className="border-t my-2" />
-
-              {/* Mensagens */}
-              {canViewMessages && (
-                <Link
-                  to="/dashboard/mensagens"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Mail className="h-4 w-4" />
-                  Mensagens
-                </Link>
-              )}
-
-              {/* Notificações */}
-              <Link
-                to="/dashboard/notificacoes"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <Bell className="h-4 w-4" />
-                Notificações
-              </Link>
-
-              {/* Separator 4 */}
-              <div className="border-t my-2" />
-
-              {/* Meu Perfil */}
-              <Link
-                to="/dashboard/meu-perfil"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <User2 className="h-4 w-4" />
-                Meu Perfil
-              </Link>
-
-              {/* Sair */}
-              <button
-                onClick={() => {
-                  setIsSidebarOpen(false)
-                  handleLogout()
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger hover:bg-accent rounded-lg transition-colors w-full"
-              >
-                <LogOut className="h-4 w-4" />
-                Sair
-              </button>
-            </nav>
-          </SheetContent>
-        </Sheet>
+                      {group.map((item) => (
+                        <div key={`mobile-item-${item.label}`}>
+                          {renderMobileSidebarItem(item)}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto md:col-start-2 md:row-start-2 md:min-h-0">
           <div className="p-4 sm:p-6 lg:p-8">
             <Outlet />
           </div>

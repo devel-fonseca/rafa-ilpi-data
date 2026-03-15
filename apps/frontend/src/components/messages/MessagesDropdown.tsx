@@ -20,8 +20,19 @@ import {
 import { MessageType } from '@/api/messages.api';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
-export function MessagesDropdown() {
+interface MessagesDropdownProps {
+  triggerClassName?: string;
+  iconClassName?: string;
+  badgeClassName?: string;
+}
+
+export function MessagesDropdown({
+  triggerClassName,
+  iconClassName,
+  badgeClassName,
+}: MessagesDropdownProps) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -54,12 +65,15 @@ export function MessagesDropdown() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Mail className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className={cn('relative', triggerClassName)}>
+          <Mail className={cn('h-5 w-5', iconClassName)} />
           {unreadCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              className={cn(
+                'absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center p-0 text-xs',
+                badgeClassName
+              )}
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>

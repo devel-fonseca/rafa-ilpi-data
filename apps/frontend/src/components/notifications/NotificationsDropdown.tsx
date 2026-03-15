@@ -27,6 +27,13 @@ import {
   getCategoryConfig,
   getSeverityIcon,
 } from '@/config/notifications.config'
+import { cn } from '@/lib/utils'
+
+interface NotificationsDropdownProps {
+  triggerClassName?: string
+  iconClassName?: string
+  badgeClassName?: string
+}
 
 interface NotificationItemProps {
   notification: Notification
@@ -109,7 +116,11 @@ function NotificationItem({ notification, onMarkAsRead, onOpenMissedEventModal }
   )
 }
 
-export function NotificationsDropdown() {
+export function NotificationsDropdown({
+  triggerClassName,
+  iconClassName,
+  badgeClassName,
+}: NotificationsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<NotificationCategory | 'all'>('all')
   const [missedEventModalOpen, setMissedEventModalOpen] = useState(false)
@@ -180,12 +191,15 @@ export function NotificationsDropdown() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className={cn('relative', triggerClassName)}>
+          <Bell className={cn('h-5 w-5', iconClassName)} />
           {hasUnread && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+              className={cn(
+                'absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs',
+                badgeClassName
+              )}
             >
               {unreadCount!.count > 99 ? '99+' : unreadCount!.count}
             </Badge>

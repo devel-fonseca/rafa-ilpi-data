@@ -1,5 +1,5 @@
 import { useWebSocketContext } from '@/contexts/WebSocketContext'
-import { WifiOff, Wifi, AlertCircle } from 'lucide-react'
+import { Plug2, PlugZap, AlertCircle } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -8,12 +8,17 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
+interface ConnectionStatusProps {
+  containerClassName?: string
+  iconClassName?: string
+}
+
 /**
  * Indicador de Status de Conexão WebSocket
  *
  * COMPORTAMENTO:
- * - Conectado: Ícone verde (só em hover) - discreto
- * - Desconectado: Ícone amarelo pulsante - reconectando...
+ * - Conectado: Ícone de plug verde (só em hover) - discreto
+ * - Desconectado: Ícone de plug energético amarelo pulsante - reconectando...
  * - Erro: Ícone vermelho - falha na autenticação/conexão
  *
  * UX:
@@ -21,8 +26,12 @@ import { cn } from '@/lib/utils'
  * - Tooltip explica o status atual
  * - Pulsação visual quando desconectado (atenção do usuário)
  */
-export function ConnectionStatus() {
+export function ConnectionStatus({ containerClassName, iconClassName }: ConnectionStatusProps) {
   const { isConnected, error } = useWebSocketContext()
+  const containerClasses = cn(
+    'group flex h-10 w-10 cursor-default items-center justify-center rounded-md transition-colors hover:bg-accent/70',
+    containerClassName
+  )
 
   // Não renderizar nada se está conectado normalmente (modo discreto)
   // Só mostra quando há problema
@@ -31,8 +40,8 @@ export function ConnectionStatus() {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center justify-center w-10 h-10">
-              <Wifi className="h-5 w-5 text-success/60" />
+            <div className={containerClasses}>
+              <Plug2 className={cn('h-5 w-5 text-success/60 group-hover:text-success/80', iconClassName)} />
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -49,8 +58,8 @@ export function ConnectionStatus() {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center justify-center w-10 h-10">
-              <AlertCircle className="h-5 w-5 text-danger animate-pulse" />
+            <div className={containerClasses}>
+              <AlertCircle className={cn('h-5 w-5 text-danger animate-pulse', iconClassName)} />
             </div>
           </TooltipTrigger>
           <TooltipContent>
@@ -69,11 +78,12 @@ export function ConnectionStatus() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center justify-center w-10 h-10">
-            <WifiOff
+          <div className={containerClasses}>
+            <PlugZap
               className={cn(
                 'h-5 w-5 text-warning',
-                'animate-pulse' // Pulsação para chamar atenção
+                'animate-pulse', // Pulsação para chamar atenção
+                iconClassName
               )}
             />
           </div>
