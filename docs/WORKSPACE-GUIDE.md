@@ -2,6 +2,27 @@
 
 Este guia explica como usar o workspace configurado para o projeto Rafa ILPI.
 
+## Requisitos de runtime
+
+- Node.js: `20.x`
+- npm: `10+`
+
+O monorepo agora assume Node 20 de forma explicita:
+
+- Dockerfiles de backend e frontend usam `node:20-alpine`
+- o arquivo `.nvmrc` na raiz fixa a versao `20`
+- `package.json` da raiz, backend e frontend declaram `engines.node >= 20`
+
+Se o ambiente local ainda estiver em Node 18, `npm install` pode continuar funcionando, mas passara a emitir `EBADENGINE` e deixara de refletir o ambiente suportado do projeto.
+
+Para alinhar com `nvm`:
+
+```bash
+cd /home/emanuel/Documentos/GitHub/rafa-ilpi-data
+nvm install
+nvm use
+```
+
 ## 📁 Abertura do Workspace
 
 ### Opção 1: Abrir via arquivo .code-workspace
