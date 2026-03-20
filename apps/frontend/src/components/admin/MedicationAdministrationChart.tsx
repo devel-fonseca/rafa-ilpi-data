@@ -5,10 +5,10 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
 import { normalizeUTCDate } from '@/utils/dateHelpers'
 
 interface DailyData {
@@ -91,7 +91,7 @@ export function MedicationAdministrationChart({
         <CardDescription>Últimos 7 dias</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveChartContainer className="h-full">
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
@@ -128,7 +128,7 @@ export function MedicationAdministrationChart({
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
-        </ResponsiveContainer>
+        </ResponsiveChartContainer>
       </CardContent>
     </Card>
   )

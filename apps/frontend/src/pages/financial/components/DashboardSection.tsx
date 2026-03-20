@@ -11,12 +11,12 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
 } from 'recharts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
 import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Clock, TrendingUp } from 'lucide-react'
 import type { FinancialTransaction, FinancialCategory } from '@/types/financial-operations'
 import { formatDateOnly, formatMonthLabel, parseCurrencyValue, statusLabel } from '../financial.utils'
@@ -462,7 +462,7 @@ export function DashboardSection({
                 <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveChartContainer className="h-full">
                 <BarChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                   <XAxis dataKey="month" stroke={axisStroke} style={axisStyle} />
@@ -476,7 +476,7 @@ export function DashboardSection({
                   <Bar dataKey="Receitas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Despesas" fill="hsl(var(--danger))" radius={[4, 4, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ResponsiveChartContainer>
             )}
           </CardContent>
         </Card>
@@ -493,7 +493,7 @@ export function DashboardSection({
                 <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveChartContainer className="h-full">
                 <PieChart margin={{ top: 8, right: 4, bottom: 8, left: 4 }}>
                   <Pie
                     data={categoryData}
@@ -527,7 +527,7 @@ export function DashboardSection({
                   />
                   <Legend wrapperStyle={legendStyle} />
                 </PieChart>
-              </ResponsiveContainer>
+              </ResponsiveChartContainer>
             )}
           </CardContent>
         </Card>
@@ -547,7 +547,7 @@ export function DashboardSection({
                 <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveChartContainer className="h-full">
                 <LineChart data={balanceEvolution}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                   <XAxis dataKey="month" stroke={axisStroke} style={axisStyle} />
@@ -566,7 +566,7 @@ export function DashboardSection({
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </ResponsiveChartContainer>
             )}
           </CardContent>
         </Card>
@@ -583,7 +583,7 @@ export function DashboardSection({
                 <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveChartContainer className="h-full">
                 <BarChart data={realizedVsOpenData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                   <XAxis dataKey="tipo" stroke={axisStroke} style={axisStyle} />
@@ -597,7 +597,7 @@ export function DashboardSection({
                   <Bar dataKey="Realizado" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Aberto" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ResponsiveChartContainer>
             )}
           </CardContent>
         </Card>

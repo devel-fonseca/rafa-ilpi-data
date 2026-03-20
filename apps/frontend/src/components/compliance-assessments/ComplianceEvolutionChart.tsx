@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   ReferenceLine,
   Cell,
 } from 'recharts'
@@ -15,6 +14,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { ComplianceAssessment } from '@/api/compliance-assessments.api'
 import { TrendingUp } from 'lucide-react'
+import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
 
 interface ComplianceEvolutionChartProps {
   assessments: ComplianceAssessment[]
@@ -86,7 +86,7 @@ export function ComplianceEvolutionChart({ assessments }: ComplianceEvolutionCha
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveChartContainer height={280} minHeight={280}>
           <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
@@ -153,7 +153,7 @@ export function ComplianceEvolutionChart({ assessments }: ComplianceEvolutionCha
               ))}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
+        </ResponsiveChartContainer>
 
         {/* Legenda de cores */}
         <div className="flex items-center justify-center gap-4 mt-4 text-xs">

@@ -7,10 +7,10 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RdcIndicatorType, RDC_INDICATOR_LABELS } from '@/types/incidents';
+import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container';
 
 interface HistoricalIndicator {
   year: number;
@@ -158,7 +158,7 @@ export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
         </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveChartContainer height={400} minHeight={400}>
           <LineChart
             data={chartData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
@@ -243,7 +243,7 @@ export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
               name={RdcIndicatorType.DESNUTRICAO}
             />
           </LineChart>
-        </ResponsiveContainer>
+        </ResponsiveChartContainer>
 
         {/* Legenda adicional */}
         <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
