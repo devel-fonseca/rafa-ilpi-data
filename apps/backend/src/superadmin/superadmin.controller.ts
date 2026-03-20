@@ -7,7 +7,7 @@ import { TenantAdminService } from './services/tenant-admin.service'
 import { SubscriptionAdminService } from './services/subscription-admin.service'
 import { PlansAdminService } from './services/plans-admin.service'
 import { AlertsService } from './services/alerts.service'
-import { UpdateTenantDto } from './dto/update-tenant.dto'
+import { UpdateSuperAdminTenantDto } from './dto/update-tenant.dto'
 import { SuspendTenantDto } from './dto/suspend-tenant.dto'
 import { ChangePlanDto } from './dto/change-plan.dto'
 import { ExtendPeriodDto } from './dto/extend-period.dto'
@@ -325,7 +325,7 @@ export class SuperAdminController {
    * Atualizar dados básicos de um tenant
    */
   @Patch('tenants/:id')
-  async updateTenant(@Param('id') id: string, @Body() updateDto: UpdateTenantDto) {
+  async updateTenant(@Param('id') id: string, @Body() updateDto: UpdateSuperAdminTenantDto) {
     return this.tenantAdminService.update(id, updateDto)
   }
 

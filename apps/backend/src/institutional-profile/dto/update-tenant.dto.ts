@@ -1,6 +1,6 @@
 import { IsOptional, IsString, IsEmail, MaxLength, Matches } from 'class-validator'
 
-export class UpdateTenantDto {
+export class UpdateInstitutionalTenantDto {
   @IsOptional()
   @IsString()
   @MaxLength(20)

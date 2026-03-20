@@ -133,20 +133,29 @@ That means the real migration must be treated as a platform upgrade, not a vulne
 
 ## What The Spike Did Not Prove Yet
 
+The original spike did not prove:
+
 1. Full runtime smoke coverage against a real environment
 2. Upload behavior under live requests
 3. WebSocket handshake behavior with the frontend client
 4. Swagger runtime boot under the full app process
 5. Green backend test suite
 
-Current test result during the spike:
+Those gaps were later closed on the real migration branch `feat/nest-11-migration`:
 
-- `npm test -- --runInBand` does not pass
-- failures are concentrated in stale specs and stricter typing, for example:
-  - auth specs missing `UserProfilesService` in the testing module
-  - audit/prescriptions specs calling service methods with outdated signatures
+- `npm test -- --runInBand` is green
+- manual smoke tests passed for:
+  - auth login, refresh and logout
+  - Swagger boot at `/api/docs`
+  - notifications endpoints
+  - websocket handshake on `/events`
+  - upload, signed download and delete on `files/*`
 
-These failures are important, but they are not evidence of a Nest 11 platform blocker by themselves.
+Current remaining work is no longer migration viability. It is merge readiness:
+
+1. automated coverage for Nest 11 compatibility hotspots
+2. Swagger schema cleanup for duplicate DTO names
+3. final integrated validation with frontend and deployment flow
 
 ## High-Risk Runtime Areas
 

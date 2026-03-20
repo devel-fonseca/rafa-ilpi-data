@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsEmail, Matches } from 'class-validator'
 
-export class UpdateTenantDto {
+export class UpdateSuperAdminTenantDto {
   @IsOptional()
   @IsString()
   name?: string

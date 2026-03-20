@@ -42,7 +42,7 @@ export class SignatoryDto {
 /**
  * DTO para criação de contrato de prestação de serviços (digitalização)
  */
-export class CreateContractDto {
+export class CreateResidentContractDto {
   @ApiProperty({ example: 'CONT-2025-001', description: 'Número único do contrato' })
   @IsNotEmpty()
   @IsString()
@@ -58,7 +58,7 @@ export class CreateContractDto {
     required: false,
     description: 'Data de fim da vigência (YYYY-MM-DD). Obrigatória se não for prazo indeterminado',
   })
-  @ValidateIf((dto: CreateContractDto) => !dto.isIndefinite)
+  @ValidateIf((dto: CreateResidentContractDto) => !dto.isIndefinite)
   @IsDateString()
   endDate?: string;
 
