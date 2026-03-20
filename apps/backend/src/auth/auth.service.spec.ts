@@ -16,6 +16,9 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserProfilesService } from '../user-profiles/user-profiles.service';
+import { EmailService } from '../email/email.service';
+import { JwtCacheService } from './jwt-cache.service';
 import { mockPrismaService } from '../../test/mocks/prisma.mock';
 import { mockTenant, mockTenantFree } from '../../test/fixtures/tenant.fixture';
 import { mockAdminUser, mockRegularUser, mockUserOtherTenant } from '../../test/fixtures/user.fixture';
@@ -31,6 +34,50 @@ describe('AuthService', () => {
   let prisma: any;
   let jwtService: JwtService;
   let configService: ConfigService;
+
+  const mockUserProfilesService = {
+    createDefaultProfile: jest.fn(),
+  };
+
+  const mockEmailService = {
+    sendPasswordResetEmail: jest.fn(),
+  };
+
+  const mockJwtCacheService = {
+    get: jest.fn(),
+    set: jest.fn(),
+    invalidate: jest.fn(),
+  };
+
+  const createTenantClient = (options?: {
+    user?: any;
+    tenantProfile?: any;
+    refreshToken?: any;
+  }) => ({
+    ...mockPrismaService,
+    user: {
+      ...mockPrismaService.user,
+      findFirst: jest.fn().mockResolvedValue(options?.user ?? null),
+      findUnique: mockPrismaService.user.findUnique,
+      update: mockPrismaService.user.update,
+    },
+    tenantProfile: {
+      ...mockPrismaService.tenantProfile,
+      findUnique: jest.fn().mockResolvedValue(options?.tenantProfile ?? null),
+    },
+    refreshToken: {
+      ...mockPrismaService.refreshToken,
+      findUnique: jest.fn().mockResolvedValue(options?.refreshToken ?? null),
+      create: mockPrismaService.refreshToken.create,
+      delete: mockPrismaService.refreshToken.delete,
+      deleteMany: mockPrismaService.refreshToken.deleteMany,
+    },
+    accessLog: {
+      ...mockPrismaService.accessLog,
+      create: mockPrismaService.accessLog.create,
+    },
+    $transaction: mockPrismaService.$transaction,
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -59,7 +106,28 @@ describe('AuthService', () => {
               };
               return config[key];
             }),
+            getOrThrow: jest.fn((key: string) => {
+              const config: Record<string, string> = {
+                JWT_SECRET: 'test-secret',
+                JWT_REFRESH_SECRET: 'test-refresh-secret',
+                JWT_EXPIRES_IN: '15m',
+                JWT_REFRESH_EXPIRES_IN: '7d',
+              };
+              return config[key];
+            }),
           },
+        },
+        {
+          provide: UserProfilesService,
+          useValue: mockUserProfilesService,
+        },
+        {
+          provide: EmailService,
+          useValue: mockEmailService,
+        },
+        {
+          provide: JwtCacheService,
+          useValue: mockJwtCacheService,
         },
       ],
     }).compile();
@@ -71,6 +139,16 @@ describe('AuthService', () => {
 
     // Reset all mocks before each test
     jest.clearAllMocks();
+    prisma.$transaction.mockImplementation(async (callback: any) => callback(prisma));
+    prisma.tenant.findMany.mockResolvedValue([]);
+    prisma.user.findMany.mockResolvedValue([]);
+    prisma.accessLog.create.mockResolvedValue({});
+    prisma.userProfile.create.mockResolvedValue({});
+    prisma.getTenantClient.mockReturnValue(prisma);
+
+    const bcrypt = require('bcrypt');
+    bcrypt.hash.mockResolvedValue('$2b$10$hashedpassword123');
+    bcrypt.compare.mockResolvedValue(true);
   });
 
   describe('register()', () => {
@@ -92,11 +170,13 @@ describe('AuthService', () => {
       };
 
       prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.user.findUnique.mockResolvedValue(null); // Email não existe
+      prisma.user.findFirst.mockResolvedValue(null); // Email não existe
       prisma.user.count.mockResolvedValue(2); // 2 usuários existentes
       prisma.user.create.mockResolvedValue({
         id: 'new-user-123',
-        ...registerDto,
+        tenantId: registerDto.tenantId,
+        name: registerDto.name,
+        email: registerDto.email,
         role: 'user',
         isActive: true,
         createdAt: new Date(),
@@ -117,7 +197,7 @@ describe('AuthService', () => {
       };
 
       prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.count.mockResolvedValue(0); // ZERO usuários = primeiro
 
       prisma.user.create.mockImplementation((args: any) => {
@@ -158,7 +238,7 @@ describe('AuthService', () => {
       };
 
       prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.user.findUnique.mockResolvedValue(mockAdminUser); // Email JÁ existe
+      prisma.user.findFirst.mockResolvedValue(mockAdminUser); // Email JÁ existe
 
       await expect(service.register(registerDto)).rejects.toThrow(
         ConflictException
@@ -175,7 +255,7 @@ describe('AuthService', () => {
       };
 
       prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.count.mockResolvedValue(2); // JÁ TEM 2 usuários
 
       await expect(service.register(registerDto)).rejects.toThrow(
@@ -193,11 +273,13 @@ describe('AuthService', () => {
       };
 
       prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.count.mockResolvedValue(1000); // 1000 usuários
       prisma.user.create.mockResolvedValue({
         id: 'new-user',
-        ...registerDto,
+        tenantId: registerDto.tenantId,
+        name: registerDto.name,
+        email: registerDto.email,
         role: 'user',
         isActive: true,
         createdAt: new Date(),
@@ -213,7 +295,7 @@ describe('AuthService', () => {
       };
 
       prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.user.count.mockResolvedValue(1);
       const bcrypt = require('bcrypt');
       bcrypt.hash.mockResolvedValue('$2b$10$hashedpassword123');
@@ -250,7 +332,18 @@ describe('AuthService', () => {
         },
       };
 
-      prisma.user.findMany.mockResolvedValue([mockUserWithTenant]);
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.tenant.findMany.mockResolvedValue([
+        { id: mockTenant.id, schemaName: mockTenant.schemaName, name: mockTenant.name, status: mockTenant.status },
+      ]);
+      prisma.tenant.findUnique.mockImplementation(async ({ where: { id } }: any) =>
+        id === mockTenant.id ? mockUserWithTenant.tenant : null
+      );
+      prisma.getTenantClient.mockImplementation((schemaName: string) =>
+        schemaName === mockTenant.schemaName
+          ? createTenantClient({ user: mockAdminUser })
+          : prisma
+      );
       prisma.user.update.mockResolvedValue(mockUserWithTenant);
       prisma.refreshToken.create.mockResolvedValue({});
 
@@ -287,7 +380,31 @@ describe('AuthService', () => {
         },
       };
 
-      prisma.user.findMany.mockResolvedValue([mockUserWithTenant1, mockUser2]);
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.tenant.findMany.mockResolvedValue([
+        { id: mockTenant.id, schemaName: mockTenant.schemaName, name: mockTenant.name, status: mockTenant.status },
+        { id: 'tenant-2', schemaName: 'tenant_2', name: 'Tenant 2', status: 'active' },
+      ]);
+      prisma.tenant.findUnique.mockImplementation(async ({ where: { id } }: any) => {
+        if (id === mockTenant.id) return mockUserWithTenant1.tenant;
+        if (id === 'tenant-2') return mockUser2.tenant;
+        return null;
+      });
+      prisma.getTenantClient.mockImplementation((schemaName: string) => {
+        if (schemaName === mockTenant.schemaName) {
+          return createTenantClient({ user: mockAdminUser });
+        }
+        if (schemaName === 'tenant_2') {
+          return createTenantClient({
+            user: {
+              ...mockAdminUser,
+              id: 'user-2',
+              tenantId: 'tenant-2',
+            },
+          });
+        }
+        return prisma;
+      });
       const bcrypt = require('bcrypt');
       bcrypt.compare.mockResolvedValue(true);
 
@@ -301,6 +418,7 @@ describe('AuthService', () => {
 
     it('deve lançar erro se credenciais inválidas (email)', async () => {
       prisma.user.findMany.mockResolvedValue([]); // Nenhum usuário encontrado
+      prisma.tenant.findMany.mockResolvedValue([]);
 
       await expect(service.login(loginDto)).rejects.toThrow(
         UnauthorizedException
@@ -316,7 +434,14 @@ describe('AuthService', () => {
         tenant: mockTenant,
       };
 
-      prisma.user.findMany.mockResolvedValue([mockUserWithTenant]);
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.tenant.findMany.mockResolvedValue([
+        { id: mockTenant.id, schemaName: mockTenant.schemaName, name: mockTenant.name, status: mockTenant.status },
+      ]);
+      prisma.tenant.findUnique.mockResolvedValue(mockTenant);
+      prisma.getTenantClient.mockImplementation(() =>
+        createTenantClient({ user: mockAdminUser })
+      );
       const bcrypt = require('bcrypt');
       bcrypt.compare.mockResolvedValue(false); // Senha INCORRETA
 
@@ -337,7 +462,16 @@ describe('AuthService', () => {
         },
       };
 
-      prisma.user.findMany.mockResolvedValue([mockUserWithTenant]);
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.tenant.findMany.mockResolvedValue([
+        { id: mockTenant.id, schemaName: mockTenant.schemaName, name: mockTenant.name, status: mockTenant.status },
+      ]);
+      prisma.tenant.findUnique.mockImplementation(async ({ where: { id } }: any) =>
+        id === mockTenant.id ? mockUserWithTenant.tenant : null
+      );
+      prisma.getTenantClient.mockImplementation(() =>
+        createTenantClient({ user: mockAdminUser })
+      );
       prisma.user.update.mockResolvedValue(mockUserWithTenant);
       prisma.refreshToken.create.mockResolvedValue({});
 
@@ -366,7 +500,16 @@ describe('AuthService', () => {
         },
       };
 
-      prisma.user.findMany.mockResolvedValue([mockUserWithTenant]);
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.tenant.findMany.mockResolvedValue([
+        { id: mockTenant.id, schemaName: mockTenant.schemaName, name: mockTenant.name, status: mockTenant.status },
+      ]);
+      prisma.tenant.findUnique.mockImplementation(async ({ where: { id } }: any) =>
+        id === mockTenant.id ? mockUserWithTenant.tenant : null
+      );
+      prisma.getTenantClient.mockImplementation(() =>
+        createTenantClient({ user: mockAdminUser })
+      );
       prisma.user.update.mockResolvedValue(mockUserWithTenant);
       prisma.refreshToken.create.mockResolvedValue({});
 
@@ -395,12 +538,14 @@ describe('AuthService', () => {
         token: 'valid-refresh-token',
         userId: mockAdminUser.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias no futuro
-        user: mockAdminUser,
       };
 
       prisma.refreshToken.findUnique.mockResolvedValue(mockStoredToken);
+      prisma.user.findUnique.mockResolvedValue(mockAdminUser);
+      prisma.tenant.findUnique.mockResolvedValue({ schemaName: mockTenant.schemaName });
       prisma.refreshToken.delete.mockResolvedValue({});
       prisma.refreshToken.create.mockResolvedValue({});
+      prisma.refreshToken.deleteMany.mockResolvedValue({ count: 0 });
       (jwtService.sign as jest.Mock).mockReturnValue('new-token');
 
       const result = await service.refresh('valid-refresh-token');
@@ -415,12 +560,14 @@ describe('AuthService', () => {
         token: 'old-refresh-token',
         userId: mockAdminUser.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        user: mockAdminUser,
       };
 
       prisma.refreshToken.findUnique.mockResolvedValue(mockStoredToken);
+      prisma.user.findUnique.mockResolvedValue(mockAdminUser);
+      prisma.tenant.findUnique.mockResolvedValue({ schemaName: mockTenant.schemaName });
       prisma.refreshToken.delete.mockResolvedValue({});
       prisma.refreshToken.create.mockResolvedValue({});
+      prisma.refreshToken.deleteMany.mockResolvedValue({ count: 0 });
       (jwtService.sign as jest.Mock).mockReturnValue('new-token');
 
       await service.refresh('old-refresh-token');
@@ -433,6 +580,7 @@ describe('AuthService', () => {
 
     it('deve lançar erro se refresh token não existe', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(null);
+      prisma.tenant.findMany.mockResolvedValue([]);
 
       await expect(service.refresh('invalid-token')).rejects.toThrow(
         UnauthorizedException
@@ -445,7 +593,6 @@ describe('AuthService', () => {
         token: 'expired-token',
         userId: mockAdminUser.id,
         expiresAt: new Date(Date.now() - 1000), // EXPIRADO (no passado)
-        user: mockAdminUser,
       };
 
       prisma.refreshToken.findUnique.mockResolvedValue(mockExpiredToken);
@@ -470,10 +617,10 @@ describe('AuthService', () => {
         token: 'valid-token',
         userId: mockInactiveUser.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        user: mockInactiveUser,
       };
 
       prisma.refreshToken.findUnique.mockResolvedValue(mockStoredToken);
+      prisma.user.findUnique.mockResolvedValue(mockInactiveUser);
 
       await expect(service.refresh('valid-token')).rejects.toThrow(
         UnauthorizedException
@@ -483,6 +630,11 @@ describe('AuthService', () => {
 
   describe('logout()', () => {
     it('deve deletar todos os refresh tokens do usuário', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: mockAdminUser.id,
+        tenantId: mockAdminUser.tenantId,
+      });
+      prisma.tenant.findUnique.mockResolvedValue({ schemaName: mockTenant.schemaName });
       prisma.refreshToken.deleteMany.mockResolvedValue({ count: 3 });
 
       const result = await service.logout(mockAdminUser.id);
@@ -504,7 +656,16 @@ describe('AuthService', () => {
         },
       };
 
-      prisma.user.findMany.mockResolvedValue([mockUserWithTenant]);
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.tenant.findMany.mockResolvedValue([
+        { id: mockTenant.id, schemaName: mockTenant.schemaName, name: mockTenant.name, status: mockTenant.status },
+      ]);
+      prisma.tenant.findUnique.mockImplementation(async ({ where: { id } }: any) =>
+        id === mockTenant.id ? mockUserWithTenant.tenant : null
+      );
+      prisma.getTenantClient.mockImplementation(() =>
+        createTenantClient({ user: mockAdminUser })
+      );
       prisma.user.update.mockResolvedValue(mockUserWithTenant);
       prisma.refreshToken.create.mockResolvedValue({});
 
