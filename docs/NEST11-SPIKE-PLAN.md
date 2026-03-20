@@ -8,16 +8,43 @@ Prepare a controlled migration path from Nest 10 to Nest 11 in the backend, beca
 
 This spike is not the migration PR itself. It is the technical assessment that should precede the real upgrade branch.
 
+## Spike Result Snapshot
+
+Status on branch `spike/nest-11-migration`:
+
+- core Nest stack upgraded to the Nest 11 line
+- `multer` upgraded to `2.1.1`
+- backend build passes
+- backend production audit dropped from `50` to `36`
+
+Audit after the spike package upgrade:
+
+- `36` vulnerabilities total
+- `36 high`
+- `0 moderate`
+- `0 critical`
+
+Immediate code changes required to compile:
+
+- [jwt.strategy.ts](/home/emanuel/Documentos/GitHub/rafa-ilpi-data/apps/backend/src/auth/strategies/jwt.strategy.ts): replace `ConfigService.get()` with `getOrThrow()` for `secretOrKey`
+- [jwt-refresh.strategy.ts](/home/emanuel/Documentos/GitHub/rafa-ilpi-data/apps/backend/src/auth/strategies/jwt-refresh.strategy.ts): same adjustment for refresh secret
+
+Main conclusion:
+
+- the Nest 11 upgrade is technically viable
+- the first compile blockers were minor typing tightenings, not framework breakage
+- after the upgrade, the remaining vulnerability surface is no longer primarily the Nest platform stack
+
 ## Current State
 
-Backend production audit after residual cleanup:
+Backend production audit before the spike:
 
 - `50` vulnerabilities total
 - `45 high`
 - `5 moderate`
 - `0 critical`
 
-Most remaining direct findings point to major upgrades:
+Most remaining direct findings before the spike pointed to major upgrades:
 
 - `@nestjs/bull`
 - `@nestjs/common`
@@ -36,9 +63,16 @@ Residual non-Nest findings still present:
 - `html-minifier`
 - `fast-xml-parser` through `@aws-sdk/xml-builder`
 
+Residual findings after the spike are now concentrated in:
+
+- `mjml` and its internal package chain
+- `html-minifier`
+- `editorconfig` / `minimatch` pulled by the MJML toolchain
+- `@aws-sdk/xml-builder` / `fast-xml-parser`
+
 ## Current Dependency Matrix
 
-Current backend versions:
+Current backend versions before the spike:
 
 - `@nestjs/bull`: `10.0.1`
 - `@nestjs/common`: `10.4.22`
@@ -87,6 +121,32 @@ This is not a simple package bump:
    - config bootstrap
 
 That means the real migration must be treated as a platform upgrade, not a vulnerability patch PR.
+
+## What The Spike Proved
+
+1. The package matrix can be aligned cleanly on Nest 11.
+2. The backend still compiles after the upgrade.
+3. The vulnerability reduction is material without any Nest-specific runtime fixups beyond auth typing.
+4. The remaining work is split into two different categories:
+   - residual dependency cleanup outside Nest
+   - test-suite maintenance
+
+## What The Spike Did Not Prove Yet
+
+1. Full runtime smoke coverage against a real environment
+2. Upload behavior under live requests
+3. WebSocket handshake behavior with the frontend client
+4. Swagger runtime boot under the full app process
+5. Green backend test suite
+
+Current test result during the spike:
+
+- `npm test -- --runInBand` does not pass
+- failures are concentrated in stale specs and stricter typing, for example:
+  - auth specs missing `UserProfilesService` in the testing module
+  - audit/prescriptions specs calling service methods with outdated signatures
+
+These failures are important, but they are not evidence of a Nest 11 platform blocker by themselves.
 
 ## High-Risk Runtime Areas
 
