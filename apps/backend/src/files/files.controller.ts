@@ -37,6 +37,20 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   /**
+   * Nest 11 usa wildcards nomeados (`*filePath`), que podem chegar como array
+   * de segmentos ou string única, dependendo da forma como a URL foi montada.
+   */
+  private normalizeFilePath(filePath: string | string[]): string {
+    const rawPath = Array.isArray(filePath) ? filePath.join('/') : filePath;
+
+    try {
+      return decodeURIComponent(rawPath);
+    } catch {
+      return rawPath;
+    }
+  }
+
+  /**
    * POST /files/upload
    * Upload de arquivo
    */
@@ -129,9 +143,11 @@ export class FilesController {
     status: 400,
     description: 'Erro ao gerar URL',
   })
-  @Get('download/*')
-  async getFileUrl(@Param('0') filePath: string) {
-    const url = await this.filesService.getFileUrl(filePath);
+  @Get('download/*filePath')
+  async getFileUrl(@Param('filePath') filePath: string | string[]) {
+    const url = await this.filesService.getFileUrl(
+      this.normalizeFilePath(filePath),
+    );
     return {
       url,
       expiresIn: 3600, // 1 hora
@@ -200,9 +216,9 @@ export class FilesController {
     status: 400,
     description: 'Erro ao deletar arquivo',
   })
-  @Delete('*')
-  async deleteFile(@Param('0') filePath: string) {
-    await this.filesService.deleteFile(filePath);
+  @Delete('*filePath')
+  async deleteFile(@Param('filePath') filePath: string | string[]) {
+    await this.filesService.deleteFile(this.normalizeFilePath(filePath));
     return {
       message: 'Arquivo deletado com sucesso',
     };
