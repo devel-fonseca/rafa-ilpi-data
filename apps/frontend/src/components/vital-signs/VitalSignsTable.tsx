@@ -150,26 +150,51 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
     }
   }
 
-  // Exportar para CSV
-  const exportToCSV = async () => {
-    const XLSX = await import('xlsx')
+  // Exportar para CSV real, compatível com Excel
+  const exportToCSV = () => {
+    const escapeCsvValue = (value: string | number | undefined) => {
+      const normalized = value === undefined ? '' : String(value)
+      return `"${normalized.replace(/"/g, '""')}"`
+    }
 
-    const csvData = sortedData.map((item) => ({
-      'Data/Hora': formatDateTimeSafe(item.timestamp),
-      'PA Sistólica': item.systolicBloodPressure || '',
-      'PA Diastólica': item.diastolicBloodPressure || '',
-      'Temperatura': item.temperature || '',
-      'FC': item.heartRate || '',
-      'SpO2': item.oxygenSaturation || '',
-      'Glicemia': item.bloodGlucose || '',
-      'Registrado por': item.recordedBy || '',
-      'Observações': item.notes || '',
-    }))
+    const rows = [
+      [
+        'Data/Hora',
+        'PA Sistólica',
+        'PA Diastólica',
+        'Temperatura',
+        'FC',
+        'SpO2',
+        'Glicemia',
+        'Registrado por',
+        'Observações',
+      ],
+      ...sortedData.map((item) => [
+        formatDateTimeSafe(item.timestamp),
+        item.systolicBloodPressure ?? '',
+        item.diastolicBloodPressure ?? '',
+        item.temperature ?? '',
+        item.heartRate ?? '',
+        item.oxygenSaturation ?? '',
+        item.bloodGlucose ?? '',
+        item.recordedBy ?? '',
+        item.notes ?? '',
+      ]),
+    ]
 
-    const ws = XLSX.utils.json_to_sheet(csvData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Sinais Vitais')
-    XLSX.writeFile(wb, `sinais_vitais_${residentName.replace(/\s+/g, '_')}_${formatDateOnlySafe(new Date().toISOString()).replace(/\//g, '')}.xlsx`)
+    const csv = `\uFEFF${rows
+      .map((row) => row.map((value) => escapeCsvValue(value)).join(';'))
+      .join('\n')}`
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `sinais_vitais_${residentName.replace(/\s+/g, '_')}_${formatDateOnlySafe(new Date().toISOString()).replace(/\//g, '')}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   // Exportar para PDF
@@ -329,7 +354,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
             <DropdownMenuContent>
               <DropdownMenuItem onClick={exportToCSV}>
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Excel
+                CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={exportToPDF}>
                 <FileText className="h-4 w-4 mr-2" />

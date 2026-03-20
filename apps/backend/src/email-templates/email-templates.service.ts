@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailTemplate, EmailTemplateVersion, Prisma } from '@prisma/client';
 import {
@@ -13,6 +13,7 @@ import mjml2html from 'mjml';
 @Injectable()
 export class EmailTemplatesService {
   private resend: Resend;
+  private static readonly MJML_INCLUDE_PATTERN = /<\s*mj-include\b/i;
 
   constructor(private prisma: PrismaService) {
     this.resend = new Resend(process.env.RESEND_API_KEY);
@@ -208,6 +209,8 @@ export class EmailTemplatesService {
           return content;
         }
 
+        this.assertNoUnsafeMjmlIncludes(content);
+
         // Se não for HTML, tentar processar como MJML
         try {
           const result = mjml2html(content);
@@ -253,6 +256,9 @@ export class EmailTemplatesService {
         </html>
       `;
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       console.error('Erro ao renderizar Easy Email:', error);
       // Retornar HTML de fallback em caso de erro
       return `
@@ -266,6 +272,14 @@ export class EmailTemplatesService {
           </body>
         </html>
       `;
+    }
+  }
+
+  private assertNoUnsafeMjmlIncludes(content: string): void {
+    if (EmailTemplatesService.MJML_INCLUDE_PATTERN.test(content)) {
+      throw new BadRequestException(
+        'Templates MJML com <mj-include> não são permitidos por segurança.',
+      );
     }
   }
 
