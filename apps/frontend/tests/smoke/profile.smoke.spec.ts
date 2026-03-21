@@ -1,13 +1,12 @@
 import { expect, test } from '@playwright/test'
 import {
   baseProfile,
+  mockAuthenticatedSession,
   mockCommonAppApi,
   mockSuccessfulRefresh,
-  seedAuthenticatedSession,
 } from './support/fixtures'
 
 test('renovação de sessão mantém o usuário no fluxo protegido', async ({ page }) => {
-  await seedAuthenticatedSession(page)
   await mockCommonAppApi(page)
   await mockSuccessfulRefresh(page)
 
@@ -20,15 +19,15 @@ test('renovação de sessão mantém o usuário no fluxo protegido', async ({ pa
 test('edição do perfil salva dados pessoais com sucesso', async ({ page }) => {
   let lastPatchedProfile: Record<string, unknown> | null = null
 
-  await seedAuthenticatedSession(page)
+  await mockAuthenticatedSession(page)
   await mockCommonAppApi(page, {
     onProfilePatch: (body) => {
       lastPatchedProfile = body
 
       return {
-      ...baseProfile,
-      phone: body.phone ?? baseProfile.phone,
-      notes: body.notes ?? baseProfile.notes,
+        ...baseProfile,
+        phone: body.phone ?? baseProfile.phone,
+        notes: body.notes ?? baseProfile.notes,
       }
     },
   })

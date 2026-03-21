@@ -541,8 +541,15 @@ describe('AuthService', () => {
       };
 
       prisma.refreshToken.findUnique.mockResolvedValue(mockStoredToken);
-      prisma.user.findUnique.mockResolvedValue(mockAdminUser);
-      prisma.tenant.findUnique.mockResolvedValue({ schemaName: mockTenant.schemaName });
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockAdminUser,
+        profile: null,
+      });
+      prisma.tenant.findUnique.mockResolvedValue({
+        ...mockTenant,
+        profile: null,
+        subscriptions: [],
+      });
       prisma.refreshToken.delete.mockResolvedValue({});
       prisma.refreshToken.create.mockResolvedValue({});
       prisma.refreshToken.deleteMany.mockResolvedValue({ count: 0 });
@@ -552,6 +559,8 @@ describe('AuthService', () => {
 
       expect(result.accessToken).toBe('new-token');
       expect(result.refreshToken).toBe('new-token');
+      expect(result.user).toBeDefined();
+      expect(result.user).not.toHaveProperty('password');
     });
 
     it('deve DELETAR refresh token antigo (rotation)', async () => {
@@ -563,8 +572,15 @@ describe('AuthService', () => {
       };
 
       prisma.refreshToken.findUnique.mockResolvedValue(mockStoredToken);
-      prisma.user.findUnique.mockResolvedValue(mockAdminUser);
-      prisma.tenant.findUnique.mockResolvedValue({ schemaName: mockTenant.schemaName });
+      prisma.user.findUnique.mockResolvedValue({
+        ...mockAdminUser,
+        profile: null,
+      });
+      prisma.tenant.findUnique.mockResolvedValue({
+        ...mockTenant,
+        profile: null,
+        subscriptions: [],
+      });
       prisma.refreshToken.delete.mockResolvedValue({});
       prisma.refreshToken.create.mockResolvedValue({});
       prisma.refreshToken.deleteMany.mockResolvedValue({ count: 0 });

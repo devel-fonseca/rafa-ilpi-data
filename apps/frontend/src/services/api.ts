@@ -140,15 +140,12 @@ api.interceptors.response.use(
           },
         )
 
-        const { accessToken } = response.data
+        const { user, accessToken } = response.data
 
-        // Atualiza tokens
-        useAuthStore.getState().updateToken(accessToken)
+        useAuthStore.getState().setAuth(user, accessToken)
 
-        // Processa fila de requisições pendentes
         processQueue(null, accessToken)
 
-        // Retry requisição original
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         isRefreshing = false
         return api(originalRequest)

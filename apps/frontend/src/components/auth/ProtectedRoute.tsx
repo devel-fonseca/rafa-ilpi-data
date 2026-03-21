@@ -2,7 +2,6 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/auth.store'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { AccessDenied } from '@/design-system/components'
 import { devLogger } from '@/utils/devLogger'
 
@@ -10,44 +9,20 @@ interface ProtectedRouteProps {
   children: React.ReactNode
   requiredRole?: 'SUPERADMIN' | 'ADMIN' | 'MANAGER' | 'USER' | 'VIEWER'
   requiredPermissions?: PermissionType[]
-  requireAllPermissions?: boolean // Se true, requer TODAS as permissões; se false, requer QUALQUER UMA
+  requireAllPermissions?: boolean
 }
 
 export function ProtectedRoute({
   children,
   requiredRole,
   requiredPermissions,
-  requireAllPermissions = false
+  requireAllPermissions = false,
 }: ProtectedRouteProps) {
   const location = useLocation()
-  const { isAuthenticated, user, refreshAuth, accessToken } = useAuthStore()
+  const { isAuthenticated, user, hasBootstrapped, isBootstrapping } = useAuthStore()
   const { hasPermission } = usePermissions()
-  const [isChecking, setIsChecking] = useState(true)
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      devLogger.log('ProtectedRoute check:', {
-        hasToken: !!accessToken,
-        isAuthenticated,
-        hasUser: !!user
-      })
-
-      // Se tem accessToken mas não está autenticado, tentar refresh
-      if (accessToken && !isAuthenticated) {
-        try {
-          await refreshAuth()
-        } catch (error) {
-          devLogger.error('Erro ao renovar autenticação:', error)
-        }
-      }
-      setIsChecking(false)
-    }
-
-    checkAuth()
-  }, [accessToken, isAuthenticated, refreshAuth, user])
-
-  // Aguardando verificação inicial
-  if (isChecking) {
+  if (!hasBootstrapped || isBootstrapping) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" />
@@ -55,20 +30,18 @@ export function ProtectedRoute({
     )
   }
 
-  // Não autenticado
   if (!isAuthenticated) {
     devLogger.log('ProtectedRoute: Não autenticado, redirecionando para login')
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Verificar role se necessário
   if (requiredRole) {
     const roleHierarchy = {
       VIEWER: 1,
       USER: 2,
       MANAGER: 3,
       ADMIN: 4,
-      SUPERADMIN: 5
+      SUPERADMIN: 5,
     }
 
     const userRoleLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy] || 0
@@ -83,11 +56,10 @@ export function ProtectedRoute({
     }
   }
 
-  // Verificar permissões se necessário
   if (requiredPermissions && requiredPermissions.length > 0) {
     const hasRequiredPermissions = requireAllPermissions
-      ? requiredPermissions.every(permission => hasPermission(permission))
-      : requiredPermissions.some(permission => hasPermission(permission))
+      ? requiredPermissions.every((permission) => hasPermission(permission))
+      : requiredPermissions.some((permission) => hasPermission(permission))
 
     if (!hasRequiredPermissions) {
       return (

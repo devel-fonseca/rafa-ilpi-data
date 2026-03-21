@@ -2,37 +2,6 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { io, Socket } from 'socket.io-client'
 import { useAuthStore } from '@/stores/auth.store'
 
-/**
- * WebSocket Context para comunicação em tempo real
- *
- * FEATURES:
- * - Conexão única compartilhada por toda aplicação
- * - Auto-reconexão via Socket.IO
- * - Autenticação automática via JWT do AuthContext
- * - Isolamento multi-tenant via rooms
- *
- * EVENTOS DISPONÍVEIS:
- * - alert:new - Novos alertas de sinais vitais/medicamentos
- * - medication:locked - Medicamento bloqueado por outro usuário
- * - medication:unlocked - Medicamento desbloqueado
- * - vitalsign:alert - Alerta de anomalia em sinal vital
- *
- * USO:
- * const { socket, isConnected } = useWebSocket()
- *
- * useEffect(() => {
- *   if (!socket) return
- *
- *   socket.on('alert:new', (data) => {
- *     console.log('New alert:', data)
- *   })
- *
- *   return () => {
- *     socket.off('alert:new')
- *   }
- * }, [socket])
- */
-
 interface WebSocketContextValue {
   socket: Socket | null
   isConnected: boolean
@@ -58,16 +27,14 @@ interface WebSocketProviderProps {
 }
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
-  const { user } = useAuthStore()
+  const { user, accessToken, hasBootstrapped } = useAuthStore()
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const socketRef = useRef<Socket | null>(null)
 
   useEffect(() => {
-    // Não conectar se usuário não estiver autenticado
-    if (!user) {
-      // Desconectar se havia socket ativo
+    if (!hasBootstrapped || !user || !accessToken) {
       if (socketRef.current) {
         socketRef.current.disconnect()
         socketRef.current = null
@@ -77,42 +44,31 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       return
     }
 
-    // Se já existe conexão ativa, não criar nova
     if (socketRef.current?.connected) {
       return
     }
 
     const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-    const WS_URL = BACKEND_URL.replace('/api', '') // Remove /api suffix
+    const WS_URL = BACKEND_URL.replace('/api', '')
 
-    // Buscar accessToken do Zustand auth store (persisted em 'rafa-ilpi-auth')
-    const token = useAuthStore.getState().accessToken
-
-    // Criar socket com JWT no handshake
     const newSocket = io(`${WS_URL}/events`, {
       auth: {
-        token,
+        token: accessToken,
       },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
-      transports: ['websocket', 'polling'], // Fallback para polling se WebSocket falhar
+      transports: ['websocket', 'polling'],
     })
 
-    // Event handlers
     newSocket.on('connect', () => {
       setIsConnected(true)
       setError(null)
     })
 
-    newSocket.on('connection:success', () => {
-      // Connection confirmed - user data not logged for security
-    })
-
     newSocket.on('disconnect', (reason) => {
       setIsConnected(false)
 
-      // Se desconexão foi do servidor, tentar reconectar
       if (reason === 'io server disconnect') {
         newSocket.connect()
       }
@@ -127,12 +83,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     socketRef.current = newSocket
     setSocket(newSocket)
 
-    // Cleanup: desconectar ao desmontar
     return () => {
       newSocket.disconnect()
       socketRef.current = null
     }
-  }, [user]) // Reconectar quando user mudar (login/logout)
+  }, [accessToken, hasBootstrapped, user])
 
   const value: WebSocketContextValue = {
     socket,

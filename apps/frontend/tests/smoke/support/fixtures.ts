@@ -223,24 +223,54 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
   })
 }
 
-export async function seedAuthenticatedSession(page: Page) {
+async function seedClientStorage(page: Page) {
   await page.addInitScript(
-    ({ authState, featuresState, userId }) => {
-      localStorage.setItem('rafa-ilpi-auth', authState)
+    ({ featuresState, userId }) => {
+      localStorage.removeItem('rafa-ilpi-auth')
       localStorage.setItem('rafa-ilpi-features', featuresState)
       localStorage.setItem(`rafa-cookie-consent-${userId}`, 'accepted')
       localStorage.setItem(`rafa-cookie-consent-date-${userId}`, new Date().toISOString())
     },
     {
-      authState: persistedState({
-        user: baseUser,
-        accessToken: 'access-token',
-        isAuthenticated: true,
-      }),
       featuresState: persistedState(baseFeatures),
       userId: baseUser.id,
-    }
+    },
   )
+}
+
+export async function mockUnauthenticatedSession(page: Page) {
+  await seedClientStorage(page)
+  await page.route(`${API_BASE}/auth/refresh`, (route) =>
+    fulfillJson(route, { message: 'Refresh token inválido' }, 401),
+  )
+}
+
+export async function mockAuthenticatedSession(
+  page: Page,
+  options?: {
+    refreshTokens?: string[]
+    userOverrides?: Partial<typeof baseUser>
+  },
+) {
+  await seedClientStorage(page)
+
+  const sessionUser = {
+    ...baseUser,
+    ...(options?.userOverrides ?? {}),
+  }
+
+  const refreshTokens = options?.refreshTokens ?? ['access-token']
+  let refreshCall = 0
+
+  await page.route(`${API_BASE}/auth/refresh`, (route) => {
+    const token = refreshTokens[Math.min(refreshCall, refreshTokens.length - 1)]
+    refreshCall += 1
+
+    return fulfillJson(route, {
+      user: sessionUser,
+      accessToken: token,
+    })
+  })
 }
 
 export async function mockCommonAppApi(
@@ -248,30 +278,30 @@ export async function mockCommonAppApi(
   options?: {
     onProfilePatch?: (body: Record<string, unknown>) => unknown
     profileOverrides?: Record<string, unknown>
-  }
+  },
 ) {
   const profile = { ...baseProfile, ...(options?.profileOverrides ?? {}) }
 
   await page.route(`${API_BASE}/tenants/me/features`, (route) => fulfillJson(route, baseFeatures))
   await page.route(`${API_BASE}/permissions/me`, (route) => fulfillJson(route, basePermissions))
   await page.route(`${API_BASE}/institutional-profile`, (route) =>
-    fulfillJson(route, { profile: { logoUrl: null } })
+    fulfillJson(route, { profile: { logoUrl: null } }),
   )
   await page.route(`${API_BASE}/tenant-profile/completion-status`, (route) =>
-    fulfillJson(route, { isComplete: true })
+    fulfillJson(route, { isComplete: true }),
   )
   await page.route(`${API_BASE}/notifications/unread/count**`, (route) =>
-    fulfillJson(route, { count: 0 })
+    fulfillJson(route, { count: 0 }),
   )
   await page.route(`${API_BASE}/notifications**`, (route) =>
-    fulfillJson(route, { data: [], meta: { total: 0, page: 1, limit: 50, totalPages: 0 } })
+    fulfillJson(route, { data: [], meta: { total: 0, page: 1, limit: 50, totalPages: 0 } }),
   )
   await page.route(`${API_BASE}/messages/unread/count`, (route) => fulfillJson(route, { count: 0 }))
   await page.route(`${API_BASE}/messages/inbox**`, (route) =>
-    fulfillJson(route, { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } })
+    fulfillJson(route, { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } }),
   )
   await page.route(`${API_BASE}/messages/stats`, (route) =>
-    fulfillJson(route, { unread: 0, received: 0, sent: 0 })
+    fulfillJson(route, { unread: 0, received: 0, sent: 0 }),
   )
   await page.route(`${API_BASE}/resident-schedule/tasks/daily**`, (route) => fulfillJson(route, []))
   await page.route(`${API_BASE}/institutional-events**`, (route) => fulfillJson(route, []))
@@ -307,28 +337,26 @@ export async function mockLogout(page: Page) {
 }
 
 export async function mockSuccessfulRefresh(page: Page) {
-  let refreshed = false
+  await mockAuthenticatedSession(page, {
+    refreshTokens: ['access-token', 'new-access-token'],
+  })
+
+  let shouldFailProfileRequest = true
 
   await page.route(`${API_BASE}/user-profiles/me**`, async (route) => {
-    if (!refreshed) {
+    if (shouldFailProfileRequest) {
+      shouldFailProfileRequest = false
       await fulfillJson(route, { message: 'Token expirado' }, 401)
       return
     }
 
     await fulfillJson(route, baseProfile)
   })
-
-  await page.route(`${API_BASE}/auth/refresh`, (route) => {
-    refreshed = true
-    return fulfillJson(route, {
-      accessToken: 'new-access-token',
-    })
-  })
 }
 
 export async function mockBedsFlow(page: Page) {
   await page.route(`${API_BASE}/beds/map/full`, (route) => fulfillJson(route, bedsHierarchy))
   await page.route(`${API_BASE}/residents/resident-1/transfer-bed`, (route) =>
-    fulfillJson(route, { success: true })
+    fulfillJson(route, { success: true }),
   )
 }

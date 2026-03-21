@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -6,10 +5,6 @@ import { Card, CardContent } from '@/components/ui/card'
 export default function SessionExpired() {
   const navigate = useNavigate()
 
-  useEffect(() => {
-    // Limpar qualquer dado de autenticação residual
-    localStorage.removeItem('rafa-ilpi-auth')
-  }, [])
 
   const handleLogin = () => {
     navigate('/login')

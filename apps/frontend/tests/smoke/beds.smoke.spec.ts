@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
 import {
+  mockAuthenticatedSession,
   mockBedsFlow,
   mockCommonAppApi,
-  seedAuthenticatedSession,
 } from './support/fixtures'
 
 test('fluxo de transferência de leito abre seleção e confirma movimentação', async ({ page }) => {
-  await seedAuthenticatedSession(page)
+  await mockAuthenticatedSession(page)
   await mockCommonAppApi(page)
   await mockBedsFlow(page)
 

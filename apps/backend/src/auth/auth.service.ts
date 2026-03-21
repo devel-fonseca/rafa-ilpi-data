@@ -65,6 +65,69 @@ export class AuthService {
     private readonly jwtCache: JwtCacheService,
   ) {}
 
+  private async buildAuthenticatedUser(
+    userId: string,
+    tenantId: string | null,
+    tenantSchemaName?: string | null,
+  ) {
+    const userClient = tenantSchemaName
+      ? this.prisma.getTenantClient(tenantSchemaName)
+      : this.prisma;
+
+    const user = await userClient.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+
+    let tenantWithPlan = null;
+
+    if (tenantId) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        include: {
+          profile: {
+            select: {
+              tradeName: true,
+              cnesCode: true,
+            },
+          },
+          subscriptions: {
+            include: { plan: true },
+            where: {
+              status: {
+                in: ['ACTIVE', 'TRIAL', 'active', 'trialing'],
+              },
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
+          },
+        },
+      });
+
+      if (tenant) {
+        tenantWithPlan = {
+          ...tenant,
+          plan: tenant.subscriptions?.[0]?.plan?.name || 'Free',
+        };
+      }
+    }
+
+    const { password: _password, ...userWithoutPassword } = user;
+
+    return {
+      ...userWithoutPassword,
+      tenant: tenantWithPlan,
+    };
+  }
+
   /**
    * Busca schemaName de um tenant com cache in-memory
    * Reduz queries repetidas durante operações de autenticação
@@ -652,7 +715,16 @@ export class AuthService {
         userAgent || storedToken.userAgent || undefined,
       );
 
-      return tokens;
+      const sessionUser = await this.buildAuthenticatedUser(
+        user.id,
+        user.tenantId,
+        tenantSchemaName,
+      );
+
+      return {
+        user: sessionUser,
+        ...tokens,
+      };
     } catch (_error) {
       throw new UnauthorizedException('Refresh token inválido');
     }
