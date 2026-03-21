@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import ReactECharts from 'echarts-for-react'
+import ReactEChartsCore from 'echarts-for-react/esm/core'
+import * as echarts from 'echarts/core'
 import type { EChartsOption } from 'echarts'
+import {
+  LineChart,
+  BarChart,
+  PieChart,
+  GaugeChart,
+} from 'echarts/charts'
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkLineComponent,
+} from 'echarts/components'
+import { SVGRenderer } from 'echarts/renderers'
 import { cn } from '@/lib/utils'
 
 interface EChartProps {
@@ -22,6 +36,18 @@ interface EChartThemeTokens {
   info: string
   muted: string
 }
+
+echarts.use([
+  LineChart,
+  BarChart,
+  PieChart,
+  GaugeChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkLineComponent,
+  SVGRenderer,
+])
 
 const defaultTokens: EChartThemeTokens = {
   text: '#0f172a',
@@ -90,7 +116,8 @@ export function EChart({ option, className, height = '100%' }: EChartProps) {
   const stableOption = useMemo(() => option, [option])
 
   return (
-    <ReactECharts
+    <ReactEChartsCore
+      echarts={echarts}
       option={stableOption}
       className={cn('w-full', className)}
       style={{ height: normalizeHeight(height), width: '100%' }}

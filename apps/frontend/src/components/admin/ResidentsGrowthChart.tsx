@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { graphic, type EChartsOption } from 'echarts'
+import type { EChartsOption } from 'echarts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EChart, useEChartThemeTokens } from '@/components/ui/echart'
 import { format } from 'date-fns'
@@ -117,10 +117,17 @@ export function ResidentsGrowthChart({ data = [], isLoading = false }: Residents
           disabled: true,
         },
         areaStyle: {
-          color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: tokens.primary },
-            { offset: 1, color: 'rgba(37, 99, 235, 0.08)' },
-          ]),
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: tokens.primary },
+              { offset: 1, color: 'rgba(37, 99, 235, 0.08)' },
+            ],
+          },
           opacity: 0.35,
         },
       },
