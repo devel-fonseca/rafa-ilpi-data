@@ -17,7 +17,7 @@ export interface EmailTemplate {
   name: string; // "Convite de Usuário"
   subject: string; // "Acesso liberado ao sistema da {{tenantName}}"
   description?: string;
-  jsonContent: Record<string, unknown>; // Easy Email JSON structure
+  jsonContent: Record<string, unknown>; // { content: htmlString }
   variables: TemplateVariable[];
   version: number;
   isActive: boolean;

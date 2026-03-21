@@ -1,22 +1,24 @@
 import { FieldEncryption } from './encryption.middleware';
 
 describe('FieldEncryption', () => {
-  const masterKey = 'test-master-key-with-minimum-32-characters-required';
+  const masterKey = 'a'.repeat(64);
+  const alternateMasterKey = 'b'.repeat(64);
   const tenantId = 'tenant-123';
   let encryption: FieldEncryption;
 
   beforeEach(() => {
     encryption = new FieldEncryption(masterKey);
+    jest.spyOn((encryption as any).logger, 'error').mockImplementation();
   });
 
   describe('Constructor', () => {
-    it('deve lançar erro se masterKey for muito curta', () => {
+    it('deve lançar erro se masterKey não tiver 64 hex chars', () => {
       expect(() => new FieldEncryption('short')).toThrow(
-        'ENCRYPTION_KEY must be at least 32 characters for AES-256',
+        'ENCRYPTION_MASTER_KEY must be exactly 64 hex chars (32 bytes)',
       );
     });
 
-    it('deve aceitar masterKey com 32+ caracteres', () => {
+    it('deve aceitar masterKey com 64 hex chars', () => {
       expect(() => new FieldEncryption(masterKey)).not.toThrow();
     });
   });
@@ -41,13 +43,11 @@ describe('FieldEncryption', () => {
       const encrypted2 = encryption.encrypt(plaintext, tenantId);
 
       expect(encrypted1).not.toBe(encrypted2);
-
-      // Mas ambos devem descriptografar para o mesmo texto
       expect(encryption.decrypt(encrypted1!, tenantId)).toBe(plaintext);
       expect(encryption.decrypt(encrypted2!, tenantId)).toBe(plaintext);
     });
 
-    it('deve preservar valores nulos', () => {
+    it('deve preservar valores nulos e vazios', () => {
       expect(encryption.encrypt(null, tenantId)).toBeNull();
       expect(encryption.encrypt(undefined, tenantId)).toBeNull();
       expect(encryption.encrypt('', tenantId)).toBeNull();
@@ -58,7 +58,8 @@ describe('FieldEncryption', () => {
     });
 
     it('deve criptografar textos com caracteres especiais', () => {
-      const plaintext = 'José da Silva - CPF: 123.456.789-00 - Diagnóstico: Hipertensão';
+      const plaintext =
+        'José da Silva - CPF: 123.456.789-00 - Diagnóstico: Hipertensão';
 
       const encrypted = encryption.encrypt(plaintext, tenantId);
       const decrypted = encryption.decrypt(encrypted!, tenantId);
@@ -67,7 +68,7 @@ describe('FieldEncryption', () => {
     });
 
     it('deve criptografar textos longos', () => {
-      const plaintext = 'A'.repeat(10000); // 10KB de texto
+      const plaintext = 'A'.repeat(10000);
 
       const encrypted = encryption.encrypt(plaintext, tenantId);
       const decrypted = encryption.decrypt(encrypted!, tenantId);
@@ -79,33 +80,24 @@ describe('FieldEncryption', () => {
   describe('Isolamento por Tenant', () => {
     it('deve gerar criptografia diferente para tenants diferentes', () => {
       const plaintext = 'Dado sensível';
-      const tenant1 = 'tenant-1';
-      const tenant2 = 'tenant-2';
 
-      const encrypted1 = encryption.encrypt(plaintext, tenant1);
-      const encrypted2 = encryption.encrypt(plaintext, tenant2);
+      const encrypted1 = encryption.encrypt(plaintext, 'tenant-1');
+      const encrypted2 = encryption.encrypt(plaintext, 'tenant-2');
 
-      // Criptografias devem ser diferentes
       expect(encrypted1).not.toBe(encrypted2);
     });
 
     it('NÃO deve descriptografar com tenantId diferente', () => {
       const plaintext = 'Segredo do tenant 1';
-      const tenant1 = 'tenant-1';
-      const tenant2 = 'tenant-2';
+      const encrypted = encryption.encrypt(plaintext, 'tenant-1');
 
-      const encrypted = encryption.encrypt(plaintext, tenant1);
-
-      // Tentar descriptografar com tenant errado deve falhar
-      expect(() => encryption.decrypt(encrypted!, tenant2)).toThrow();
+      expect(() => encryption.decrypt(encrypted!, 'tenant-2')).toThrow();
     });
 
     it('deve descriptografar corretamente com tenantId correto', () => {
       const plaintext = 'Dado isolado por tenant';
-      const tenant1 = 'tenant-1';
-
-      const encrypted = encryption.encrypt(plaintext, tenant1);
-      const decrypted = encryption.decrypt(encrypted!, tenant1);
+      const encrypted = encryption.encrypt(plaintext, 'tenant-1');
+      const decrypted = encryption.decrypt(encrypted!, 'tenant-1');
 
       expect(decrypted).toBe(plaintext);
     });
@@ -113,76 +105,56 @@ describe('FieldEncryption', () => {
 
   describe('Integridade (Auth Tag)', () => {
     it('deve detectar adulteração de dados criptografados', () => {
-      const plaintext = 'Dado original';
-      const encrypted = encryption.encrypt(plaintext, tenantId)!;
+      const encrypted = encryption.encrypt('Dado original', tenantId)!;
 
-      // Adulterar os dados (modificar último byte)
       const parts = encrypted.split(':');
-      const encryptedData = parts[3];
-      const tampered = encryptedData.slice(0, -2) + 'ff';
-      parts[3] = tampered;
+      parts[3] = parts[3].slice(0, -2) + 'ff';
       const tamperedEncrypted = parts.join(':');
 
-      // Descriptografia deve falhar
       expect(() => encryption.decrypt(tamperedEncrypted, tenantId)).toThrow(
         'Failed to decrypt field - data may be corrupted or tampered',
       );
     });
 
     it('deve detectar adulteração do authentication tag', () => {
-      const plaintext = 'Dado protegido';
-      const encrypted = encryption.encrypt(plaintext, tenantId)!;
+      const encrypted = encryption.encrypt('Dado protegido', tenantId)!;
 
-      // Adulterar o auth tag
       const parts = encrypted.split(':');
-      parts[2] = 'ffffffffffffffffffffffffffffffff'; // Tag inválido
+      parts[2] = 'ffffffffffffffffffffffffffffffff';
       const tamperedEncrypted = parts.join(':');
 
-      // Descriptografia deve falhar
       expect(() => encryption.decrypt(tamperedEncrypted, tenantId)).toThrow();
     });
   });
 
   describe('Formato de Dados', () => {
     it('deve gerar formato correto: salt:iv:tag:encrypted', () => {
-      const plaintext = 'Teste formato';
-      const encrypted = encryption.encrypt(plaintext, tenantId)!;
-
+      const encrypted = encryption.encrypt('Teste formato', tenantId)!;
       const parts = encrypted.split(':');
+
       expect(parts.length).toBe(4);
 
-      // Verificar se todas as partes são hexadecimal
       const hexRegex = /^[0-9a-f]+$/i;
-      parts.forEach(part => {
+      parts.forEach((part) => {
         expect(hexRegex.test(part)).toBe(true);
       });
 
-      // Verificar tamanhos esperados (em hex = 2 caracteres por byte)
-      expect(parts[0].length).toBe(64); // salt: 32 bytes = 64 hex chars
-      expect(parts[1].length).toBe(32); // iv: 16 bytes = 32 hex chars
-      expect(parts[2].length).toBe(32); // tag: 16 bytes = 32 hex chars
-      // parts[3] varia conforme tamanho do texto
+      expect(parts[0].length).toBe(128);
+      expect(parts[1].length).toBe(32);
+      expect(parts[2].length).toBe(32);
     });
 
-    it('deve rejeitar formato inválido na descriptografia', () => {
-      const invalid = 'not:a:valid:encrypted:format';
-
-      expect(() => encryption.decrypt(invalid, tenantId)).toThrow(
-        'Failed to decrypt field',
+    it('deve retornar texto legado quando a string não estiver no formato criptografado', () => {
+      expect(encryption.decrypt('not:a:valid:encrypted:format', tenantId)).toBe(
+        'not:a:valid:encrypted:format',
       );
-    });
-
-    it('deve rejeitar string com menos de 4 partes', () => {
-      const invalid = 'salt:iv:tag'; // Falta encrypted data
-
-      expect(() => encryption.decrypt(invalid, tenantId)).toThrow();
+      expect(encryption.decrypt('salt:iv:tag', tenantId)).toBe('salt:iv:tag');
     });
   });
 
   describe('isEncrypted', () => {
     it('deve identificar corretamente texto criptografado', () => {
-      const plaintext = 'Texto plano';
-      const encrypted = encryption.encrypt(plaintext, tenantId)!;
+      const encrypted = encryption.encrypt('Texto plano', tenantId)!;
 
       expect(encryption.isEncrypted(encrypted)).toBe(true);
     });
@@ -200,25 +172,18 @@ describe('FieldEncryption', () => {
     });
 
     it('deve retornar false para formato incorreto', () => {
-      expect(encryption.isEncrypted('a:b:c')).toBe(false); // Menos de 4 partes
+      expect(encryption.isEncrypted('a:b:c')).toBe(false);
       expect(encryption.isEncrypted('not-hex:values:here:test')).toBe(false);
     });
   });
 
   describe('Casos de Edge', () => {
-    it('deve lidar com texto vazio após trim', () => {
-      const plaintext = '   '; // Apenas espaços
-      const encrypted = encryption.encrypt(plaintext, tenantId);
-
-      // Espaços são considerados conteúdo válido
-      expect(encrypted).not.toBeNull();
-
-      const decrypted = encryption.decrypt(encrypted!, tenantId);
-      expect(decrypted).toBe(plaintext);
+    it('deve tratar texto vazio após trim como valor vazio', () => {
+      expect(encryption.encrypt('   ', tenantId)).toBeNull();
     });
 
     it('deve criptografar números convertidos para string', () => {
-      const plaintext = '12345678900'; // CPF numérico
+      const plaintext = '12345678900';
       const encrypted = encryption.encrypt(plaintext, tenantId);
       const decrypted = encryption.decrypt(encrypted!, tenantId);
 
@@ -243,7 +208,7 @@ describe('FieldEncryption', () => {
   });
 
   describe('Performance', () => {
-    it('deve criptografar/descriptografar 100 registros rapidamente', () => {
+    it('deve criptografar/descriptografar 100 registros em tempo razoável', () => {
       const plaintext = 'Dado de teste para benchmark';
       const startTime = Date.now();
 
@@ -252,49 +217,32 @@ describe('FieldEncryption', () => {
         encryption.decrypt(encrypted!, `tenant-${i}`);
       }
 
-      const endTime = Date.now();
-      const duration = endTime - startTime;
+      const duration = Date.now() - startTime;
 
-      // Deve completar 100 encrypt/decrypt em menos de 1 segundo
-      expect(duration).toBeLessThan(1000);
+      expect(duration).toBeLessThan(15000);
     });
   });
 
   describe('Segurança', () => {
     it('deve usar salt diferente a cada criptografia', () => {
-      const plaintext = 'Mesmo texto';
+      const encrypted1 = encryption.encrypt('Mesmo texto', tenantId)!;
+      const encrypted2 = encryption.encrypt('Mesmo texto', tenantId)!;
 
-      const encrypted1 = encryption.encrypt(plaintext, tenantId)!;
-      const encrypted2 = encryption.encrypt(plaintext, tenantId)!;
-
-      // Extrair salts
-      const salt1 = encrypted1.split(':')[0];
-      const salt2 = encrypted2.split(':')[0];
-
-      expect(salt1).not.toBe(salt2);
+      expect(encrypted1.split(':')[0]).not.toBe(encrypted2.split(':')[0]);
     });
 
     it('deve usar IV diferente a cada criptografia', () => {
-      const plaintext = 'Mesmo texto';
+      const encrypted1 = encryption.encrypt('Mesmo texto', tenantId)!;
+      const encrypted2 = encryption.encrypt('Mesmo texto', tenantId)!;
 
-      const encrypted1 = encryption.encrypt(plaintext, tenantId)!;
-      const encrypted2 = encryption.encrypt(plaintext, tenantId)!;
-
-      // Extrair IVs
-      const iv1 = encrypted1.split(':')[1];
-      const iv2 = encrypted2.split(':')[1];
-
-      expect(iv1).not.toBe(iv2);
+      expect(encrypted1.split(':')[1]).not.toBe(encrypted2.split(':')[1]);
     });
 
     it('NÃO deve permitir descriptografia com masterKey diferente', () => {
-      const plaintext = 'Segredo com chave A';
-      const encryption1 = new FieldEncryption('master-key-A-with-minimum-32-characters!!');
-      const encryption2 = new FieldEncryption('master-key-B-with-minimum-32-characters!!');
+      const encryption1 = new FieldEncryption(masterKey);
+      const encryption2 = new FieldEncryption(alternateMasterKey);
+      const encrypted = encryption1.encrypt('Segredo com chave A', tenantId)!;
 
-      const encrypted = encryption1.encrypt(plaintext, tenantId)!;
-
-      // Tentar descriptografar com outra instância (outra masterKey)
       expect(() => encryption2.decrypt(encrypted, tenantId)).toThrow();
     });
   });

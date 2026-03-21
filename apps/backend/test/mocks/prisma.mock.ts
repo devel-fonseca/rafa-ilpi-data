@@ -45,6 +45,16 @@ export const mockPrismaService = {
     count: jest.fn(),
   },
 
+  userProfile: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+
   resident: {
     create: jest.fn(),
     findUnique: jest.fn(),
@@ -104,6 +114,16 @@ export const mockPrismaService = {
     delete: jest.fn(),
     count: jest.fn(),
     groupBy: jest.fn(),
+  },
+
+  prescriptionHistory: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
   },
 
   refreshToken: {
@@ -194,6 +214,37 @@ export const mockPrismaService = {
     findMany: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+  },
+
+  tenantProfile: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+
+  accessLog: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+
+  passwordResetToken: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
     count: jest.fn(),
   },
 };

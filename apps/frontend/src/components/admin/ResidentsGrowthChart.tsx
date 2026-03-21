@@ -5,9 +5,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { normalizeUTCDate } from '@/utils/dateHelpers'
@@ -89,7 +89,7 @@ export function ResidentsGrowthChart({ data = [], isLoading = false }: Residents
         <CardDescription>Crescimento nos últimos 6 meses</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveChartContainer className="h-full">
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
@@ -125,7 +125,7 @@ export function ResidentsGrowthChart({ data = [], isLoading = false }: Residents
               fill="url(#colorCount)"
             />
           </AreaChart>
-        </ResponsiveContainer>
+        </ResponsiveChartContainer>
       </CardContent>
     </Card>
   )

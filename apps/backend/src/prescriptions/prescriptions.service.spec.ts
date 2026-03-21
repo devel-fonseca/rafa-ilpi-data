@@ -10,8 +10,11 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { PrescriptionsService } from './prescriptions.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
+import { FileProcessingService } from '../files/file-processing.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EventsGateway } from '../events/events.gateway';
 import { mockPrismaService } from '../../test/mocks/prisma.mock';
 import { mockTenant } from '../../test/fixtures/tenant.fixture';
 import { mockAdminUser } from '../../test/fixtures/user.fixture';
@@ -31,6 +34,19 @@ describe('PrescriptionsService', () => {
   const mockNotificationsService = {
     sendNotification: jest.fn(),
     createNotification: jest.fn(),
+  };
+
+  const mockFileProcessingService = {
+    processPrescriptionImage: jest.fn(),
+  };
+
+  const mockEventsGateway = {
+    emitDashboardOverviewUpdated: jest.fn(),
+  };
+
+  const mockTenantContext = {
+    client: mockPrismaService,
+    tenantId: mockTenant.id,
   };
 
   const mockLogger = {
@@ -103,12 +119,24 @@ describe('PrescriptionsService', () => {
           useValue: mockPrismaService,
         },
         {
+          provide: TenantContextService,
+          useValue: mockTenantContext,
+        },
+        {
           provide: FilesService,
           useValue: mockFilesService,
         },
         {
+          provide: FileProcessingService,
+          useValue: mockFileProcessingService,
+        },
+        {
           provide: NotificationsService,
           useValue: mockNotificationsService,
+        },
+        {
+          provide: EventsGateway,
+          useValue: mockEventsGateway,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -122,6 +150,7 @@ describe('PrescriptionsService', () => {
     filesService = module.get<FilesService>(FilesService);
 
     jest.clearAllMocks();
+    prisma.getTenantClient.mockReturnValue(prisma);
   });
 
   describe('create()', () => {
@@ -163,7 +192,7 @@ describe('PrescriptionsService', () => {
         },
       });
 
-      const result = await service.create(createDto, mockTenant.id, mockAdminUser.id);
+      const result = await service.create(createDto, mockAdminUser.id);
 
       expect(result).toBeDefined();
       expect(result.medications).toBeDefined();
@@ -174,10 +203,10 @@ describe('PrescriptionsService', () => {
       prisma.resident.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
+        service.create(createDto, mockAdminUser.id)
       ).rejects.toThrow(NotFoundException);
       await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
+        service.create(createDto, mockAdminUser.id)
       ).rejects.toThrow('Residente não encontrado');
     });
 
@@ -186,7 +215,7 @@ describe('PrescriptionsService', () => {
       prisma.resident.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
+        service.create(createDto, mockAdminUser.id)
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -204,7 +233,7 @@ describe('PrescriptionsService', () => {
       prisma.resident.findFirst.mockResolvedValue(mockResident);
 
       await expect(
-        service.create(invalidDto, mockTenant.id, mockAdminUser.id)
+        service.create(invalidDto, mockAdminUser.id)
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -237,10 +266,10 @@ describe('PrescriptionsService', () => {
         resident: { id: mockResident.id, fullName: mockResident.fullName },
       });
 
-      const result = await service.create(dtoWithSOS, mockTenant.id, mockAdminUser.id);
+      const result = await service.create(dtoWithSOS, mockAdminUser.id);
 
       expect(result.sosMedications).toBeDefined();
-      expect(result.sosMedications.length).toBeGreaterThan(0);
+      expect((result.sosMedications as any[]).length).toBeGreaterThan(0);
     });
   });
 
@@ -274,7 +303,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findMany.mockResolvedValue(mockPrescriptions);
       prisma.prescription.count.mockResolvedValue(2);
 
-      const result = await service.findAll({}, mockTenant.id);
+      const result = await service.findAll({});
 
       // Service converte datas para strings, então não fazemos toEqual direto
       expect(result.data.length).toBe(2);
@@ -287,12 +316,11 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findMany.mockResolvedValue(mockPrescriptions);
       prisma.prescription.count.mockResolvedValue(2);
 
-      await service.findAll({}, mockTenant.id);
+      await service.findAll({});
 
       expect(prisma.prescription.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            tenantId: mockTenant.id,
             deletedAt: null,
           }),
         })
@@ -303,7 +331,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findMany.mockResolvedValue(mockPrescriptions);
       prisma.prescription.count.mockResolvedValue(20);
 
-      await service.findAll({ page: '2', limit: '5' }, mockTenant.id);
+      await service.findAll({ page: '2', limit: '5' });
 
       expect(prisma.prescription.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -317,7 +345,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findMany.mockResolvedValue([mockPrescriptions[0]]);
       prisma.prescription.count.mockResolvedValue(1);
 
-      await service.findAll({ residentId: mockResident.id }, mockTenant.id);
+      await service.findAll({ residentId: mockResident.id });
 
       expect(prisma.prescription.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -332,7 +360,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findMany.mockResolvedValue([mockPrescriptions[0]]);
       prisma.prescription.count.mockResolvedValue(1);
 
-      await service.findAll({ prescriptionType: 'CONTINUO' }, mockTenant.id);
+      await service.findAll({ prescriptionType: 'CONTINUO' });
 
       expect(prisma.prescription.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -360,7 +388,7 @@ describe('PrescriptionsService', () => {
 
       prisma.prescription.findFirst.mockResolvedValue(fullPrescription);
 
-      const result = await service.findOne(mockPrescription.id, mockTenant.id);
+      const result = await service.findOne(mockPrescription.id);
 
       expect(result.id).toBe(mockPrescription.id);
       expect(result.medications).toBeDefined();
@@ -370,13 +398,12 @@ describe('PrescriptionsService', () => {
     it('deve filtrar por tenantId (segurança)', async () => {
       prisma.prescription.findFirst.mockResolvedValue(mockPrescription);
 
-      await service.findOne(mockPrescription.id, mockTenant.id);
+      await service.findOne(mockPrescription.id);
 
       expect(prisma.prescription.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             id: mockPrescription.id,
-            tenantId: mockTenant.id,
             deletedAt: null,
           }),
         })
@@ -387,7 +414,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.findOne('non-existent-id', mockTenant.id)
+        service.findOne('non-existent-id')
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -395,7 +422,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.findOne('prescription-other-tenant', mockTenant.id)
+        service.findOne('prescription-other-tenant')
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -403,10 +430,15 @@ describe('PrescriptionsService', () => {
   describe('update()', () => {
     const updateDto: any = {
       notes: 'Prescrição revisada',
+      changeReason: 'Revisão médica de teste',
     };
 
     it('deve atualizar prescrição com sucesso', async () => {
       prisma.prescription.findFirst.mockResolvedValue(mockPrescription);
+      prisma.user.findUnique.mockResolvedValue(mockAdminUser);
+      prisma.$transaction.mockImplementation(async (callback: any) => {
+        return await callback(prisma);
+      });
       prisma.prescription.update.mockResolvedValue({
         ...mockPrescription,
         ...updateDto,
@@ -415,7 +447,6 @@ describe('PrescriptionsService', () => {
       const result = await service.update(
         mockPrescription.id,
         updateDto,
-        mockTenant.id,
         mockAdminUser.id
       );
 
@@ -427,7 +458,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update('non-existent', updateDto, mockTenant.id, mockAdminUser.id)
+        service.update('non-existent', updateDto, mockAdminUser.id)
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -438,7 +469,6 @@ describe('PrescriptionsService', () => {
         service.update(
           'prescription-other-tenant',
           updateDto,
-          mockTenant.id,
           mockAdminUser.id
         )
       ).rejects.toThrow(NotFoundException);
@@ -453,7 +483,7 @@ describe('PrescriptionsService', () => {
         deletedAt: new Date(),
       });
 
-      await service.remove(mockPrescription.id, mockTenant.id, mockAdminUser.id);
+      await service.remove(mockPrescription.id, mockAdminUser.id, 'Remoção de teste');
 
       expect(prisma.prescription.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -469,7 +499,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findFirst.mockResolvedValue(mockPrescription);
       prisma.prescription.update.mockResolvedValue(mockPrescription);
 
-      await service.remove(mockPrescription.id, mockTenant.id, mockAdminUser.id);
+      await service.remove(mockPrescription.id, mockAdminUser.id, 'Remoção de teste');
 
       expect(prisma.prescription.delete).not.toHaveBeenCalled();
       expect(prisma.prescription.update).toHaveBeenCalled();
@@ -479,7 +509,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.remove('prescription-other-tenant', mockTenant.id, mockAdminUser.id)
+        service.remove('prescription-other-tenant', mockAdminUser.id, 'Remoção de teste')
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -488,17 +518,17 @@ describe('PrescriptionsService', () => {
     it('deve SEMPRE incluir tenantId nas queries', async () => {
       prisma.prescription.findFirst.mockResolvedValue(mockPrescription);
 
-      await service.findOne(mockPrescription.id, mockTenant.id);
+      await service.findOne(mockPrescription.id);
 
       const findCall = prisma.prescription.findFirst.mock.calls[0][0];
-      expect(findCall.where.tenantId).toBe(mockTenant.id);
+      expect(findCall.where.tenantId).toBeUndefined();
     });
 
     it('deve SEMPRE filtrar deletedAt: null', async () => {
       prisma.prescription.findMany.mockResolvedValue([]);
       prisma.prescription.count.mockResolvedValue(0);
 
-      await service.findAll({}, mockTenant.id);
+      await service.findAll({});
 
       const findManyCall = prisma.prescription.findMany.mock.calls[0][0];
       expect(findManyCall.where.deletedAt).toBeNull();
@@ -509,7 +539,7 @@ describe('PrescriptionsService', () => {
       prisma.prescription.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.findOne('prescription-other-tenant', mockTenant.id)
+        service.findOne('prescription-other-tenant')
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -563,7 +593,7 @@ describe('PrescriptionsService', () => {
         });
       });
 
-      await service.create(createDto, mockTenant.id, mockAdminUser.id);
+      await service.create(createDto, mockAdminUser.id);
 
       // Verificar que datas foram convertidas para Date objects ao salvar
       expect(capturedPrescriptionDate).toBeInstanceOf(Date);
@@ -588,7 +618,7 @@ describe('PrescriptionsService', () => {
       ]);
       prisma.prescription.count.mockResolvedValue(1);
 
-      const result = await service.findAll({ expiringInDays: '7' }, mockTenant.id);
+      const result = await service.findAll({ expiringInDays: '7' });
 
       // Verificar que a query usou comparação com endOfDay
       const findManyCall = prisma.prescription.findMany.mock.calls[0][0];
@@ -617,7 +647,7 @@ describe('PrescriptionsService', () => {
       ]);
       prisma.prescription.count.mockResolvedValue(1);
 
-      const result = await service.findAll({}, mockTenant.id);
+      const result = await service.findAll({});
 
       // Service deve converter Date para string YYYY-MM-DD antes de retornar
       expect(typeof result.data[0].prescriptionDate).toBe('string');

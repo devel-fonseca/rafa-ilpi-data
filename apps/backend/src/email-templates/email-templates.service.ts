@@ -8,12 +8,12 @@ import {
 } from './dto';
 import { format } from 'date-fns';
 import { Resend } from 'resend';
-import mjml2html from 'mjml';
 
 @Injectable()
 export class EmailTemplatesService {
   private resend: Resend;
-  private static readonly MJML_INCLUDE_PATTERN = /<\s*mj-include\b/i;
+  private static readonly MJML_TAG_PATTERN = /<\s*mj[a-z-]*\b/i;
+  private static readonly HTML_TAG_PATTERN = /<\/?[a-z][^>]*>/i;
 
   constructor(private prisma: PrismaService) {
     this.resend = new Resend(process.env.RESEND_API_KEY);
@@ -64,13 +64,15 @@ export class EmailTemplatesService {
   }
 
   async create(dto: CreateEmailTemplateDto): Promise<EmailTemplate> {
+    const jsonContent = this.normalizeHtmlTemplatePayload(dto.jsonContent);
+
     return this.prisma.emailTemplate.create({
       data: {
         key: dto.key,
         name: dto.name,
         subject: dto.subject,
         description: dto.description,
-        jsonContent: dto.jsonContent as Prisma.InputJsonValue,
+        jsonContent: jsonContent as Prisma.InputJsonValue,
         variables: dto.variables as unknown as Prisma.InputJsonValue,
         category: dto.category,
         isActive: dto.isActive ?? true,
@@ -87,6 +89,11 @@ export class EmailTemplatesService {
       if (!current) {
         throw new NotFoundException(`Template ${id} não encontrado`);
       }
+
+      const normalizedJsonContent =
+        dto.jsonContent === undefined
+          ? undefined
+          : this.normalizeHtmlTemplatePayload(dto.jsonContent);
 
       // 2. Salvar versão anterior
       await tx.emailTemplateVersion.create({
@@ -107,7 +114,7 @@ export class EmailTemplatesService {
           name: dto.name,
           subject: dto.subject,
           description: dto.description,
-          jsonContent: dto.jsonContent as Prisma.InputJsonValue | undefined,
+          jsonContent: normalizedJsonContent as Prisma.InputJsonValue | undefined,
           variables: dto.variables as Prisma.InputJsonValue | undefined,
           category: dto.category,
           isActive: dto.isActive,
@@ -166,8 +173,8 @@ export class EmailTemplatesService {
     // 1. Buscar template do DB
     const template = await this.findByKey(key);
 
-    // 2. Renderizar Easy Email JSON para HTML
-    const html = this.renderEasyEmailToHtml(template.jsonContent);
+    // 2. Extrair HTML salvo no template
+    const html = this.renderStoredTemplateHtml(template.jsonContent);
 
     // 3. Substituir variáveis {{tenantName}} → "ILPI X"
     const finalHtml = this.replaceVariables(html, variables);
@@ -176,8 +183,8 @@ export class EmailTemplatesService {
   }
 
   async previewTemplate(dto: PreviewEmailTemplateDto): Promise<string> {
-    // Renderizar Easy Email JSON para HTML
-    const html = this.renderEasyEmailToHtml(dto.jsonContent);
+    // Renderizar HTML salvo no payload
+    const html = this.renderStoredTemplateHtml(dto.jsonContent);
 
     // Substituir variáveis
     const finalHtml = this.replaceVariables(html, dto.variables);
@@ -190,76 +197,17 @@ export class EmailTemplatesService {
    */
 
   /**
-   * Renderiza Easy Email JSON para HTML usando MJML
+   * Extrai HTML salvo no template.
    */
-  private renderEasyEmailToHtml(jsonContent: unknown): string {
+  private renderStoredTemplateHtml(jsonContent: unknown): string {
     try {
-      const json = jsonContent as Record<string, unknown>;
-      // Se o jsonContent tiver um campo 'content' que é string
-      if (json && typeof json.content === 'string') {
-        const content = json.content;
-
-        // Detectar se é HTML puro (contém <!doctype html> ou <!DOCTYPE html> ou <html)
-        const isHtml = content.trim().toLowerCase().startsWith('<!doctype html') ||
-                       content.trim().toLowerCase().startsWith('<!DOCTYPE html') ||
-                       content.trim().toLowerCase().startsWith('<html');
-
-        // Se for HTML puro, retornar diretamente
-        if (isHtml) {
-          return content;
-        }
-
-        this.assertNoUnsafeMjmlIncludes(content);
-
-        // Se não for HTML, tentar processar como MJML
-        try {
-          const result = mjml2html(content);
-          return result.html;
-        } catch (mjmlError) {
-          console.warn('Conteúdo não é MJML válido, retornando como HTML:', mjmlError);
-          return content; // Retornar o conteúdo original se MJML falhar
-        }
-      }
-
-      // Se for um placeholder (Fase 1/2), retornar HTML simples
-      if (json && json.type === 'placeholder') {
-        return `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            </head>
-            <body style="font-family: Arial, sans-serif; padding: 20px;">
-              <div style="max-width: 600px; margin: 0 auto;">
-                <p>⚠️ Este é um template placeholder.</p>
-                <p>O template será editado visualmente com Easy Email Editor na interface.</p>
-              </div>
-            </body>
-          </html>
-        `;
-      }
-
-      // Fallback: retornar HTML básico
-      return `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: Arial, sans-serif; padding: 20px;">
-            <div style="max-width: 600px; margin: 0 auto;">
-              <p>Email template - Easy Email JSON structure</p>
-            </div>
-          </body>
-        </html>
-      `;
+      const json = this.normalizeHtmlTemplatePayload(jsonContent);
+      return json.content;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Erro ao renderizar Easy Email:', error);
+      console.error('Erro ao renderizar template HTML:', error);
       // Retornar HTML de fallback em caso de erro
       return `
         <!DOCTYPE html>
@@ -275,12 +223,42 @@ export class EmailTemplatesService {
     }
   }
 
-  private assertNoUnsafeMjmlIncludes(content: string): void {
-    if (EmailTemplatesService.MJML_INCLUDE_PATTERN.test(content)) {
+  private normalizeHtmlTemplatePayload(
+    jsonContent: unknown,
+  ): Record<string, unknown> & { content: string } {
+    if (!jsonContent || typeof jsonContent !== 'object' || Array.isArray(jsonContent)) {
       throw new BadRequestException(
-        'Templates MJML com <mj-include> não são permitidos por segurança.',
+        'jsonContent deve ser um objeto com o campo content contendo HTML.',
       );
     }
+
+    const payload = jsonContent as Record<string, unknown>;
+    const rawContent = payload.content;
+
+    if (typeof rawContent !== 'string' || rawContent.trim().length === 0) {
+      throw new BadRequestException(
+        'jsonContent.content deve ser uma string HTML não vazia.',
+      );
+    }
+
+    const content = rawContent.trim();
+
+    if (EmailTemplatesService.MJML_TAG_PATTERN.test(content)) {
+      throw new BadRequestException(
+        'Templates MJML não são mais suportados. Use HTML no editor visual.',
+      );
+    }
+
+    if (!EmailTemplatesService.HTML_TAG_PATTERN.test(content)) {
+      throw new BadRequestException(
+        'jsonContent.content deve conter HTML válido.',
+      );
+    }
+
+    return {
+      ...payload,
+      content,
+    };
   }
 
   private replaceVariables(html: string, variables: Record<string, unknown>): string {
@@ -310,30 +288,6 @@ export class EmailTemplatesService {
     });
 
     return result;
-  }
-
-  private generatePlaceholderHtml(
-    template: EmailTemplate,
-    variables: Record<string, unknown>,
-  ): string {
-    // Placeholder simples até implementar Easy Email
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>${template.subject}</title>
-        </head>
-        <body>
-          <h1>${template.name}</h1>
-          <p>Template: ${template.key}</p>
-          <p>Este é um placeholder temporário. A renderização Easy Email será implementada na Fase 3.</p>
-          <hr/>
-          <h2>Variáveis:</h2>
-          <pre>${JSON.stringify(variables, null, 2)}</pre>
-        </body>
-      </html>
-    `;
   }
 
   /**

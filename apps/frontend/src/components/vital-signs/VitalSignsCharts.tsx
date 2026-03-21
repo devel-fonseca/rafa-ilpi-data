@@ -7,13 +7,13 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
   ReferenceLine,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
+import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
 
 // Cores do design system
 const CHART_COLORS = {
@@ -126,7 +126,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
           <CardTitle>Pressão Arterial</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveChartContainer height={300} minHeight={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" style={{ fontSize: '12px' }} />
@@ -154,7 +154,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
                 connectNulls
               />
             </LineChart>
-          </ResponsiveContainer>
+          </ResponsiveChartContainer>
         </CardContent>
       </Card>
 
@@ -164,7 +164,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
           <CardTitle>Glicemia</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveChartContainer height={300} minHeight={300}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" style={{ fontSize: '12px' }} />
@@ -183,7 +183,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
                 connectNulls
               />
             </LineChart>
-          </ResponsiveContainer>
+          </ResponsiveChartContainer>
         </CardContent>
       </Card>
 
@@ -194,7 +194,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
             <CardTitle>Temperatura</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveChartContainer height={250} minHeight={250}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" style={{ fontSize: '12px' }} />
@@ -212,7 +212,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
                   connectNulls
                 />
               </LineChart>
-            </ResponsiveContainer>
+            </ResponsiveChartContainer>
           </CardContent>
         </Card>
 
@@ -221,7 +221,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
             <CardTitle>Frequência Cardíaca</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveChartContainer height={250} minHeight={250}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" style={{ fontSize: '12px' }} />
@@ -239,7 +239,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
                   connectNulls
                 />
               </LineChart>
-            </ResponsiveContainer>
+            </ResponsiveChartContainer>
           </CardContent>
         </Card>
       </div>
@@ -250,7 +250,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
           <CardTitle>Saturação de Oxigênio</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveChartContainer height={250} minHeight={250}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" style={{ fontSize: '12px' }} />
@@ -268,7 +268,7 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
                 connectNulls
               />
             </LineChart>
-          </ResponsiveContainer>
+          </ResponsiveChartContainer>
         </CardContent>
       </Card>
     </div>

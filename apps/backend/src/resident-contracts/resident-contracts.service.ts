@@ -11,8 +11,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
 import { FileProcessingService } from '../files/file-processing.service';
-import { CreateContractDto, SignatoryDto } from './dto/create-contract.dto';
-import { UpdateContractDto } from './dto/update-contract.dto';
+import { CreateResidentContractDto, SignatoryDto } from './dto/create-contract.dto';
+import { UpdateResidentContractDto } from './dto/update-contract.dto';
 import { ReplaceContractFileDto } from './dto/replace-contract-file.dto';
 import { AttachContractFileDto } from './dto/attach-contract-file.dto';
 import { CorrectContractDto } from './dto/correct-contract.dto';
@@ -279,7 +279,7 @@ export class ResidentContractsService {
     residentId: string,
     userId: string,
     file: Express.Multer.File | undefined,
-    dto: CreateContractDto,
+    dto: CreateResidentContractDto,
   ) {
     const normalizedContractNumber = this.normalizeContractNumber(
       dto.contractNumber,
@@ -736,7 +736,7 @@ export class ResidentContractsService {
   async updateMetadata(
     contractId: string,
     userId: string,
-    dto: UpdateContractDto,
+    dto: UpdateResidentContractDto,
   ) {
     const current = await this.tenantContext.client.residentContract.findFirst({
       where: { id: contractId, deletedAt: null },

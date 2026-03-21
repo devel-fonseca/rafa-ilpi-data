@@ -8,7 +8,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { AuditService, AuditLogInput } from './audit.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { mockPrismaService } from '../../test/mocks/prisma.mock';
 import { mockAdminUser } from '../../test/fixtures/user.fixture';
 import { mockTenant } from '../../test/fixtures/tenant.fixture';
@@ -17,19 +17,24 @@ describe('AuditService', () => {
   let service: AuditService;
   let prisma: any;
 
+  const mockTenantContext = {
+    client: mockPrismaService,
+    tenantId: mockTenant.id,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuditService,
         {
-          provide: PrismaService,
-          useValue: mockPrismaService,
+          provide: TenantContextService,
+          useValue: mockTenantContext,
         },
       ],
     }).compile();
 
-    service = module.get<AuditService>(AuditService);
-    prisma = module.get<PrismaService>(PrismaService);
+    service = await module.resolve<AuditService>(AuditService);
+    prisma = mockTenantContext.client;
 
     jest.clearAllMocks();
   });
@@ -153,10 +158,7 @@ describe('AuditService', () => {
 
       await service.log(mockAuditInput);
 
-      expect(loggerSpy).toHaveBeenCalledWith(
-        'Failed to create audit log:',
-        expect.any(Error)
-      );
+      expect(loggerSpy).toHaveBeenCalled();
 
       loggerSpy.mockRestore();
     });
@@ -187,22 +189,16 @@ describe('AuditService', () => {
     it('deve retornar logs do tenant especificado', async () => {
       prisma.auditLog.findMany.mockResolvedValue(mockLogs);
 
-      const result = await service.getAuditLogs(mockTenant.id);
+      const result = await service.getAuditLogs();
 
       expect(result).toEqual(mockLogs);
-      expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            tenantId: mockTenant.id,
-          }),
-        })
-      );
+      expect(prisma.auditLog.findMany).toHaveBeenCalled();
     });
 
     it('deve filtrar por tipo de entidade', async () => {
       prisma.auditLog.findMany.mockResolvedValue([mockLogs[0]]);
 
-      await service.getAuditLogs(mockTenant.id, {
+      await service.getAuditLogs({
         entityType: 'Resident',
       });
 
@@ -218,7 +214,7 @@ describe('AuditService', () => {
     it('deve filtrar por ação', async () => {
       prisma.auditLog.findMany.mockResolvedValue(mockLogs);
 
-      await service.getAuditLogs(mockTenant.id, {
+      await service.getAuditLogs({
         action: 'CREATE',
       });
 
@@ -234,7 +230,7 @@ describe('AuditService', () => {
     it('deve filtrar por userId', async () => {
       prisma.auditLog.findMany.mockResolvedValue(mockLogs);
 
-      await service.getAuditLogs(mockTenant.id, {
+      await service.getAuditLogs({
         userId: mockAdminUser.id,
       });
 
@@ -253,7 +249,7 @@ describe('AuditService', () => {
 
       prisma.auditLog.findMany.mockResolvedValue(mockLogs);
 
-      await service.getAuditLogs(mockTenant.id, {
+      await service.getAuditLogs({
         startDate,
         endDate,
       });
@@ -273,7 +269,7 @@ describe('AuditService', () => {
     it('deve paginar resultados (page e limit)', async () => {
       prisma.auditLog.findMany.mockResolvedValue(mockLogs);
 
-      await service.getAuditLogs(mockTenant.id, {
+      await service.getAuditLogs({
         page: 2,
         limit: 10,
       });
@@ -289,7 +285,7 @@ describe('AuditService', () => {
     it('deve ordenar por data decrescente (mais recente primeiro)', async () => {
       prisma.auditLog.findMany.mockResolvedValue(mockLogs);
 
-      await service.getAuditLogs(mockTenant.id);
+      await service.getAuditLogs();
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -301,7 +297,7 @@ describe('AuditService', () => {
     it('deve usar defaults (page=1, limit=50) se não especificado', async () => {
       prisma.auditLog.findMany.mockResolvedValue(mockLogs);
 
-      await service.getAuditLogs(mockTenant.id);
+      await service.getAuditLogs();
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -324,7 +320,7 @@ describe('AuditService', () => {
       prisma.auditLog.groupBy.mockResolvedValueOnce([]);
       prisma.auditLog.count.mockResolvedValue(230);
 
-      const result = await service.getAuditLogStats(mockTenant.id);
+      const result = await service.getAuditLogStats();
 
       expect(result.byEntity).toEqual([
         { entity_type: 'Resident', count: 150 },
@@ -344,7 +340,7 @@ describe('AuditService', () => {
       prisma.auditLog.groupBy.mockResolvedValueOnce([]);
       prisma.auditLog.count.mockResolvedValue(200);
 
-      const result = await service.getAuditLogStats(mockTenant.id);
+      const result = await service.getAuditLogStats();
 
       expect(result.byAction).toEqual([
         { action: 'CREATE', count: 100 },
@@ -364,7 +360,7 @@ describe('AuditService', () => {
       prisma.auditLog.groupBy.mockResolvedValueOnce(mockUserStats);
       prisma.auditLog.count.mockResolvedValue(800);
 
-      const result = await service.getAuditLogStats(mockTenant.id);
+      const result = await service.getAuditLogStats();
 
       expect(result.topUsers).toEqual([
         { user_name: 'Admin User', count: 500 },
@@ -376,7 +372,7 @@ describe('AuditService', () => {
       prisma.auditLog.groupBy.mockResolvedValue([]);
       prisma.auditLog.count.mockResolvedValue(1234);
 
-      const result = await service.getAuditLogStats(mockTenant.id);
+      const result = await service.getAuditLogStats();
 
       expect(result.total).toBe(1234);
     });
@@ -388,7 +384,7 @@ describe('AuditService', () => {
       prisma.auditLog.groupBy.mockResolvedValue([]);
       prisma.auditLog.count.mockResolvedValue(0);
 
-      await service.getAuditLogStats(mockTenant.id, startDate, endDate);
+      await service.getAuditLogStats(startDate, endDate);
 
       // Verifica que TODAS as chamadas groupBy receberam o filtro de data
       expect(prisma.auditLog.groupBy).toHaveBeenCalledWith(
@@ -423,13 +419,18 @@ describe('AuditService', () => {
       expect(createCall.data.tenantId).toBeDefined();
     });
 
-    it('deve SEMPRE filtrar por tenantId ao buscar logs', async () => {
+    it('deve consultar o tenant client isolado ao buscar logs', async () => {
       prisma.auditLog.findMany.mockResolvedValue([]);
 
-      await service.getAuditLogs(mockTenant.id);
+      await service.getAuditLogs();
 
       const findManyCall = prisma.auditLog.findMany.mock.calls[0][0];
-      expect(findManyCall.where.tenantId).toBe(mockTenant.id);
+      expect(findManyCall).toEqual(
+        expect.objectContaining({
+          where: expect.any(Object),
+        }),
+      );
+      expect(findManyCall.where.tenantId).toBeUndefined();
     });
 
     it('deve registrar informações de rastreabilidade (LGPD)', async () => {

@@ -110,7 +110,7 @@ export function EmailTemplatePreview() {
 
           setPreviewHtml(html);
         } else {
-          // Fallback: tentar usar API de preview (para compatibilidade com templates antigos MJML)
+          // Fallback: usar a API para payloads legados fora do formato { content: htmlString }
           const result = await emailTemplatesApi.previewEmailTemplate({
             jsonContent,
             variables: mockData,
@@ -168,7 +168,7 @@ export function EmailTemplatePreview() {
 
         setPreviewHtml(html);
       } else {
-        // Fallback: usar API de preview
+        // Fallback: usar API de preview para payloads legados fora do formato { content: htmlString }
         const result = await emailTemplatesApi.previewEmailTemplate({
           jsonContent: template.jsonContent,
           variables: mockData,

@@ -173,6 +173,7 @@ BACKEND_TAR="${OUTPUT_DIR}/rafa-ilpi-backend.tar.gz"
 FRONTEND_TAR="${OUTPUT_DIR}/rafa-ilpi-frontend.tar.gz"
 POSTGRES_TAR="${OUTPUT_DIR}/postgres-16-alpine.tar.gz"
 REDIS_TAR="${OUTPUT_DIR}/redis-7-alpine.tar.gz"
+COMPOSE_FILE="${OUTPUT_DIR}/docker-compose.production.yml"
 
 echo -e "${YELLOW}📦 Exportando Backend...${NC}"
 if [[ "$CREATE_LATEST_ALIAS" == "true" ]]; then
@@ -199,6 +200,11 @@ docker save "$REDIS_IMAGE" | gzip -c > "$REDIS_TAR"
 echo -e "${GREEN}✅ ${REDIS_TAR}${NC}"
 echo ""
 
+echo -e "${YELLOW}📄 Copiando docker-compose.production.yml...${NC}"
+cp docker-compose.production.yml "$COMPOSE_FILE"
+echo -e "${GREEN}✅ ${COMPOSE_FILE}${NC}"
+echo ""
+
 echo -e "${BLUE}🔐 Gerando checksums...${NC}"
 (
   cd "$OUTPUT_DIR"
@@ -206,7 +212,8 @@ echo -e "${BLUE}🔐 Gerando checksums...${NC}"
     "rafa-ilpi-backend.tar.gz" \
     "rafa-ilpi-frontend.tar.gz" \
     "postgres-16-alpine.tar.gz" \
-    "redis-7-alpine.tar.gz" > SHA256SUMS
+    "redis-7-alpine.tar.gz" \
+    "docker-compose.production.yml" > SHA256SUMS
 )
 echo -e "${GREEN}✅ ${OUTPUT_DIR}/SHA256SUMS${NC}"
 echo ""
@@ -241,6 +248,7 @@ Exported archives:
   - rafa-ilpi-frontend.tar.gz
   - postgres-16-alpine.tar.gz
   - redis-7-alpine.tar.gz
+  - docker-compose.production.yml
 
 Validation on target host:
   cd docker-images-export
@@ -257,7 +265,7 @@ echo -e "${GREEN}✅ ${MANIFEST_FILE}${NC}"
 echo ""
 
 echo -e "${BLUE}📊 Arquivos gerados:${NC}"
-ls -lh "$OUTPUT_DIR"/*.tar.gz "$OUTPUT_DIR"/SHA256SUMS "$OUTPUT_DIR"/manifest.txt
+ls -lh "$OUTPUT_DIR"/*.tar.gz "$OUTPUT_DIR"/docker-compose.production.yml "$OUTPUT_DIR"/SHA256SUMS "$OUTPUT_DIR"/manifest.txt
 echo ""
 
 echo -e "${GREEN}✨ Export de produção concluído com sucesso!${NC}"

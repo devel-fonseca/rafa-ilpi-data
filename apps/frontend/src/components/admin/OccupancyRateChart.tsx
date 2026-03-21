@@ -1,11 +1,11 @@
 import {
   RadialBarChart,
   RadialBar,
-  ResponsiveContainer,
   Tooltip,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
+import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
 
 interface MonthlyOccupancyData {
   month: string
@@ -127,7 +127,7 @@ export function OccupancyRateChart({
       </CardHeader>
       <CardContent className="flex-1 min-h-0 flex items-center justify-center">
         <div className="relative aspect-square h-full max-w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveChartContainer className="h-full">
             <RadialBarChart
               cx="50%"
               cy="50%"
@@ -193,7 +193,7 @@ export function OccupancyRateChart({
                 }}
               />
             </RadialBarChart>
-          </ResponsiveContainer>
+          </ResponsiveChartContainer>
 
           {/* Valor central */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

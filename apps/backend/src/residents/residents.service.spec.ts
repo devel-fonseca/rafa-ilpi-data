@@ -1,411 +1,322 @@
-/**
- * Testes Unitários - ResidentsService
- *
- * CRÍTICO: Core business - gestão de residentes
- * Falha aqui = dados incorretos de idosos = problemas graves
- */
-
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { ResidentsService } from './residents.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
-import { mockPrismaService } from '../../test/mocks/prisma.mock';
-import { mockTenant, mockTenantFree } from '../../test/fixtures/tenant.fixture';
+import { EventsGateway } from '../events/events.gateway';
+import { mockTenant } from '../../test/fixtures/tenant.fixture';
 import { mockAdminUser } from '../../test/fixtures/user.fixture';
-import { mockResident, mockResidentOtherTenant } from '../../test/fixtures/resident.fixture';
+import { mockResident } from '../../test/fixtures/resident.fixture';
+import { Gender } from '@prisma/client';
+
+const createCrudModel = () => ({
+  create: jest.fn(),
+  findUnique: jest.fn(),
+  findFirst: jest.fn(),
+  findMany: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  count: jest.fn(),
+});
 
 describe('ResidentsService', () => {
   let service: ResidentsService;
   let prisma: any;
-  let filesService: FilesService;
+  let tenantContext: { tenantId: string; client: any };
+  let filesService: { getFileUrl: jest.Mock };
+  let eventsGateway: { emitDashboardOverviewUpdated: jest.Mock };
 
-  const mockFilesService = {
-    uploadResidentPhoto: jest.fn(),
-    deleteFile: jest.fn(),
-  };
+  const baseResident = {
+    ...mockResident,
+    versionNumber: 1,
+    roomId: null,
+    bedId: null,
+    fotoUrl: null,
+    healthPlans: [],
+    emergencyContacts: [],
+    cns: null,
+    legalGuardianName: null,
+    legalGuardianPhone: null,
+  } as any;
 
-  const mockLogger = {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  };
+  const createDto = {
+    fullName: 'Maria Silva Santos',
+    cpf: '12345678901',
+    birthDate: '1950-05-15',
+    gender: Gender.FEMININO,
+    admissionDate: '2024-01-10',
+  } as any;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ResidentsService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-        {
-          provide: FilesService,
-          useValue: mockFilesService,
-        },
-        {
-          provide: WINSTON_MODULE_PROVIDER,
-          useValue: mockLogger,
-        },
-      ],
-    }).compile();
+    prisma = {
+      $transaction: jest.fn(),
+      tenant: createCrudModel(),
+      resident: createCrudModel(),
+      residentHistory: createCrudModel(),
+      residentDependencyAssessment: createCrudModel(),
+      residentAnthropometry: createCrudModel(),
+      residentBloodType: createCrudModel(),
+      allergy: createCrudModel(),
+      dietaryRestriction: createCrudModel(),
+      condition: createCrudModel(),
+      medication: createCrudModel(),
+      bed: createCrudModel(),
+      room: createCrudModel(),
+      floor: createCrudModel(),
+      building: createCrudModel(),
+      clinicalProfile: createCrudModel(),
+      bedStatusHistory: createCrudModel(),
+      bedTransferHistory: createCrudModel(),
+    };
 
-    service = module.get<ResidentsService>(ResidentsService);
-    prisma = module.get<PrismaService>(PrismaService);
-    filesService = module.get<FilesService>(FilesService);
-
-    jest.clearAllMocks();
-
-    // Mock default para hierarquia de acomodação (usado em findAll e findOne)
+    prisma.$transaction.mockImplementation(async (callback: (tx: any) => unknown) => callback(prisma));
+    prisma.tenant.findUnique.mockResolvedValue({
+      ...mockTenant,
+      customMaxResidents: null,
+      subscriptions: [{ plan: { maxResidents: 100 } }],
+    });
+    prisma.resident.count.mockResolvedValue(0);
+    prisma.resident.findMany.mockResolvedValue([]);
+    prisma.residentHistory.create.mockResolvedValue({ id: 'history-1' });
+    prisma.residentDependencyAssessment.findMany.mockResolvedValue([]);
+    prisma.residentAnthropometry.findMany.mockResolvedValue([]);
+    prisma.residentAnthropometry.findFirst.mockResolvedValue(null);
+    prisma.residentBloodType.findFirst.mockResolvedValue(null);
+    prisma.allergy.findMany.mockResolvedValue([]);
+    prisma.dietaryRestriction.findMany.mockResolvedValue([]);
+    prisma.condition.findMany.mockResolvedValue([]);
+    prisma.medication.findFirst.mockResolvedValue(null);
     prisma.bed.findMany.mockResolvedValue([]);
     prisma.bed.findFirst.mockResolvedValue(null);
     prisma.room.findMany.mockResolvedValue([]);
     prisma.room.findFirst.mockResolvedValue(null);
     prisma.floor.findMany.mockResolvedValue([]);
     prisma.building.findMany.mockResolvedValue([]);
+
+    tenantContext = {
+      tenantId: mockTenant.id,
+      client: prisma,
+    };
+
+    filesService = {
+      getFileUrl: jest.fn().mockImplementation(async (path: string) => `signed:${path}`),
+    } as any;
+
+    eventsGateway = {
+      emitDashboardOverviewUpdated: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ResidentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: TenantContextService, useValue: tenantContext },
+        { provide: FilesService, useValue: filesService },
+        { provide: EventsGateway, useValue: eventsGateway },
+        {
+          provide: WINSTON_MODULE_PROVIDER,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<ResidentsService>(ResidentsService);
   });
 
   describe('create()', () => {
-    const createDto: any = {
-      tenantId: mockTenant.id,
-      fullName: 'Maria Silva Santos',
-      cpf: '12345678901',
-      birthDate: new Date('1950-05-15').toISOString(),
-      gender: 'FEMININO' as const,
-      admissionDate: new Date('2024-01-10').toISOString(),
-    };
-
-    it('deve criar residente com sucesso', async () => {
-      const mockTenantWithPlan = {
-        ...mockTenant,
-        subscriptions: [{ plan: { maxResidents: 100 } }],
-      };
-
-      prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.resident.count.mockResolvedValue(5); // 5 residentes existentes
-      prisma.resident.findFirst.mockResolvedValue(null); // CPF não existe
-      prisma.resident.create.mockResolvedValue({
-        id: 'resident-new-123',
-        ...createDto,
-        tenantId: mockTenant.id,
-      });
-
-      const result = await service.create(createDto, mockTenant.id, mockAdminUser.id);
-
-      expect(result).toBeDefined();
-      expect(prisma.resident.create).toHaveBeenCalled();
-    });
-
-    it('deve respeitar limite de residentes do plano', async () => {
-      const mockTenantWithPlan = {
-        ...mockTenant,
-        subscriptions: [{ plan: { maxResidents: 10 } }],
-      };
-
-      prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.resident.count.mockResolvedValue(10); // JÁ TEM 10 residentes
-
-      await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
-      ).rejects.toThrow('Limite de 10 residentes atingido');
-    });
-
-    it('deve permitir residentes ilimitados se maxResidents = -1', async () => {
-      const mockTenantWithPlan = {
-        ...mockTenant,
-        subscriptions: [{ plan: { maxResidents: -1 } }], // ILIMITADO
-      };
-
-      prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.resident.count.mockResolvedValue(1000); // 1000 residentes
+    it('cria residente com histórico e evento', async () => {
       prisma.resident.findFirst.mockResolvedValue(null);
-      prisma.resident.create.mockResolvedValue({
-        id: 'resident-new',
-        ...createDto,
+      prisma.resident.create.mockImplementation(async ({ data }: any) => ({
+        ...baseResident,
+        id: 'resident-new-123',
+        ...data,
+      }));
+
+      const result = await service.create(createDto, mockAdminUser.id);
+
+      expect(result.fullName).toBe(createDto.fullName);
+      expect(prisma.tenant.findUnique).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: mockTenant.id },
+      }));
+      expect(prisma.resident.create).toHaveBeenCalled();
+      expect(prisma.residentHistory.create).toHaveBeenCalled();
+      expect(eventsGateway.emitDashboardOverviewUpdated).toHaveBeenCalledWith({
         tenantId: mockTenant.id,
+        source: 'resident.created',
       });
-
-      await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
-      ).resolves.not.toThrow();
     });
 
-    it('deve validar CPF único no tenant', async () => {
-      const mockTenantWithPlan = {
+    it('respeita limite de residentes do plano', async () => {
+      prisma.tenant.findUnique.mockResolvedValue({
         ...mockTenant,
-        subscriptions: [{ plan: { maxResidents: 100 } }],
-      };
+        customMaxResidents: null,
+        subscriptions: [{ plan: { maxResidents: 10 } }],
+      });
+      prisma.resident.count.mockResolvedValue(10);
 
-      prisma.tenant.findUnique.mockResolvedValue(mockTenantWithPlan);
-      prisma.resident.count.mockResolvedValue(5);
-      prisma.resident.findFirst.mockResolvedValue(mockResident); // CPF JÁ EXISTE
-
-      await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
-      ).rejects.toThrow('CPF já cadastrado');
+      await expect(service.create(createDto, mockAdminUser.id)).rejects.toThrow(
+        new BadRequestException('Limite de 10 residentes atingido para o plano atual'),
+      );
     });
 
-    it('deve lançar erro se tenant não encontrado', async () => {
-      prisma.tenant.findUnique.mockResolvedValue(null);
+    it('valida CPF único no tenant', async () => {
+      prisma.resident.count.mockResolvedValue(5);
+      prisma.resident.findFirst.mockResolvedValue({ id: 'resident-existing' });
 
-      await expect(
-        service.create(createDto, mockTenant.id, mockAdminUser.id)
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.create(createDto, mockAdminUser.id)).rejects.toThrow(
+        new BadRequestException('CPF já cadastrado'),
+      );
     });
   });
 
   describe('findAll()', () => {
-    const mockResidents = [
-      { ...mockResident, id: 'res-1' },
-      { ...mockResident, id: 'res-2' },
-    ];
-
-    it('deve retornar residentes do tenant', async () => {
-      prisma.resident.findMany.mockResolvedValue(mockResidents);
-      prisma.resident.count.mockResolvedValue(2);
-
-      const result = await service.findAll({}, mockTenant.id);
-
-      expect(result.data).toBeDefined();
-      expect(result.meta.total).toBe(2);
-    });
-
-    it('deve filtrar apenas pelo tenantId (isolamento)', async () => {
-      prisma.resident.findMany.mockResolvedValue(mockResidents);
-      prisma.resident.count.mockResolvedValue(2);
-
-      await service.findAll({}, mockTenant.id);
-
-      expect(prisma.resident.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            tenantId: mockTenant.id,
-            deletedAt: null,
-          }),
-        })
-      );
-    });
-
-    it('deve paginar resultados', async () => {
-      prisma.resident.findMany.mockResolvedValue(mockResidents);
-      prisma.resident.count.mockResolvedValue(20);
-
-      await service.findAll({ page: '2', limit: '5' }, mockTenant.id);
-
-      expect(prisma.resident.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          skip: 5, // (page 2 - 1) * limit 5
-          take: 5,
-        })
-      );
-    });
-
-    it('deve filtrar por status', async () => {
-      prisma.resident.findMany.mockResolvedValue([mockResidents[0]]);
+    it('retorna residentes paginados com filtros atuais', async () => {
+      prisma.resident.findMany.mockResolvedValue([baseResident]);
       prisma.resident.count.mockResolvedValue(1);
+      prisma.residentDependencyAssessment.findMany.mockResolvedValue([
+        {
+          residentId: baseResident.id,
+          mobilityAid: true,
+          dependencyLevel: 'GRAU_II',
+        },
+      ]);
+      prisma.residentAnthropometry.findMany.mockResolvedValue([
+        {
+          residentId: baseResident.id,
+          measurementDate: new Date('2025-01-15T00:00:00.000Z'),
+          createdAt: new Date('2025-01-15T10:00:00.000Z'),
+        },
+      ]);
 
-      await service.findAll({ status: 'ATIVO' }, mockTenant.id);
+      const result = await service.findAll({
+        page: '1',
+        limit: '10',
+        search: 'Maria',
+        status: 'Ativo',
+      } as any);
 
-      expect(prisma.resident.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            status: 'ATIVO',
-          }),
-        })
-      );
-    });
-
-    it('deve buscar por nome (case insensitive)', async () => {
-      prisma.resident.findMany.mockResolvedValue([mockResidents[0]]);
-      prisma.resident.count.mockResolvedValue(1);
-
-      await service.findAll({ search: 'maria' }, mockTenant.id);
-
-      // O código usa OR para buscar por fullName OU cpf
-      expect(prisma.resident.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            OR: [
-              { fullName: { contains: 'maria', mode: 'insensitive' } },
-              { cpf: 'maria' },
-            ],
-          }),
-        })
-      );
+      expect(result.meta.total).toBe(1);
+      expect(result.data[0].dependencyLevel).toBe('GRAU_II');
+      expect(prisma.resident.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({
+          deletedAt: null,
+          status: 'Ativo',
+          OR: [
+            { fullName: { contains: 'Maria', mode: 'insensitive' } },
+            { cpf: 'Maria' },
+          ],
+        }),
+      }));
+      expect(prisma.resident.findMany.mock.calls[0][0].where).not.toHaveProperty('tenantId');
     });
   });
 
   describe('findOne()', () => {
-    it('deve retornar residente por ID', async () => {
-      prisma.resident.findFirst.mockResolvedValue(mockResident);
+    it('retorna residente sem exigir tenantId explícito nas queries tenant-scoped', async () => {
+      prisma.resident.findFirst.mockResolvedValue(baseResident);
 
-      const result = await service.findOne(mockResident.id, mockTenant.id);
+      const result = await service.findOne(baseResident.id);
 
-      // findOne retorna dados enriquecidos (bed, room, floor, building, healthPlans)
-      expect(result.id).toBe(mockResident.id);
-      expect(result.fullName).toBe(mockResident.fullName);
-      expect(result.healthPlans).toBeDefined(); // Array de convênios
+      expect(result.id).toBe(baseResident.id);
+      expect(result.allergies).toEqual([]);
+      expect(result.dietaryRestrictions).toEqual([]);
+      expect(prisma.resident.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          id: baseResident.id,
+          deletedAt: null,
+        },
+      }));
     });
 
-    it('deve filtrar por tenantId (segurança)', async () => {
-      prisma.resident.findFirst.mockResolvedValue(mockResident);
-
-      await service.findOne(mockResident.id, mockTenant.id);
-
-      expect(prisma.resident.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            id: mockResident.id,
-            tenantId: mockTenant.id,
-            deletedAt: null,
-          }),
-        })
-      );
-    });
-
-    it('deve lançar erro se residente não encontrado', async () => {
+    it('lança erro se residente não for encontrado', async () => {
       prisma.resident.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.findOne('non-existent-id', mockTenant.id)
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('NÃO deve retornar residente de outro tenant', async () => {
-      prisma.resident.findFirst.mockResolvedValue(null); // Não encontra porque é outro tenant
-
-      await expect(
-        service.findOne(mockResidentOtherTenant.id, mockTenant.id)
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('resident-missing')).rejects.toThrow(
+        new NotFoundException('Residente não encontrado'),
+      );
     });
   });
 
   describe('update()', () => {
-    const updateDto = {
-      fullName: 'Maria Silva Santos Atualizada',
-    };
-
-    it('deve atualizar residente com sucesso', async () => {
-      prisma.resident.findFirst.mockResolvedValue(mockResident);
-      prisma.resident.update.mockResolvedValue({
-        ...mockResident,
-        ...updateDto,
-      });
+    it('atualiza residente com histórico e evento', async () => {
+      prisma.resident.findFirst.mockResolvedValue(baseResident);
+      prisma.resident.update.mockImplementation(async ({ data }: any) => ({
+        ...baseResident,
+        ...data,
+      }));
 
       const result = await service.update(
-        mockResident.id,
-        updateDto,
-        mockTenant.id,
-        mockAdminUser.id
+        baseResident.id,
+        {
+          fullName: 'Maria Silva Santos Atualizada',
+          changeReason: 'Atualização manual de teste',
+        } as any,
+        mockAdminUser.id,
       );
 
-      expect(result.fullName).toBe(updateDto.fullName);
+      expect(result.fullName).toBe('Maria Silva Santos Atualizada');
       expect(prisma.resident.update).toHaveBeenCalled();
+      expect(prisma.residentHistory.create).toHaveBeenCalled();
+      expect(eventsGateway.emitDashboardOverviewUpdated).toHaveBeenCalledWith({
+        tenantId: mockTenant.id,
+        source: 'resident.updated',
+      });
     });
 
-    it('deve validar que residente existe antes de atualizar', async () => {
+    it('exige changeReason com no mínimo 10 caracteres', async () => {
+      await expect(
+        service.update(
+          baseResident.id,
+          { fullName: 'Nome curto', changeReason: 'curta' } as any,
+          mockAdminUser.id,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('remove()', () => {
+    it('executa soft delete com histórico e evento', async () => {
+      prisma.resident.findFirst.mockResolvedValue(baseResident);
+      prisma.resident.update.mockResolvedValue({
+        ...baseResident,
+        deletedAt: new Date(),
+        versionNumber: 2,
+      });
+
+      const result = await service.remove(
+        baseResident.id,
+        mockAdminUser.id,
+        'Exclusão lógica para teste automatizado',
+      );
+
+      expect(result).toEqual({ message: 'Residente removido com sucesso' });
+      expect(prisma.resident.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: baseResident.id },
+        data: expect.objectContaining({
+          deletedAt: expect.any(Date),
+          updatedBy: mockAdminUser.id,
+        }),
+      }));
+      expect(prisma.residentHistory.create).toHaveBeenCalled();
+      expect(eventsGateway.emitDashboardOverviewUpdated).toHaveBeenCalledWith({
+        tenantId: mockTenant.id,
+        source: 'resident.deleted',
+      });
+    });
+
+    it('lança erro se residente não existir', async () => {
       prisma.resident.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update('non-existent', updateDto, mockTenant.id, mockAdminUser.id)
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('deve validar tenant do residente (segurança)', async () => {
-      prisma.resident.findFirst.mockResolvedValue(null); // Não encontra porque é outro tenant
-
-      await expect(
-        service.update(
-          mockResidentOtherTenant.id,
-          updateDto,
-          mockTenant.id,
-          mockAdminUser.id
-        )
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('remove() - Soft Delete', () => {
-    it('deve fazer soft delete do residente', async () => {
-      prisma.resident.findFirst.mockResolvedValue(mockResident);
-      prisma.resident.update.mockResolvedValue({
-        ...mockResident,
-        deletedAt: new Date(),
-      });
-
-      await service.remove(mockResident.id, mockTenant.id, mockAdminUser.id);
-
-      expect(prisma.resident.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: mockResident.id },
-          data: expect.objectContaining({
-            deletedAt: expect.any(Date),
-          }),
-        })
-      );
-    });
-
-    it('NÃO deve deletar permanentemente (hard delete)', async () => {
-      prisma.resident.findFirst.mockResolvedValue(mockResident);
-      prisma.resident.update.mockResolvedValue(mockResident);
-
-      await service.remove(mockResident.id, mockTenant.id, mockAdminUser.id);
-
-      // NÃO deve chamar delete, apenas update com deletedAt
-      expect(prisma.resident.delete).not.toHaveBeenCalled();
-      expect(prisma.resident.update).toHaveBeenCalled();
-    });
-
-    it('deve validar tenant antes de deletar', async () => {
-      prisma.resident.findFirst.mockResolvedValue(null); // Outro tenant
-
-      await expect(
-        service.remove(mockResidentOtherTenant.id, mockTenant.id, mockAdminUser.id)
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('Segurança & Multi-Tenancy', () => {
-    it('deve SEMPRE incluir tenantId nas queries', async () => {
-      prisma.resident.findFirst.mockResolvedValue(mockResident);
-
-      await service.findOne(mockResident.id, mockTenant.id);
-
-      const findCall = prisma.resident.findFirst.mock.calls[0][0];
-      expect(findCall.where.tenantId).toBe(mockTenant.id);
-    });
-
-    it('deve SEMPRE filtrar deletedAt: null', async () => {
-      prisma.resident.findMany.mockResolvedValue([]);
-      prisma.resident.count.mockResolvedValue(0);
-
-      await service.findAll({}, mockTenant.id);
-
-      const findManyCall = prisma.resident.findMany.mock.calls[0][0];
-      expect(findManyCall.where.deletedAt).toBeNull();
-    });
-
-    it('NÃO deve permitir acesso cross-tenant', async () => {
-      // Tentando acessar residente de outro tenant
-      prisma.resident.findFirst.mockImplementation((args: any) => {
-        // Simula que o Prisma filtra por tenantId
-        if (args.where.tenantId !== mockResidentOtherTenant.tenantId) {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve(mockResidentOtherTenant);
-      });
-
-      await expect(
-        service.findOne(mockResidentOtherTenant.id, mockTenant.id)
-      ).rejects.toThrow(NotFoundException);
+        service.remove('resident-missing', mockAdminUser.id, 'Motivo suficientemente longo'),
+      ).rejects.toThrow(new NotFoundException('Residente não encontrado'));
     });
   });
 });

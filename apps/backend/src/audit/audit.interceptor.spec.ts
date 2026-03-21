@@ -42,7 +42,7 @@ describe('AuditInterceptor', () => {
       ],
     }).compile();
 
-    interceptor = module.get<AuditInterceptor>(AuditInterceptor);
+    interceptor = await module.resolve<AuditInterceptor>(AuditInterceptor);
     auditService = module.get<AuditService>(AuditService);
     reflector = module.get<Reflector>(Reflector);
 
@@ -484,7 +484,7 @@ describe('AuditInterceptor', () => {
       const handler = createMockCallHandler({ id: 'resident-123' });
 
       interceptor.intercept(context, handler).subscribe({
-        next: (result) => {
+        next: (result: any) => {
           // Operação DEVE continuar mesmo com erro na auditoria
           expect(result.id).toBe('resident-123');
         },

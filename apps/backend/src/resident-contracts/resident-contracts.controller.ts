@@ -31,8 +31,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AuditAction, AuditEntity } from '../audit/audit.decorator';
 import { ResidentContractsService } from './resident-contracts.service';
-import { CreateContractDto } from './dto/create-contract.dto';
-import { UpdateContractDto } from './dto/update-contract.dto';
+import { CreateResidentContractDto } from './dto/create-contract.dto';
+import { UpdateResidentContractDto } from './dto/update-contract.dto';
 import { ReplaceContractFileDto } from './dto/replace-contract-file.dto';
 import { AttachContractFileDto } from './dto/attach-contract-file.dto';
 import { CorrectContractDto } from './dto/correct-contract.dto';
@@ -175,7 +175,7 @@ export class ResidentContractsController {
         }),
     )
     file: Express.Multer.File | undefined,
-    @Body() dto: CreateContractDto,
+    @Body() dto: CreateResidentContractDto,
   ) {
     return this.contractsService.uploadContract(
       residentId,
@@ -352,7 +352,7 @@ export class ResidentContractsController {
   async updateMetadata(
     @Param('id') contractId: string,
     @CurrentUser() user: JwtPayload,
-    @Body() dto: UpdateContractDto,
+    @Body() dto: UpdateResidentContractDto,
   ) {
     return this.contractsService.updateMetadata(
       contractId,

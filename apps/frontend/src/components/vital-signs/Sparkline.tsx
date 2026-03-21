@@ -1,4 +1,5 @@
-import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
+import { LineChart, Line, YAxis, Tooltip } from 'recharts'
+import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
 
 interface SparklineProps {
   data: Array<{ value: number }>
@@ -27,7 +28,7 @@ export function Sparkline({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveChartContainer height={height} minHeight={height}>
       <LineChart data={data} margin={{ top: 5, right: 0, bottom: 5, left: 0 }}>
         <YAxis domain={domain} hide />
         <Tooltip
@@ -54,6 +55,6 @@ export function Sparkline({
           animationDuration={300}
         />
       </LineChart>
-    </ResponsiveContainer>
+    </ResponsiveChartContainer>
   )
 }
