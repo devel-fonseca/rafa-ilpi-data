@@ -92,6 +92,23 @@ services:
       start_period: 40s
       retries: 3
 
+  # Backend operations / migrations (manual one-shot via docker compose run)
+  backend-tools:
+    image: rafa-ilpi-backend-tools:latest
+    profiles: ["tools"]
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+      target: operations
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://rafa_user:${POSTGRES_PASSWORD:-rafa_pass_prod}@postgres:5432/rafa_ilpi
+    networks:
+      - rafa-ilpi-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # Frontend React + Vite (Nginx)
   frontend:
     image: rafa-ilpi-frontend:latest

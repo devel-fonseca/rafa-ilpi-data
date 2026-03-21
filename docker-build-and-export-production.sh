@@ -100,8 +100,10 @@ POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16-alpine}"
 REDIS_IMAGE="${REDIS_IMAGE:-redis:7-alpine}"
 
 BACKEND_IMAGE="rafa-ilpi-backend:${TAG}"
+BACKEND_TOOLS_IMAGE="rafa-ilpi-backend-tools:${TAG}"
 FRONTEND_IMAGE="rafa-ilpi-frontend:${TAG}"
 BACKEND_LATEST="rafa-ilpi-backend:latest"
+BACKEND_TOOLS_LATEST="rafa-ilpi-backend-tools:latest"
 FRONTEND_LATEST="rafa-ilpi-frontend:latest"
 
 mkdir -p "$OUTPUT_DIR"
@@ -126,6 +128,16 @@ docker build \
 echo -e "${GREEN}✅ Backend build concluído${NC}"
 echo ""
 
+echo -e "${YELLOW}🔨 Building Backend Tools (${BACKEND_TOOLS_IMAGE})...${NC}"
+docker build \
+  --pull \
+  -t "$BACKEND_TOOLS_IMAGE" \
+  -f apps/backend/Dockerfile \
+  --target operations \
+  apps/backend
+echo -e "${GREEN}✅ Backend Tools build concluído${NC}"
+echo ""
+
 echo -e "${YELLOW}🔨 Building Frontend (${FRONTEND_IMAGE})...${NC}"
 docker build \
   --pull \
@@ -140,6 +152,7 @@ echo ""
 if [[ "$CREATE_LATEST_ALIAS" == "true" ]]; then
   echo -e "${BLUE}🏷️  Criando alias :latest para compatibilidade com compose atual...${NC}"
   docker tag "$BACKEND_IMAGE" "$BACKEND_LATEST"
+  docker tag "$BACKEND_TOOLS_IMAGE" "$BACKEND_TOOLS_LATEST"
   docker tag "$FRONTEND_IMAGE" "$FRONTEND_LATEST"
   echo -e "${GREEN}✅ Alias :latest criado${NC}"
   echo ""
@@ -147,9 +160,11 @@ fi
 
 echo -e "${BLUE}🔎 Validando imagens locais...${NC}"
 docker image inspect "$BACKEND_IMAGE" >/dev/null
+docker image inspect "$BACKEND_TOOLS_IMAGE" >/dev/null
 docker image inspect "$FRONTEND_IMAGE" >/dev/null
 if [[ "$CREATE_LATEST_ALIAS" == "true" ]]; then
   docker image inspect "$BACKEND_LATEST" >/dev/null
+  docker image inspect "$BACKEND_TOOLS_LATEST" >/dev/null
   docker image inspect "$FRONTEND_LATEST" >/dev/null
 fi
 echo -e "${GREEN}✅ Imagens validadas${NC}"
@@ -170,6 +185,7 @@ echo -e "${BLUE}💾 Exportando imagens...${NC}"
 echo ""
 
 BACKEND_TAR="${OUTPUT_DIR}/rafa-ilpi-backend.tar.gz"
+BACKEND_TOOLS_TAR="${OUTPUT_DIR}/rafa-ilpi-backend-tools.tar.gz"
 FRONTEND_TAR="${OUTPUT_DIR}/rafa-ilpi-frontend.tar.gz"
 POSTGRES_TAR="${OUTPUT_DIR}/postgres-16-alpine.tar.gz"
 REDIS_TAR="${OUTPUT_DIR}/redis-7-alpine.tar.gz"
@@ -182,6 +198,14 @@ else
   docker save "$BACKEND_IMAGE" | gzip -c > "$BACKEND_TAR"
 fi
 echo -e "${GREEN}✅ ${BACKEND_TAR}${NC}"
+
+echo -e "${YELLOW}📦 Exportando Backend Tools...${NC}"
+if [[ "$CREATE_LATEST_ALIAS" == "true" ]]; then
+  docker save "$BACKEND_TOOLS_IMAGE" "$BACKEND_TOOLS_LATEST" | gzip -c > "$BACKEND_TOOLS_TAR"
+else
+  docker save "$BACKEND_TOOLS_IMAGE" | gzip -c > "$BACKEND_TOOLS_TAR"
+fi
+echo -e "${GREEN}✅ ${BACKEND_TOOLS_TAR}${NC}"
 
 echo -e "${YELLOW}📦 Exportando Frontend...${NC}"
 if [[ "$CREATE_LATEST_ALIAS" == "true" ]]; then
@@ -210,6 +234,7 @@ echo -e "${BLUE}🔐 Gerando checksums...${NC}"
   cd "$OUTPUT_DIR"
   sha256sum \
     "rafa-ilpi-backend.tar.gz" \
+    "rafa-ilpi-backend-tools.tar.gz" \
     "rafa-ilpi-frontend.tar.gz" \
     "postgres-16-alpine.tar.gz" \
     "redis-7-alpine.tar.gz" \
@@ -219,6 +244,7 @@ echo -e "${GREEN}✅ ${OUTPUT_DIR}/SHA256SUMS${NC}"
 echo ""
 
 BACKEND_ID="$(docker image inspect "$BACKEND_IMAGE" --format '{{.Id}}')"
+BACKEND_TOOLS_ID="$(docker image inspect "$BACKEND_TOOLS_IMAGE" --format '{{.Id}}')"
 FRONTEND_ID="$(docker image inspect "$FRONTEND_IMAGE" --format '{{.Id}}')"
 POSTGRES_ID="$(docker image inspect "$POSTGRES_IMAGE" --format '{{.Id}}')"
 REDIS_ID="$(docker image inspect "$REDIS_IMAGE" --format '{{.Id}}')"
@@ -232,10 +258,12 @@ Git commit: ${GIT_SHA}
 
 Application images:
   - ${BACKEND_IMAGE} (id: ${BACKEND_ID})
+  - ${BACKEND_TOOLS_IMAGE} (id: ${BACKEND_TOOLS_ID})
   - ${FRONTEND_IMAGE} (id: ${FRONTEND_ID})
 $( [[ "$CREATE_LATEST_ALIAS" == "true" ]] && cat <<EOL
 Compatibility aliases:
   - ${BACKEND_LATEST}
+  - ${BACKEND_TOOLS_LATEST}
   - ${FRONTEND_LATEST}
 EOL
 )
@@ -245,6 +273,7 @@ Infrastructure images:
 
 Exported archives:
   - rafa-ilpi-backend.tar.gz
+  - rafa-ilpi-backend-tools.tar.gz
   - rafa-ilpi-frontend.tar.gz
   - postgres-16-alpine.tar.gz
   - redis-7-alpine.tar.gz
@@ -256,6 +285,12 @@ Validation on target host:
 
 Recommended deploy command (no rebuild):
   docker compose -f docker-compose.production.yml --env-file .env.production up -d --no-build
+
+Recommended migration commands (image-only):
+  docker compose -f docker-compose.production.yml --env-file .env.production --profile tools run --rm backend-tools npm run migrate:all:prod
+
+Optional single-tenant sync:
+  docker compose -f docker-compose.production.yml --env-file .env.production --profile tools run --rm backend-tools npm run tenants:sync-schemas -- --schema=<tenant_schema>
 
 Fallback (legacy docker-compose):
   docker-compose -f docker-compose.production.yml --env-file .env.production up -d --no-build

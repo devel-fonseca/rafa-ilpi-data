@@ -37,11 +37,16 @@ RUN npx prisma generate
 # Build da aplicação
 RUN npm run build
 
+# ------------------------------
+# Stage 3: Production dependencies
+# ------------------------------
+FROM builder AS production-deps
+
 # Remover dev dependencies
 RUN npm prune --production
 
 # ------------------------------
-# Stage 3: Production
+# Stage 4: Production
 # ------------------------------
 FROM node:20-alpine AS production
 
@@ -55,7 +60,7 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
 # Copiar arquivos necessários
-COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=production-deps --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
@@ -85,3 +90,26 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Comando de inicialização
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/main"]
+
+# ------------------------------
+# Stage 5: Operations / Migrations
+# ------------------------------
+FROM node:20-alpine AS operations
+
+RUN apk add --no-cache dumb-init openssl postgresql-client
+
+WORKDIR /app
+
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001
+
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nestjs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
+
+USER nestjs
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "-e", "console.log('backend-tools image ready; use docker compose run --rm backend-tools <command>')"]
