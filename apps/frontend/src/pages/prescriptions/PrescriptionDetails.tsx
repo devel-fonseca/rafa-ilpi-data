@@ -33,7 +33,7 @@ import {
 import { usePrescription } from '@/hooks/usePrescriptions'
 import { calculateAge } from '@/lib/utils'
 import { formatBedFromResident, formatMedicationPresentation, formatMedicationFrequency } from '@/utils/formatters'
-import { getSignedFileUrl } from '@/services/upload'
+import { getSignedFileUrl } from '@/services/upload-read'
 import { AdministerMedicationModal } from './components/AdministerMedicationModal'
 import { usePermissions } from '@/hooks/usePermissions'
 import { AdministerSOSModal } from './components/AdministerSOSModal'

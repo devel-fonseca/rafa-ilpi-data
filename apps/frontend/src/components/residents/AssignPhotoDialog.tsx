@@ -18,7 +18,7 @@ import { AlertCircle, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { api } from '@/services/api'
-import { uploadFile } from '@/services/upload'
+import { uploadFile } from '@/services/upload-write'
 import { tenantKey } from '@/lib/query-keys'
 import { toast } from 'sonner'
 

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/design-system/components'
 import { Pill, Eye, AlertTriangle } from 'lucide-react'
 import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
-import { getSignedFileUrl } from '@/services/upload'
+import { getSignedFileUrl } from '@/services/upload-read'
 import { toast } from 'sonner'
 import type { Prescription, Medication, AdministrationRoute } from '@/api/prescriptions.api'
 

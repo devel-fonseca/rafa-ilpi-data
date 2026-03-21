@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { User, AlertCircle } from 'lucide-react'
-import { getSignedFileUrl } from '@/services/upload'
+import { getSignedFileUrl } from '@/services/upload-read'
 
 interface PhotoViewerProps {
   photoUrl?: string

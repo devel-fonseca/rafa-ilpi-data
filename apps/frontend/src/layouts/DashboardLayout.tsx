@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useScrollToTop } from '@/hooks/useScrollToTop'
-import { getSignedFileUrl } from '@/services/upload'
+import { getSignedFileUrl } from '@/services/upload-read'
 import { useMyProfile } from '@/hooks/queries/useUserProfile'
 import { usePreferences } from '@/contexts/PreferencesContext'
 import { toast } from 'sonner'

@@ -40,6 +40,7 @@ import {
 import { toast } from 'sonner'
 import { formatDate } from '@/utils/formatters'
 import { RESIDENT_DOCUMENT_TYPES } from '@/api/resident-documents.api'
+import { getSignedFileUrl } from '@/services/upload-read'
 import {
   useResidentDocuments,
   useUploadResidentDocument,
@@ -165,7 +166,6 @@ export function ResidentDocuments({ residentId, embedded = false }: ResidentDocu
 
       // Se não é uma URL completa (http/https), obter URL assinada do MinIO
       if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
-        const { getSignedFileUrl } = await import('@/services/upload')
         urlToOpen = await getSignedFileUrl(fileUrl)
       }
 

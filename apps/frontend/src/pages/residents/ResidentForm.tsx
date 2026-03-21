@@ -26,7 +26,7 @@ import {
 } from '@/utils/formMappers'
 import { cn } from '@/lib/utils'
 import { api } from '@/services/api'
-import { uploadFile } from '@/services/upload'
+import { uploadFile } from '@/services/upload-write'
 import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { toast } from 'sonner'
 import { PlanLimitWarningDialog } from '@/components/admin/PlanLimitWarningDialog'
