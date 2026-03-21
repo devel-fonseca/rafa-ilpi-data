@@ -371,7 +371,7 @@ export default function BedsManagementHub() {
               <div>
                 <h3 className="font-semibold text-lg">Estrutura de Leitos</h3>
                 <p className="text-sm text-muted-foreground">
-                  CRUD completo de prédios, andares, quartos e leitos
+                  Gestão completa de prédios, andares, quartos e leitos
                 </p>
               </div>
             </div>

@@ -273,7 +273,11 @@ export function BedSearchCombobox({
       <PopoverContent
         align="start"
         sideOffset={4}
-        className="p-0 w-[--radix-popover-trigger-width] max-h-[400px] overflow-auto"
+        collisionPadding={16}
+        className="p-0 w-[--radix-popover-trigger-width] overflow-y-auto overscroll-contain"
+        style={{
+          maxHeight: 'min(22rem, var(--radix-popover-content-available-height))',
+        }}
         onOpenAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => {
           // Não fechar se o clique foi dentro do anchor (input/filtros)
