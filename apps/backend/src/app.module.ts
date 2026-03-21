@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { WinstonModule } from 'nest-winston';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -88,6 +89,48 @@ import { HttpLoggerInterceptor } from './common/interceptors/http-logger.interce
 
     // Event Emitter (eventos entre módulos)
     EventEmitterModule.forRoot(),
+
+    // Throttling HTTP básico
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [
+          {
+            name: 'default',
+            ttl: Number(configService.get('THROTTLE_TTL_MS') || 60_000),
+            limit: Number(configService.get('THROTTLE_LIMIT') || 120),
+            setHeaders: true,
+            skipIf: (context) => {
+              if (context.getType() !== 'http') {
+                return true;
+              }
+
+              const request = context.switchToHttp().getRequest();
+              const path = request?.originalUrl || request?.url || request?.path || '';
+
+              return (
+                path === '/api/health' ||
+                path === '/api/health/' ||
+                path.startsWith('/api/docs')
+              );
+            },
+            getTracker: (req) => {
+              const forwardedFor = req.headers?.['x-forwarded-for'];
+
+              if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+                return forwardedFor[0].split(',')[0].trim();
+              }
+
+              if (typeof forwardedFor === 'string' && forwardedFor.length > 0) {
+                return forwardedFor.split(',')[0].trim();
+              }
+
+              return req.ip || req.socket?.remoteAddress || 'unknown';
+            },
+          },
+        ],
+      }),
+    }),
 
     // Redis + BullMQ (filas de processamento)
     BullModule.forRootAsync({
@@ -199,6 +242,10 @@ import { HttpLoggerInterceptor } from './common/interceptors/http-logger.interce
         return new JwtAuthGuard(reflector, tenantContext);
       },
       inject: [Reflector, TenantContextService],
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     // Tenant Context Service - REQUEST-scoped para isolamento de dados
     TenantContextService,

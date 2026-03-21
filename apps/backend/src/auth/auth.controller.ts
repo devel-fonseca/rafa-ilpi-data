@@ -13,6 +13,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Throttle, minutes } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -49,6 +50,7 @@ export class AuthController {
     description: 'Credenciais inválidas',
   })
   @Public()
+  @Throttle({ default: { limit: 5, ttl: minutes(1) } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Req() req: Request) {
@@ -78,6 +80,7 @@ export class AuthController {
     description: 'Usuário não encontrado no tenant especificado',
   })
   @Public()
+  @Throttle({ default: { limit: 5, ttl: minutes(1) } })
   @Post('select-tenant')
   @HttpCode(HttpStatus.OK)
   async selectTenant(@Body() selectTenantDto: SelectTenantDto, @Req() req: Request) {
@@ -100,6 +103,7 @@ export class AuthController {
     description: 'Refresh token inválido ou expirado',
   })
   @Public()
+  @Throttle({ default: { limit: 20, ttl: minutes(1) } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@Body() refreshTokenDto: RefreshTokenDto, @Req() req: Request) {
@@ -157,6 +161,8 @@ export class AuthController {
     status: 400,
     description: 'Refresh token inválido ou não encontrado',
   })
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: minutes(1) } })
   @Post('logout-expired')
   @HttpCode(HttpStatus.OK)
   async logoutExpired(@Body() body: { refreshToken: string }, @Req() req: Request) {
@@ -180,6 +186,7 @@ export class AuthController {
       'Mensagem de confirmação enviada (sempre retorna sucesso por segurança)',
   })
   @Public()
+  @Throttle({ default: { limit: 5, ttl: minutes(1) } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(
@@ -208,6 +215,7 @@ export class AuthController {
     description: 'Token inválido, expirado ou já utilizado',
   })
   @Public()
+  @Throttle({ default: { limit: 5, ttl: minutes(1) } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
@@ -271,6 +279,7 @@ export class AuthController {
   })
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: minutes(1) } })
   @Post('reauthenticate')
   @HttpCode(HttpStatus.OK)
   async reauthenticate(
