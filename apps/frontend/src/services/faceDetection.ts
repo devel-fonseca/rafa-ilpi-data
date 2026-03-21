@@ -18,6 +18,20 @@ let model: import('@tensorflow-models/blazeface').BlazeFaceModel | null = null
 let isLoading = false
 let loadError = false
 
+function resolveFaceProbability(
+  probability: number | { dataSync?: () => ArrayLike<number> } | undefined,
+): number | undefined {
+  if (typeof probability === 'number') {
+    return probability
+  }
+
+  if (probability && typeof probability === 'object' && typeof probability.dataSync === 'function') {
+    return probability.dataSync()[0]
+  }
+
+  return undefined
+}
+
 /**
  * Carrega o modelo BlazeFace (lazy loading)
  * Modelo é pequeno (~1MB) e rápido de carregar
@@ -173,7 +187,7 @@ export async function detectFaceAndCrop(
         width: Math.round(cropSize),
         height: Math.round(cropSize),
       },
-      confidence: face.probability ? face.probability[0] : undefined,
+      confidence: resolveFaceProbability(face.probability),
     }
   } catch (error) {
     console.error('❌ Erro na detecção facial:', error)
@@ -301,9 +315,9 @@ export async function processImageWithFaceDetection(
  * Limpa recursos do TensorFlow.js (chamar ao desmontar componente)
  */
 export function cleanupFaceDetection() {
-  if (model) {
+  if (model && tfModule) {
     model = null
-    tf.disposeVariables()
+    tfModule.disposeVariables()
     console.log('🧹 Recursos de detecção facial liberados')
   }
 }

@@ -23,10 +23,7 @@ export default defineConfig({
     },
   },
   build: {
-    // Mantém aviso útil para chunks realmente anômalos após code-splitting
     chunkSizeWarningLimit: 2000,
-    // Desabilitar type checking temporariamente para permitir build de produção
-    // TODO: Reabilitar após corrigir todos os erros TypeScript no módulo de prescrições
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -56,10 +53,10 @@ export default defineConfig({
           if (id.includes('axios')) return 'vendor-axios'
           if (id.includes('zod')) return 'vendor-zod'
           if (id.includes('sonner')) return 'vendor-sonner'
+          if (id.includes('echarts') || id.includes('zrender')) return 'vendor-charts'
 
           if (id.includes('react-router')) return 'vendor-router'
           if (id.includes('@tanstack/react-query')) return 'vendor-query'
-          if (id.includes('recharts')) return 'vendor-charts'
           if (
             id.includes('@react-pdf/') ||
             id.includes('react-pdf') ||
@@ -75,21 +72,14 @@ export default defineConfig({
           ) {
             return 'vendor-pdf'
           }
-          if (id.includes('xlsx')) return 'vendor-xlsx'
           if (id.includes('date-fns')) return 'vendor-date'
 
           return 'vendor'
         },
       },
-      onwarn(warning, warn) {
-        // Ignorar warnings de TypeScript durante o build
-        if (warning.code === 'PLUGIN_WARNING') return
-        warn(warning)
-      }
     }
   },
   esbuild: {
-    // Desabilitar type checking do esbuild durante o build
     logOverride: { 'this-is-undefined-in-esm': 'silent' }
   }
 })

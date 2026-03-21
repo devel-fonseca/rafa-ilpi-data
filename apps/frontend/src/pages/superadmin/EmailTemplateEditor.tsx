@@ -13,7 +13,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   description: string | null;
-  jsonContent: Record<string, unknown>;
+  jsonContent: { content: string };
   variables: Array<{
     name: string;
     type: string;
@@ -73,7 +73,7 @@ export default function EmailTemplateEditor() {
 
   const handlePreview = (templateData: { content: string }) => {
     // TODO: Implementar preview
-    console.log('Preview:', templateData);
+    void templateData
     toast.info('Preview em desenvolvimento');
   };
 

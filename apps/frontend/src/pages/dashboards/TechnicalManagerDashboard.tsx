@@ -1,15 +1,11 @@
 import { useAuthStore } from '@/stores/auth.store'
 import { Calendar } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ComponentProps } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import type { Medication, MedicationPresentation, AdministrationRoute, MedicationFrequency } from '@/api/medications.api'
+import type { MedicationPresentation, AdministrationRoute, MedicationFrequency } from '@/api/medications.api'
 import { toast } from 'sonner'
 
-// Tipo estendido para medication com campo opcional preselectedScheduledTime
-type MedicationWithPreselectedTime = Medication & {
-  preselectedScheduledTime?: string
-}
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { useResidentStats } from '@/hooks/useResidents'
 import { useDailyRecordsCountByDate } from '@/hooks/useDailyRecords'
@@ -31,6 +27,8 @@ import { Page, PageHeader, Section, CollapsibleSection } from '@/design-system/c
 import { AdministerMedicationModal } from '@/pages/prescriptions/components/AdministerMedicationModal'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
 import { tenantKey } from '@/lib/query-keys'
+
+type MedicationWithPreselectedTime = NonNullable<ComponentProps<typeof AdministerMedicationModal>['medication']>
 
 /**
  * TechnicalManagerDashboard
@@ -142,7 +140,6 @@ export function TechnicalManagerDashboard() {
     if (medicationTask) {
       setSelectedMedication({
         id: medicationTask.medicationId,
-        prescriptionId: medicationTask.prescriptionId,
         name: medicationTask.medicationName,
         presentation: medicationTask.presentation as MedicationPresentation,
         concentration: medicationTask.concentration,
@@ -151,17 +148,13 @@ export function TechnicalManagerDashboard() {
         frequency: 'PERSONALIZADO' as MedicationFrequency,
         scheduledTimes: medicationTask.scheduledTimes || [scheduledTime],
         startDate: '',
-        endDate: null,
+        endDate: undefined,
         isControlled: false,
         isHighRisk: false,
         requiresDoubleCheck: medicationTask.requiresDoubleCheck || false,
-        instructions: null,
-        versionNumber: 1,
-        createdBy: '',
-        updatedBy: null,
+        instructions: undefined,
         createdAt: '',
         updatedAt: '',
-        deletedAt: null,
         preselectedScheduledTime: scheduledTime,
       })
     }

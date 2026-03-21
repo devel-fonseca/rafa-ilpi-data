@@ -40,7 +40,7 @@ interface PopTemplatesModalProps {
   onSelectTemplate: (
     title: string,
     content: string,
-    category: PopCategory,
+    category: string,
     templateId: string,
     suggestedReviewMonths?: number
   ) => void
@@ -54,9 +54,7 @@ export default function PopTemplatesModal({
   onStartFromScratch,
 }: PopTemplatesModalProps) {
   const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<
-    PopCategory | 'all'
-  >('all')
+  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all')
   const [selectedTemplate, setSelectedTemplate] = useState<PopTemplate | null>(null)
   const [showWarningDialog, setShowWarningDialog] = useState(false)
 
@@ -134,7 +132,7 @@ export default function PopTemplatesModal({
           <Tabs
             value={selectedCategory}
             onValueChange={(value) =>
-              setSelectedCategory(value as PopCategory | 'all')
+              setSelectedCategory(value as string | 'all')
             }
           >
             <div className="overflow-x-auto">
@@ -191,7 +189,7 @@ export default function PopTemplatesModal({
                             )}
                           </div>
                           <Badge variant="outline" className="self-start shrink-0 text-xs">
-                            {PopCategoryLabels[template.category]}
+                            {PopCategoryLabels[template.category as PopCategory] ?? template.category}
                           </Badge>
                         </div>
                       </button>

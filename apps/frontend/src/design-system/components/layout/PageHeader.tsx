@@ -73,7 +73,7 @@ export interface PageHeaderProps {
    * Subtítulo/descrição da página (opcional)
    * Renderizado com text-muted-foreground
    */
-  subtitle?: string
+  subtitle?: React.ReactNode
 
   /**
    * Badge ou elemento adicional ao lado do título (opcional)
@@ -101,6 +101,23 @@ export interface PageHeaderProps {
   backButton?: BackButtonConfig
 
   /**
+   * Compatibilidade retroativa para páginas antigas.
+   * Preferir `backButton`.
+   */
+  onBack?: () => void
+
+  /**
+   * Compatibilidade retroativa para páginas antigas.
+   * Preferir `backButton.label`.
+   */
+  backButtonText?: string
+
+  /**
+   * Ícone opcional exibido antes do título.
+   */
+  icon?: React.ReactNode
+
+  /**
    * Classes CSS adicionais para o container
    */
   className?: string
@@ -124,8 +141,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   breadcrumbs,
   actions,
   backButton,
+  onBack,
+  backButtonText,
+  icon,
   className,
 }) => {
+  const resolvedBackButton = backButton ?? (onBack ? { onClick: onBack, label: backButtonText } : undefined)
+
   return (
     <div className={cn('mb-6', className)}>
       {/* Breadcrumbs */}
@@ -160,15 +182,15 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       )}
 
       {/* Botão Voltar */}
-      {backButton && (
+      {resolvedBackButton && (
         <Button
           variant="ghost"
           size="sm"
-          onClick={backButton.onClick}
+          onClick={resolvedBackButton.onClick}
           className="mb-2 -ml-2"
         >
           <ChevronLeft className="h-4 w-4" />
-          {backButton.label || 'Voltar'}
+          {resolvedBackButton.label || 'Voltar'}
         </Button>
       )}
 
@@ -177,6 +199,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         {/* Título + Badge */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {icon && <div className="flex-shrink-0 text-muted-foreground">{icon}</div>}
             <h1 className={cn(TYPOGRAPHY_STYLES.pageTitle, 'text-2xl sm:text-3xl truncate')}>{title}</h1>
             {badge && <div className="flex-shrink-0">{badge}</div>}
           </div>

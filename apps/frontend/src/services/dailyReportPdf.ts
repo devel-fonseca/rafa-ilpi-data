@@ -5,6 +5,7 @@
 
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import type { CellWidthType, Styles } from 'jspdf-autotable'
 import type { MultiDayReport, DailyReport, DailyRecordReport } from '@/types/reports'
 import type { RecordTypeFilter, ReportPeriodType, ReportType } from '@/types/reportsHub'
 import { formatShiftStatusLabel } from '@/utils/shiftStatus'
@@ -1312,7 +1313,7 @@ class DailyReportPDFGenerator {
       this.doc.setTextColor(...COLORS.textPrimary)
       this.doc.text(dayTitle, PAGE_MARGIN, currentY)
 
-      const columnStylesByType = (() => {
+      const columnStylesByType: Record<string, Partial<Styles>> = (() => {
         if (this.options.recordType === 'MEDICACAO') {
           return {
             0: { cellWidth: 42 }, // Residente
@@ -1320,7 +1321,7 @@ class DailyReportPDFGenerator {
             2: { cellWidth: 20 }, // Tipo
             3: { cellWidth: 12 }, // Hora
             4: { cellWidth: 28 }, // Registrado por
-            5: { cellWidth: 'auto' }, // Detalhes
+            5: { cellWidth: 'auto' as CellWidthType }, // Detalhes
           }
         }
         if (this.options.recordType === 'AGENDAMENTOS_PONTUAIS') {
@@ -1330,7 +1331,7 @@ class DailyReportPDFGenerator {
             2: { cellWidth: 30 },
             3: { cellWidth: 12 },
             4: { cellWidth: 24 },
-            5: { cellWidth: 'auto' },
+            5: { cellWidth: 'auto' as CellWidthType },
           }
         }
         if (this.options.recordType === 'IMUNIZACOES') {
@@ -1340,7 +1341,7 @@ class DailyReportPDFGenerator {
             2: { cellWidth: 18 },
             3: { cellWidth: 12 },
             4: { cellWidth: 24 },
-            5: { cellWidth: 'auto' },
+            5: { cellWidth: 'auto' as CellWidthType },
           }
         }
         return {
@@ -1349,7 +1350,7 @@ class DailyReportPDFGenerator {
           2: { cellWidth: 22 },
           3: { cellWidth: 12 },
           4: { cellWidth: 30 },
-          5: { cellWidth: 'auto' },
+          5: { cellWidth: 'auto' as CellWidthType },
         }
       })()
 
@@ -1371,25 +1372,50 @@ class DailyReportPDFGenerator {
           : [['Residente', 'Leito', 'Tipo', 'Hora', 'Registrado por', 'Detalhes']]
 
       const body = isImmunizations
-        ? rows.map((row) => [
-            row.residentName,
-            row.bedCode,
-            row.vaccineOrProphylaxis || '-',
-            row.dose || '-',
-            row.batch || '-',
-            row.manufacturer || '-',
-            row.healthEstablishmentWithCnes || '-',
-            row.municipalityState || '-',
-          ])
+        ? rows.map((row) => {
+            const immunizationRow = row as {
+              residentName: string
+              bedCode: string
+              vaccineOrProphylaxis?: string
+              dose?: string
+              batch?: string
+              manufacturer?: string
+              healthEstablishmentWithCnes?: string
+              municipalityState?: string
+            }
+
+            return [
+              immunizationRow.residentName,
+              immunizationRow.bedCode,
+              immunizationRow.vaccineOrProphylaxis || '-',
+              immunizationRow.dose || '-',
+              immunizationRow.batch || '-',
+              immunizationRow.manufacturer || '-',
+              immunizationRow.healthEstablishmentWithCnes || '-',
+              immunizationRow.municipalityState || '-',
+            ]
+          })
         : isScheduledEvents
-          ? rows.map((row) => [
-              row.residentName,
-              row.bedCode,
-              row.type || '-',
-              row.time || '--:--',
-              row.status || '-',
-              row.title || row.details || '-',
-            ])
+          ? rows.map((row) => {
+              const scheduledRow = row as {
+                residentName: string
+                bedCode: string
+                type?: string
+                time?: string
+                status?: string
+                title?: string
+                details?: string
+              }
+
+              return [
+                scheduledRow.residentName,
+                scheduledRow.bedCode,
+                scheduledRow.type || '-',
+                scheduledRow.time || '--:--',
+                scheduledRow.status || '-',
+                scheduledRow.title || scheduledRow.details || '-',
+              ]
+            })
           : rows.map((row) => [
               row.residentName,
               row.bedCode,
@@ -1399,7 +1425,7 @@ class DailyReportPDFGenerator {
               row.details,
             ])
 
-      const columnStyles = isImmunizations
+      const columnStyles: Record<string, Partial<Styles>> = isImmunizations
         ? {
             0: { cellWidth: 40 }, // Residente
             1: { cellWidth: 20 }, // Leito
@@ -1417,8 +1443,8 @@ class DailyReportPDFGenerator {
               2: { cellWidth: 26 }, // Tipo
               3: { cellWidth: 14 }, // Hora
               4: { cellWidth: 20 }, // Status
-              5: { cellWidth: 'auto' }, // Título
-            }
+            5: { cellWidth: 'auto' as CellWidthType }, // Título
+          }
           : columnStylesByType
 
       autoTable(this.doc, {
@@ -1447,7 +1473,7 @@ class DailyReportPDFGenerator {
         margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: HEADER_HEIGHT + 5, bottom: FOOTER_HEIGHT + 5 },
       })
 
-      currentY = (this.doc as any).lastAutoTable.finalY + 6
+      currentY = (this.doc.lastAutoTable?.finalY ?? currentY) + 6
     })
   }
 
@@ -1478,8 +1504,8 @@ class DailyReportPDFGenerator {
     }
 
     this.totalPages = this.doc.getNumberOfPages()
-    if (typeof (this.doc as any).putTotalPages === 'function') {
-      (this.doc as any).putTotalPages(TOTAL_PAGES_PLACEHOLDER)
+    if (typeof this.doc.putTotalPages === 'function') {
+      this.doc.putTotalPages(TOTAL_PAGES_PLACEHOLDER)
     }
 
     for (let page = 1; page <= this.totalPages; page += 1) {

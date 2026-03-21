@@ -26,17 +26,17 @@ export function useUserPreference<K extends keyof UserPreferences>(
   // Buscar valor inicial das preferências do usuário
   // Nota: user.profile no auth.store pode não ter todas as propriedades do UserProfile
   // então fazemos um cast seguro para acessar preferences
-  const userProfile = user?.profile as Record<string, unknown> | undefined
-  const initialValue = (userProfile?.preferences?.[key] ?? defaultValue) as NonNullable<UserPreferences[K]>
+  const userPreferences = user?.profile?.preferences as UserPreferences | undefined
+  const initialValue = (userPreferences?.[key] ?? defaultValue) as NonNullable<UserPreferences[K]>
 
   const [value, setValue] = useState<NonNullable<UserPreferences[K]>>(initialValue)
   const [isLoading, setIsLoading] = useState(false)
 
   // Atualizar valor local quando user.profile.preferences mudar
   useEffect(() => {
-    const newValue = (userProfile?.preferences?.[key] ?? defaultValue) as NonNullable<UserPreferences[K]>
+    const newValue = (userPreferences?.[key] ?? defaultValue) as NonNullable<UserPreferences[K]>
     setValue(newValue)
-  }, [userProfile?.preferences, key, defaultValue])
+  }, [userPreferences, key, defaultValue])
 
   // Função para atualizar preferência no backend
   const updateValue = useCallback(async (newValue: NonNullable<UserPreferences[K]>) => {
@@ -61,15 +61,14 @@ export function useUserPreference<K extends keyof UserPreferences>(
       console.error(`Erro ao atualizar preferência ${String(key)}:`, error)
 
       // Reverter para valor anterior em caso de erro
-      const previousValue = (userProfile?.preferences?.[key] ?? defaultValue) as NonNullable<UserPreferences[K]>
+      const previousValue = (userPreferences?.[key] ?? defaultValue) as NonNullable<UserPreferences[K]>
       setValue(previousValue)
 
       throw error
     } finally {
       setIsLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, key, defaultValue])
+  }, [user, userPreferences, key, defaultValue])
 
   return [value, updateValue, isLoading]
 }

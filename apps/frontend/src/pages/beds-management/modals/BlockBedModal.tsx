@@ -109,7 +109,7 @@ export function BlockBedModal({
     } catch (error) {
       toast({
         title: 'Erro ao bloquear leito',
-        description: getErrorMessage(error),
+        description: getErrorMessage(error, 'Não foi possível bloquear o leito.'),
         variant: 'destructive',
       })
     } finally {

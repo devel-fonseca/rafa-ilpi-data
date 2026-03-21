@@ -11,7 +11,13 @@ import { Plus, Users, FileText, Bed, Calendar } from 'lucide-react'
 export function QuickActionGrid() {
   const navigate = useNavigate()
 
-  const actions = [
+  const actions: Array<{
+    icon: typeof Plus
+    label: string
+    description: string
+    onClick: () => void
+    disabled?: boolean
+  }> = [
     {
       icon: Plus,
       label: 'Novo Residente',

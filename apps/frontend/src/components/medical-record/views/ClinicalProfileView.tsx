@@ -1145,7 +1145,13 @@ export function ClinicalProfileView({
       <GenericHistoryDrawer
         open={profileHistoryOpen}
         onOpenChange={setProfileHistoryOpen}
-        data={clinicalProfileHistoryQuery.data}
+        data={clinicalProfileHistoryQuery.data ? {
+          ...clinicalProfileHistoryQuery.data,
+          history: clinicalProfileHistoryQuery.data.history.map((entry) => ({
+            ...entry,
+            previousData: entry.previousData ?? undefined,
+          })),
+        } : undefined}
         isLoading={clinicalProfileHistoryQuery.isLoading}
         error={clinicalProfileHistoryQuery.error}
         title="Histórico do Perfil Clínico"
@@ -1159,7 +1165,13 @@ export function ClinicalProfileView({
           setAllergyHistoryOpen(open)
           if (!open) setHistoryAllergyId(null)
         }}
-        data={allergyHistoryQuery.data}
+        data={allergyHistoryQuery.data ? {
+          ...allergyHistoryQuery.data,
+          history: allergyHistoryQuery.data.history.map((entry) => ({
+            ...entry,
+            previousData: entry.previousData ?? undefined,
+          })),
+        } : undefined}
         isLoading={allergyHistoryQuery.isLoading}
         error={allergyHistoryQuery.error}
         title="Histórico de Alergia"
@@ -1173,7 +1185,13 @@ export function ClinicalProfileView({
           setConditionHistoryOpen(open)
           if (!open) setHistoryConditionId(null)
         }}
-        data={conditionHistoryQuery.data}
+        data={conditionHistoryQuery.data ? {
+          ...conditionHistoryQuery.data,
+          history: conditionHistoryQuery.data.history.map((entry) => ({
+            ...entry,
+            previousData: entry.previousData ?? undefined,
+          })),
+        } : undefined}
         isLoading={conditionHistoryQuery.isLoading}
         error={conditionHistoryQuery.error}
         title="Histórico de Condição"
@@ -1187,7 +1205,13 @@ export function ClinicalProfileView({
           setRestrictionHistoryOpen(open)
           if (!open) setHistoryRestrictionId(null)
         }}
-        data={restrictionHistoryQuery.data}
+        data={restrictionHistoryQuery.data ? {
+          ...restrictionHistoryQuery.data,
+          history: restrictionHistoryQuery.data.history.map((entry) => ({
+            ...entry,
+            previousData: entry.previousData ?? undefined,
+          })),
+        } : undefined}
         isLoading={restrictionHistoryQuery.isLoading}
         error={restrictionHistoryQuery.error}
         title="Histórico de Restrição Alimentar"

@@ -84,7 +84,7 @@ function normalizeComparablePesoData(data: Record<string, unknown>): ComparableP
   return {
     peso: Number.isFinite(peso) ? peso : undefined,
     altura,
-    imc: Number.isFinite(imc) ? Number(imc.toFixed(2)) : undefined,
+    imc: typeof imc === 'number' && Number.isFinite(imc) ? Number(imc.toFixed(2)) : undefined,
   }
 }
 

@@ -35,6 +35,11 @@ import { getCurrentDate } from '@/utils/dateHelpers'
 import { useFeatures } from '@/hooks/useFeatures'
 import { useProfile } from '@/hooks/useInstitutionalProfile'
 
+type OperationalReportType = Extract<
+  ReportFilters['reportType'],
+  'DAILY' | 'BY_SHIFT' | 'BY_RECORD_TYPE'
+>
+
 // ========== COMPONENT ==========
 
 export default function ReportsHub() {
@@ -112,6 +117,11 @@ export default function ReportsHub() {
           return
         }
 
+        const operationalReportType: OperationalReportType =
+          filters.reportType === 'BY_SHIFT' || filters.reportType === 'BY_RECORD_TYPE'
+            ? filters.reportType
+            : 'DAILY'
+
         // Buscar dados do relatório
         const multiDayReport = await getDailyReport(
           filters.startDate,
@@ -120,11 +130,11 @@ export default function ReportsHub() {
           {
             periodType: filters.periodType,
             yearMonth: filters.yearMonth,
-            reportType: filters.reportType,
+            reportType: operationalReportType,
           },
         )
         const filteredReport = applyOperationalReportFilter(multiDayReport, {
-          reportType: filters.reportType,
+          reportType: operationalReportType,
           recordType: filters.recordType,
         })
 
@@ -150,7 +160,7 @@ export default function ReportsHub() {
           cnes,
           userName,
           printDate,
-          reportType: filters.reportType,
+          reportType: operationalReportType,
           periodType: filters.periodType,
           recordType: filters.recordType,
         })

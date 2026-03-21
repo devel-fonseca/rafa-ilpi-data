@@ -82,9 +82,7 @@ export function DeleteUserModal({ user, open, onOpenChange, onSuccess }: DeleteU
 
     setIsDeleting(true)
     try {
-      await usersApi.remove(user.id, {
-        deleteReason: data.deleteReason.trim(),
-      })
+      await usersApi.remove(user.id, data.deleteReason.trim())
 
       // Sucesso
       toast({

@@ -155,7 +155,8 @@ export function ComplianceEvolutionChart({ assessments }: ComplianceEvolutionCha
             position: 'end',
             color: tokens.mutedText,
             fontSize: 10,
-            formatter: ({ value }: { value?: number }) => {
+            formatter: (params) => {
+              const value = typeof params.value === 'number' ? params.value : Number(params.value ?? 0)
               if (value === 75) return 'REGULAR (75%)'
               if (value === 50) return 'PARCIAL (50%)'
               return ''

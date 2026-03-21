@@ -152,14 +152,13 @@ export function useAddTeamMember() {
   return useMutation({
     mutationFn: ({ teamId, data }: { teamId: string; data: AddTeamMemberDto }) =>
       addTeamMember(teamId, data),
-    onSuccess: (memberData) => {
+    onSuccess: (_memberData, variables) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
         queryKey: tenantKey('care-shifts', 'teams', 'list'),
       });
-      // Usar teamId do membro retornado
       queryClient.invalidateQueries({
-        queryKey: tenantKey('care-shifts', 'teams', memberData.teamId),
+        queryKey: tenantKey('care-shifts', 'teams', variables.teamId),
       });
 
       toast.success('Membro adicionado com sucesso');

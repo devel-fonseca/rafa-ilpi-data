@@ -9,7 +9,7 @@ export interface ResidentWorkspacePageProps {
   content: React.ReactNode
   className?: string
   gridClassName?: string
-  maxWidth?: 'default' | '2xl' | 'full'
+  maxWidth?: 'default' | 'wide' | 'full'
 }
 
 /**
@@ -45,4 +45,3 @@ export function ResidentWorkspacePage({
     </Page>
   )
 }
-

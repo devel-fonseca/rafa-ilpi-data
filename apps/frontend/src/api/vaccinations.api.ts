@@ -5,8 +5,8 @@ import { api } from '@/services/api'
  */
 export interface Vaccination {
   id: string
-  tenantId: string
-  residentId: string
+  tenantId?: string
+  residentId?: string
   // Campos obrigatórios (RDC 502/2021)
   vaccine: string // Nome da vacina/profilaxia
   dose: string // Dose (ex: "1ª dose", "Reforço")
@@ -37,10 +37,18 @@ export interface Vaccination {
   // Metadados do processamento
   processingMetadata?: Record<string, unknown> | null
   // Auditoria
-  userId: string
+  userId?: string
   createdAt: string
   updatedAt: string
   deletedAt?: string | null
+  resident?: {
+    id: string
+    fullName: string
+  }
+  user?: {
+    id: string
+    name: string
+  }
 }
 
 /**

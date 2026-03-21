@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/stores/auth.store'
-import type { QueryClient } from '@tanstack/react-query'
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
 
 /**
  * Query Keys Helpers - Multi-Tenant Namespacing
@@ -62,7 +62,7 @@ export function getTenantScope(): string {
  * tenantKey('residents', residentId, 'medications')
  * // → ['t', 'tenant-123', 'residents', 'res-456', 'medications']
  */
-export function tenantKey(...keys: (string | number | undefined)[]): unknown[] {
+export function tenantKey(...keys: unknown[]): QueryKey {
   const scope = getTenantScope()
   return ['t', scope, ...keys.filter((k) => k !== undefined)]
 }
@@ -91,7 +91,7 @@ export function tenantKey(...keys: (string | number | undefined)[]): unknown[] {
  * superAdminKey('tenants', tenantId)
  * // → ['superadmin', 'tenants', 'tenant-abc-123']
  */
-export function superAdminKey(...keys: (string | number | undefined)[]): unknown[] {
+export function superAdminKey(...keys: unknown[]): QueryKey {
   return ['superadmin', ...keys.filter((k) => k !== undefined)]
 }
 
@@ -116,7 +116,7 @@ export function superAdminKey(...keys: (string | number | undefined)[]): unknown
  */
 export function invalidateByPrefix(
   queryClient: QueryClient,
-  ...prefixKeys: (string | number | undefined)[]
+  ...prefixKeys: unknown[]
 ): Promise<void> {
   const queryKey = tenantKey(...prefixKeys)
   return queryClient.invalidateQueries({ queryKey })
@@ -188,7 +188,7 @@ export function isCurrentTenantQuery(queryKey: unknown[]): boolean {
  * //     ['t', 'tenant-123', 'beds']
  * //   ]
  */
-export function debugTenantQueries(queryClient: QueryClient): unknown[][] {
+export function debugTenantQueries(queryClient: QueryClient): readonly QueryKey[] {
   const currentScope = getTenantScope()
   const cache = queryClient.getQueryCache()
   const allQueries = cache.getAll()

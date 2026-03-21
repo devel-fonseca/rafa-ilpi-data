@@ -20,6 +20,7 @@ export function ViewMonitoramentoModal({
   const hasObservacoes = Boolean(notes && String(notes).trim().length > 0)
 
   const hasVitalSign = (value: unknown) => value !== undefined && value !== null && value !== ''
+  const createdAtLabel = createdAt ?? `${date}T${time}:00`
 
   return (
     <ActionDetailsSheet
@@ -92,7 +93,7 @@ export function ViewMonitoramentoModal({
       )}
 
       <div className="pt-4 border-t text-xs text-muted-foreground">
-        Registrado em {formatDateTimeSafe(createdAt)}
+        Registrado em {formatDateTimeSafe(createdAtLabel)}
       </div>
     </ActionDetailsSheet>
   )

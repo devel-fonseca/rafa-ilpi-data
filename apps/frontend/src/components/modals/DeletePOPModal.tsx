@@ -148,11 +148,6 @@ export function DeletePOPModal({ pop, open, onOpenChange, onSuccess }: DeletePOP
                 <p className="text-sm">
                   <span className="font-semibold">Título:</span> {pop.title}
                 </p>
-                {pop.code && (
-                  <p className="text-sm">
-                    <span className="font-semibold">Código:</span> {pop.code}
-                  </p>
-                )}
                 {pop.category && (
                   <p className="text-sm">
                     <span className="font-semibold">Categoria:</span> {pop.category}

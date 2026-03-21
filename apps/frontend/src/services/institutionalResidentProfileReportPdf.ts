@@ -409,7 +409,7 @@ class InstitutionalResidentProfileReportPDFGenerator {
     this.doc.setFont('times', 'italic')
     this.doc.setFontSize(7)
     this.doc.setTextColor(...COLORS.textSecondary)
-    legendLines.forEach((line, index) => {
+    legendLines.forEach((line: string, index: number) => {
       this.doc.text(line, PAGE_MARGIN, legendY + index * 3)
     })
     this.doc.setFont('helvetica', 'normal')

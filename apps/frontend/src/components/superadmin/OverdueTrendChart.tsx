@@ -53,8 +53,8 @@ export function OverdueTrendChart({ data }: OverdueTrendChartProps) {
         color: tokens.text,
       },
       extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
-      formatter: (params: TooltipRow | TooltipRow[]) => {
-        const rows = Array.isArray(params) ? params : [params]
+      formatter: (params) => {
+        const rows = (Array.isArray(params) ? params : [params]) as TooltipRow[]
         const lines = rows.map((row) => {
           const rawValue = Array.isArray(row.value) ? row.value[row.value.length - 1] : row.value
           const value = Number(rawValue ?? 0)

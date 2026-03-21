@@ -2,7 +2,7 @@
 //  PAGE - ResidentMedicalRecord (Prontuário do Residente)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentProps } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useResident } from '@/hooks/useResidents'
 import { Button } from '@/components/ui/button'
@@ -72,21 +72,6 @@ import type { DailyRecord } from '@/api/dailyRecords.api'
 import { Card, CardContent } from '@/components/ui/card'
 import { api } from '@/services/api'
 import { ResidentBadges } from '@/components/residents/ResidentBadges'
-import type {
-  AlimentacaoRecord,
-  AtividadesRecord,
-  ComportamentoRecord,
-  EliminacaoRecord,
-  HidratacaoRecord,
-  HigieneRecord,
-  HumorRecord,
-  IntercorrenciaRecord,
-  MonitoramentoRecord,
-  OutrosRecord,
-  PesoRecord,
-  SonoRecord,
-  VisitaRecord,
-} from '@/types/daily-records'
 
 // Medical Record Components
 import {
@@ -531,7 +516,7 @@ export default function ResidentProfile() {
         <ViewHigieneModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as HigieneRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewHigieneModal>['record']}
         />
       )}
 
@@ -539,7 +524,7 @@ export default function ResidentProfile() {
         <ViewAlimentacaoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as AlimentacaoRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewAlimentacaoModal>['record']}
         />
       )}
 
@@ -547,7 +532,7 @@ export default function ResidentProfile() {
         <ViewHidratacaoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as HidratacaoRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewHidratacaoModal>['record']}
         />
       )}
 
@@ -555,7 +540,7 @@ export default function ResidentProfile() {
         <ViewMonitoramentoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as MonitoramentoRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewMonitoramentoModal>['record']}
         />
       )}
 
@@ -563,7 +548,7 @@ export default function ResidentProfile() {
         <ViewEliminacaoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as EliminacaoRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewEliminacaoModal>['record']}
         />
       )}
 
@@ -571,7 +556,7 @@ export default function ResidentProfile() {
         <ViewComportamentoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as ComportamentoRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewComportamentoModal>['record']}
         />
       )}
 
@@ -579,7 +564,7 @@ export default function ResidentProfile() {
         <ViewHumorModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as HumorRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewHumorModal>['record']}
         />
       )}
 
@@ -587,7 +572,7 @@ export default function ResidentProfile() {
         <ViewSonoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as SonoRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewSonoModal>['record']}
         />
       )}
 
@@ -595,7 +580,7 @@ export default function ResidentProfile() {
         <ViewPesoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as PesoRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewPesoModal>['record']}
         />
       )}
 
@@ -603,7 +588,7 @@ export default function ResidentProfile() {
         <ViewIntercorrenciaModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as IntercorrenciaRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewIntercorrenciaModal>['record']}
         />
       )}
 
@@ -611,7 +596,7 @@ export default function ResidentProfile() {
         <ViewAtividadesModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as AtividadesRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewAtividadesModal>['record']}
         />
       )}
 
@@ -619,7 +604,7 @@ export default function ResidentProfile() {
         <ViewVisitaModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as VisitaRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewVisitaModal>['record']}
         />
       )}
 
@@ -627,7 +612,7 @@ export default function ResidentProfile() {
         <ViewOutrosModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord as unknown as OutrosRecord}
+          record={viewingRecord as unknown as ComponentProps<typeof ViewOutrosModal>['record']}
         />
       )}
 
@@ -637,7 +622,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as AlimentacaoRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditAlimentacaoModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -647,7 +632,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as MonitoramentoRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditMonitoramentoModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -657,7 +642,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as HigieneRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditHigieneModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -667,7 +652,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as HidratacaoRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditHidratacaoModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -677,7 +662,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as EliminacaoRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditEliminacaoModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -687,7 +672,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as ComportamentoRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditComportamentoModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -697,7 +682,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as HumorRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditHumorModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -707,7 +692,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as SonoRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditSonoModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -717,7 +702,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as PesoRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditPesoModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -727,7 +712,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as IntercorrenciaRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditIntercorrenciaModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -737,7 +722,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as AtividadesRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditAtividadesModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -747,7 +732,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as VisitaRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditVisitaModal>['record']}
           isUpdating={isUpdating}
         />
       )}
@@ -757,7 +742,7 @@ export default function ResidentProfile() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSubmit={handleEditModalSubmit}
-          record={editingRecord as unknown as OutrosRecord}
+          record={editingRecord as unknown as ComponentProps<typeof EditOutrosModal>['record']}
           isUpdating={isUpdating}
         />
       )}

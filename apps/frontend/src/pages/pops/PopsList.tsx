@@ -235,7 +235,7 @@ export default function PopsList() {
                     {/* Category */}
                     <TableCell>
                       <Badge variant="outline">
-                        {PopCategoryLabels[pop.category]}
+                        {PopCategoryLabels[pop.category as PopCategory] ?? pop.category}
                       </Badge>
                     </TableCell>
 

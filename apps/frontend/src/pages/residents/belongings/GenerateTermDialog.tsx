@@ -57,7 +57,7 @@ import {
 } from '@/types/belongings'
 
 const formSchema = z.object({
-  type: z.nativeEnum(BelongingTermType, { required_error: 'Selecione o tipo' }),
+  type: z.nativeEnum(BelongingTermType, { message: 'Selecione o tipo' }),
   termDate: z.string().min(1, 'Data é obrigatória'),
   issuedBy: z.string().min(1, 'Informe quem emitiu').max(150),
   receivedBy: z.string().max(150).optional(),

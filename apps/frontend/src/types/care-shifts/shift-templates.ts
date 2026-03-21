@@ -62,4 +62,6 @@ export interface TenantShiftConfig {
 export interface UpdateTenantShiftConfigDto {
   isEnabled?: boolean;
   customName?: string;
+  customStartTime?: string;
+  customEndTime?: string;
 }

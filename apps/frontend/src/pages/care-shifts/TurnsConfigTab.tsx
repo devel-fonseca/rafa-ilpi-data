@@ -72,9 +72,9 @@ export function TurnsConfigTab() {
     await updateConfigMutation.mutateAsync({
       templateId: editingTemplate.id,
       data: {
-        customName: customName.trim() || null,
-        customStartTime: customStartTime.trim() || null,
-        customEndTime: customEndTime.trim() || null,
+        customName: customName.trim() || undefined,
+        customStartTime: customStartTime.trim() || undefined,
+        customEndTime: customEndTime.trim() || undefined,
       },
     });
 

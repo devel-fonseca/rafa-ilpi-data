@@ -450,6 +450,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                                                   className="w-full mt-2 h-7 text-xs"
                                                                   onClick={(e) => {
                                                                     e.stopPropagation()
+                                                                    if (!bed.resident) return
                                                                     handleOpenTransferModal(
                                                                       bed.resident,
                                                                       bed,

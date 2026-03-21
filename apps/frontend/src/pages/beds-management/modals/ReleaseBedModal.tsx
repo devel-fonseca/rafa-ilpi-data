@@ -108,7 +108,7 @@ export function ReleaseBedModal({
     } catch (error) {
       toast({
         title: 'Erro ao liberar leito',
-        description: getErrorMessage(error),
+        description: getErrorMessage(error, 'Não foi possível liberar o leito.'),
         variant: 'destructive',
       })
     } finally {

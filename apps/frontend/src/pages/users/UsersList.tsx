@@ -55,7 +55,7 @@ import {
   POSITION_CODE_LABELS,
   REGISTRATION_TYPE_LABELS,
 } from '@/types/permissions'
-import { UserWithProfile, UserPermissions } from '@/types/user'
+import { UserProfile, UserWithProfile, UserPermissions } from '@/types/user'
 import { PermissionsManager } from '@/components/users/PermissionsManager'
 import { getErrorMessage } from '@/utils/errorHandling'
 import {
@@ -71,7 +71,7 @@ export default function UsersList() {
   const { toast } = useToast()
 
   const [users, setUsers] = useState<UserWithProfile[]>([])
-  const [profiles, setProfiles] = useState<UserWithProfile[]>([])
+  const [profiles, setProfiles] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
 
   // Modals
@@ -247,7 +247,7 @@ export default function UsersList() {
                       <TableRow key={user.id}>
                         <TableCell className="w-12">
                           <PhotoViewer
-                            photoUrl={profile?.profilePhoto}
+                            photoUrl={profile?.profilePhoto ?? undefined}
                             altText={user.name}
                             size="sm"
                             rounded={true}

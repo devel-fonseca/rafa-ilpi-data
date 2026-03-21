@@ -76,7 +76,7 @@ export default function ResidentContractUpload() {
 
   // Mutation para upload
   const uploadMutation = useMutation({
-    mutationFn: ({ residentId, file, data }: { residentId: string; file: File; data: CreateContractDto }) =>
+    mutationFn: ({ residentId, file, data }: { residentId: string; file: File | null; data: CreateContractDto }) =>
       uploadContract(residentId, file, data),
     onSuccess: (data) => {
       toast.success('Contrato cadastrado com sucesso! Arquivo processado automaticamente.')

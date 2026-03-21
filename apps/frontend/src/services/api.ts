@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.store'
 import { getReauthToken } from '@/lib/reauth-token'
+import type { UserProfile } from '@/types/user'
 
 // Em desenvolvimento: usa localhost:3000
 // Em produção (Docker): usa URL relativa /api (resolvida pelo nginx proxy)
@@ -268,8 +269,8 @@ export async function getMyPermissions() {
 /**
  * Busca todos os perfis de usuários (para ADMINs)
  */
-export async function getAllUserProfiles() {
-  const response = await api.get('/user-profiles')
+export async function getAllUserProfiles(): Promise<UserProfile[]> {
+  const response = await api.get<UserProfile[]>('/user-profiles')
   return response.data
 }
 

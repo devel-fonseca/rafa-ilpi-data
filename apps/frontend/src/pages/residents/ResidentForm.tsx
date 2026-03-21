@@ -235,7 +235,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     if (resident.rgIssuer) setValue('orgaoExpedidor', resident.rgIssuer)
     if (resident.education) setValue('escolaridade', resident.education)
     if (resident.profession) setValue('profissao', resident.profession)
-    if (resident.gender) setValue('genero', resident.gender)
+    if (resident.gender && resident.gender !== 'NAO_INFORMADO') setValue('genero', resident.gender)
     if (resident.civilStatus) setValue('estadoCivil', mapEstadoCivilFromBackend(resident.civilStatus))
     if (resident.religion) setValue('religiao', resident.religion)
     if (resident.birthDate) setValue('dataNascimento', timestamptzToDisplay(resident.birthDate))
@@ -244,7 +244,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     if (resident.birthState) setValue('ufNascimento', resident.birthState)
     if (resident.motherName) setValue('nomeMae', resident.motherName)
     if (resident.fatherName) setValue('nomePai', resident.fatherName)
-    if (resident.status) setValue('status', resident.status)
+    if (resident.status === 'Ativo' || resident.status === 'Inativo' || resident.status === 'Falecido') {
+      setValue('status', resident.status)
+    }
 
     // Endereço Atual
     if (resident.currentCep) setValue('cepAtual', resident.currentCep)

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
-import { useVaccinationsByResident, Vaccination } from '@/hooks/useVaccinations'
+import { useVaccinationsByResident, type Vaccination } from '@/hooks/useVaccinations'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { VaccinationForm } from './VaccinationForm'
 import { VaccinationPrintView } from './VaccinationPrintView'
@@ -72,7 +72,6 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
       setDocumentViewerOpen(true)
     } catch (error) {
       toast.error('Erro ao carregar comprovante')
-      console.error('Erro ao buscar URL do arquivo:', error)
     }
   }
 

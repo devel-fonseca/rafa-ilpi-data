@@ -18,35 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Building2, DoorOpen, Bed as BedIcon, Check, Search, Filter } from 'lucide-react'
-import { Bed as BedType, BedsHierarchy } from '@/api/beds.api'
+import type { Bed, BedsHierarchy } from '@/api/beds.api'
 import { formatBedFromObject } from '@/utils/formatters'
 import { isAvailableBedStatus } from '@/utils/bedStatus'
 
-interface BedEntity {
-  id: string
-  code: string
-  status: string
-  [key: string]: unknown
-}
-
-interface RoomEntity {
-  id: string
-  name: string
-  roomType?: string
-  [key: string]: unknown
-}
-
-interface FloorEntity {
-  id: string
-  name: string
-  [key: string]: unknown
-}
-
-interface BuildingEntity {
-  id: string
-  name: string
-  [key: string]: unknown
-}
+type BuildingNode = BedsHierarchy['buildings'][number]
+type FloorNode = BuildingNode['floors'][number]
+type RoomNode = FloorNode['rooms'][number]
+type BedNode = RoomNode['beds'][number]
 
 interface SelectBedModalProps {
   open: boolean
@@ -54,16 +33,16 @@ interface SelectBedModalProps {
   residentName: string
   currentBedId: string
   data: BedsHierarchy
-  onSelectBed: (bed: BedEntity, room: RoomEntity, floor: FloorEntity, building: BuildingEntity) => void
+  onSelectBed: (bed: BedNode, room: RoomNode, floor: FloorNode, building: BuildingNode) => void
 }
 
 type FilterScope = 'same-room' | 'same-floor' | 'same-building' | 'all'
 
 interface AvailableBed {
-  bed: BedEntity
-  room: RoomEntity
-  floor: FloorEntity
-  building: BuildingEntity
+  bed: BedNode
+  room: RoomNode
+  floor: FloorNode
+  building: BuildingNode
   distance: number // 0 = mesmo quarto, 1 = mesmo andar, 2 = mesmo prédio, 3 = outro prédio
 }
 
@@ -144,9 +123,9 @@ export function SelectBedModal({
 
     // Filtro por busca (código do leito)
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter((b) =>
-        formatBedFromObject(b.bed as BedType).toLowerCase().includes(query) ||
+        const query = searchQuery.toLowerCase()
+        filtered = filtered.filter((b) =>
+        formatBedFromObject(b.bed as Bed).toLowerCase().includes(query) ||
         b.room.name.toLowerCase().includes(query) ||
         b.floor.name.toLowerCase().includes(query) ||
         b.building.name.toLowerCase().includes(query)
@@ -156,7 +135,7 @@ export function SelectBedModal({
     // Ordenar: mais próximos primeiro, depois por código
     return filtered.sort((a, b) => {
       if (a.distance !== b.distance) return a.distance - b.distance
-      return formatBedFromObject(a.bed as BedType).localeCompare(formatBedFromObject(b.bed as BedType))
+      return formatBedFromObject(a.bed as Bed).localeCompare(formatBedFromObject(b.bed as Bed))
     })
   }, [availableBeds, filterScope, searchQuery])
 

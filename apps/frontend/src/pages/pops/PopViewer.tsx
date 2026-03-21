@@ -29,6 +29,7 @@ import {
 import { Separator } from '../../components/ui/separator'
 import { usePop, useMarkPopReviewed, usePublishPop } from '../../hooks/usePops'
 import {
+  PopCategory,
   PopStatus,
   PopStatusLabels,
   PopCategoryLabels,
@@ -38,8 +39,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import PopVersionModal from './PopVersionModal'
 import PopObsoleteModal from './PopObsoleteModal'
-import { usePermissions } from '../../hooks/usePermissions'
-import { PermissionType } from '../../types/permissions'
+import { usePermissions, PermissionType } from '../../hooks/usePermissions'
 import { Page, PageHeader, EmptyState } from '@/design-system/components'
 
 export default function PopViewer() {
@@ -118,7 +118,7 @@ export default function PopViewer() {
         Versão {pop.version}
       </span>
       <span>•</span>
-      <span>{PopCategoryLabels[pop.category]}</span>
+      <span>{PopCategoryLabels[pop.category as PopCategory] ?? pop.category}</span>
       <span>•</span>
       <span>
         Criado em{' '}
@@ -343,7 +343,7 @@ export default function PopViewer() {
                 <div>
                   <p className="font-medium">Categoria</p>
                   <p className="text-muted-foreground">
-                    {PopCategoryLabels[pop.category]}
+                    {PopCategoryLabels[pop.category as PopCategory] ?? pop.category}
                   </p>
                 </div>
                 <Separator />

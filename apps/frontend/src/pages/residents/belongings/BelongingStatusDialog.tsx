@@ -38,7 +38,7 @@ import { changeBelongingStatus } from '@/api/belongings.api'
 import { BelongingStatus, STATUS_LABELS, type ResidentBelonging } from '@/types/belongings'
 
 const formSchema = z.object({
-  status: z.nativeEnum(BelongingStatus, { required_error: 'Selecione o novo status' }),
+  status: z.nativeEnum(BelongingStatus, { message: 'Selecione o novo status' }),
   reason: z.string().min(10, 'Motivo deve ter no mínimo 10 caracteres'),
   exitDate: z.string().min(1, 'Data é obrigatória'),
   exitReceivedBy: z.string().max(150).optional(),

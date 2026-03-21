@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Building2, DoorOpen, Bed as BedIcon, Check, Search } from 'lucide-react'
-import { formatBedFromObject } from '@/utils/formatters'
+import type { Bed, Room, Floor, Building } from '@/api/beds.api'
 import { normalizeBedStatus, type BedStatus } from '@/utils/bedStatus'
 
 const BED_STATUS_COLORS: Record<string, string> = {
@@ -21,34 +21,10 @@ const BED_STATUS_COLORS: Record<string, string> = {
   'Reservado': 'bg-primary/10 text-primary/95 border-primary',
 }
 
-interface BedWithHierarchy {
-  id: string
-  code: string
-  status: BedStatus
-  roomId: string
-  residentId?: string
-  resident?: {
-    id: string
-    fullName: string
-    fotoUrl?: string
-  }
-  occupiedSince?: string
-  notes?: string
-  createdAt: string
-  updatedAt: string
-  room: {
-    id: string
-    name: string
-    roomType?: string
-  }
-  floor: {
-    id: string
-    name: string
-  }
-  building: {
-    id: string
-    name: string
-  }
+type BedWithHierarchy = Omit<Bed, 'room'> & {
+  room: Pick<Room, 'id' | 'name'> & { roomType?: Room['roomType'] }
+  floor: Pick<Floor, 'id' | 'name'>
+  building: Pick<Building, 'id' | 'name'>
 }
 
 interface SelectBedForActionModalProps {
@@ -91,7 +67,7 @@ export function SelectBedForActionModal({
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(
         (bed) =>
-          formatBedFromObject(bed).toLowerCase().includes(query) ||
+          bed.code.toLowerCase().includes(query) ||
           bed.room.name.toLowerCase().includes(query) ||
           bed.floor.name.toLowerCase().includes(query) ||
           bed.building.name.toLowerCase().includes(query)
@@ -221,7 +197,7 @@ export function SelectBedForActionModal({
                               <BedIcon className="h-4 w-4 mt-0.5 shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <div className="font-semibold font-mono text-sm">
-                                  {formatBedFromObject(bed)}
+                                  {bed.code}
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                                   <DoorOpen className="h-3 w-3" />

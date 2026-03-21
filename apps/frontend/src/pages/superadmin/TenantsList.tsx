@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -44,6 +44,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import type { TenantFilters } from '@/api/superadmin.api'
+import type { OverdueTenant } from '@/api/overdue.api'
 import { usePersistedState } from '@/hooks/usePersistedState'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -76,6 +77,7 @@ export function TenantsList() {
     staleTime: 1000 * 60 * 10, // 10 minutos
   })
   const reactivateMutation = useReactivateTenant()
+  const [tenantToSuspend, setTenantToSuspend] = useState<OverdueTenant | null>(null)
 
   useEffect(() => {
     const status = searchParams.get('status')
@@ -122,6 +124,17 @@ export function TenantsList() {
       page: 1,
     }))
   }
+
+  const buildSuspendTenantPayload = (tenant: NonNullable<typeof data>['data'][number]): OverdueTenant => ({
+    tenantId: tenant.id,
+    tenantName: tenant.name,
+    tenantEmail: tenant.email,
+    planName: tenant.subscriptions[0]?.plan.displayName || 'Sem plano',
+    overdueInvoices: 0,
+    totalOverdueAmount: 0,
+    maxDaysOverdue: 0,
+    invoices: [],
+  })
 
   const handlePageChange = (newPage: number) => {
     setFilters((prev) => ({ ...prev, page: newPage }))
@@ -419,14 +432,10 @@ export function TenantsList() {
 
                             {tenant.status === 'ACTIVE' && (
                               <DropdownMenuItem
-                                onSelect={(e) => e.preventDefault()}
-                                className="p-0"
+                                onClick={() => setTenantToSuspend(buildSuspendTenantPayload(tenant))}
+                                className="cursor-pointer text-slate-400 hover:text-slate-900"
                               >
-                                <SuspendTenantDialog
-                                  tenantId={tenant.id}
-                                  tenantName={tenant.name}
-                                  variant="menuItem"
-                                />
+                                Suspender
                               </DropdownMenuItem>
                             )}
 
@@ -491,6 +500,16 @@ export function TenantsList() {
           </div>
         </div>
       )}
+
+      <SuspendTenantDialog
+        open={!!tenantToSuspend}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTenantToSuspend(null)
+          }
+        }}
+        tenant={tenantToSuspend}
+      />
     </div>
   )
 }

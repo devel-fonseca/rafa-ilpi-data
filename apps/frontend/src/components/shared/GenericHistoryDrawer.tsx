@@ -22,7 +22,7 @@ interface GenericHistoryDrawerProps<T> {
       changedFields: string[]
       changedAt: string
       changedByName?: string
-      previousData?: Partial<T>
+      previousData?: Partial<T> | null
       newData: Partial<T>
     }>
   }
@@ -30,7 +30,11 @@ interface GenericHistoryDrawerProps<T> {
   error: unknown
   title: string
   entityName?: string
-  renderFieldChange?: (field: string, prevValue: unknown, newValue: unknown) => React.ReactNode
+  renderFieldChange?: (field: string, prevValue: unknown, newValue: unknown) => React.ReactNode | undefined
+}
+
+function isRenderableNode(value: React.ReactNode | null | undefined): value is React.ReactNode {
+  return value !== undefined && value !== null
 }
 
 export function GenericHistoryDrawer<T = Record<string, unknown>>({
@@ -102,7 +106,7 @@ export function GenericHistoryDrawer<T = Record<string, unknown>>({
             </div>
           )}
 
-          {error && (
+          {Boolean(error) && (
             <div className="flex items-center gap-2 p-4 bg-danger/10 text-danger rounded-md">
               <AlertCircle className="w-4 h-4" />
               <span className="text-sm">Erro ao carregar histórico</span>
@@ -161,9 +165,15 @@ export function GenericHistoryDrawer<T = Record<string, unknown>>({
 
                       {version.changeType === 'UPDATE' && version.previousData && renderFieldChange && (
                         <div className="space-y-2 text-sm">
-                          {version.changedFields.map((field) =>
-                            renderFieldChange(field, (version.previousData as Record<string, unknown>)?.[field], (version.newData as Record<string, unknown>)?.[field])
-                          )}
+                          {version.changedFields
+                            .map((field) =>
+                              renderFieldChange(
+                                field,
+                                (version.previousData as Record<string, unknown>)?.[field],
+                                (version.newData as Record<string, unknown>)?.[field],
+                              ),
+                            )
+                            .filter(isRenderableNode)}
                         </div>
                       )}
 

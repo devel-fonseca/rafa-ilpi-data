@@ -196,6 +196,8 @@ export function BedsStructurePage() {
   }
 
   const confirmDelete = async () => {
+    if (!deleteItem) return
+
     try {
       if (deleteType === 'building') {
         await deleteBuildingMutation.mutateAsync(deleteItem.id)

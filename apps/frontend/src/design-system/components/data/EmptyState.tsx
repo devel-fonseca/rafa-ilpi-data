@@ -63,6 +63,7 @@ const emptyStateVariants = cva(
     variants: {
       variant: {
         default: '', // Neutro (muted-foreground)
+        loading: '', // Carregamento (neutro)
         info: '', // Informativo (azul)
         warning: '', // Atenção (amarelo)
         error: '', // Erro (vermelho)
@@ -79,6 +80,7 @@ const iconVariants = cva('h-16 w-16 mb-4', {
   variants: {
     variant: {
       default: 'text-muted-foreground',
+      loading: 'text-muted-foreground',
       info: 'text-info',
       warning: 'text-warning',
       error: 'text-danger',
@@ -121,7 +123,7 @@ export interface EmptyStateProps
    * Variante visual
    * @default 'default'
    */
-  variant?: 'default' | 'info' | 'warning' | 'error' | 'success'
+  variant?: 'default' | 'loading' | 'info' | 'warning' | 'error' | 'success'
 }
 
 /**

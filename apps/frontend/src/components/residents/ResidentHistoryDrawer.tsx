@@ -15,6 +15,7 @@ import {
   User,
   FileText,
   AlertTriangle,
+  AlertCircle,
   CheckCircle,
   XCircle,
   History as HistoryIcon,
@@ -26,6 +27,7 @@ import { normalizeUTCDate } from '@/utils/dateHelpers'
 
 interface ResidentHistoryEntry {
   id: string
+  versionNumber: number
   changeType: 'CREATE' | 'UPDATE' | 'DELETE'
   changedAt: string
   changedBy: {

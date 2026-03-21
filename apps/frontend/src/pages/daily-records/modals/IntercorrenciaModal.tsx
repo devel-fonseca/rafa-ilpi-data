@@ -41,12 +41,11 @@ const intercorrenciaSchema = z.object({
     .min(1, 'Horário é obrigatório')
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
   categoria: z.nativeEnum(IncidentCategory, {
-    required_error: 'Categoria é obrigatória',
-    errorMap: () => ({ message: 'Por favor, selecione uma categoria' }),
+    message: 'Por favor, selecione uma categoria',
   }),
   subtipo: z.string().min(1, 'Subtipo é obrigatório'),
   severidade: z.nativeEnum(IncidentSeverity, {
-    errorMap: () => ({ message: 'Por favor, selecione a gravidade da intercorrência' }),
+    message: 'Por favor, selecione a gravidade da intercorrência',
   }),
   descricao: z.string().min(1, 'Descrição é obrigatória'),
   acaoTomada: z.string().min(1, 'Ação tomada é obrigatória'),

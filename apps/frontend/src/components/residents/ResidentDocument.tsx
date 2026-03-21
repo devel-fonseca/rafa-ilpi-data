@@ -44,10 +44,10 @@ interface ResidentData extends Omit<Resident, 'allergies' | 'documents' | 'emerg
   // Alergias (estrutura diferente do Resident base)
   allergies?: Array<{ substance: string; [key: string]: unknown }> | null
   // Acomodação - objetos expandidos vindos do backend
-  bed?: { id: string; code: string; status?: string }
-  room?: { id: string; name: string; code?: string }
-  floor?: { id: string; name: string; code?: string }
-  building?: { id: string; name: string; code?: string }
+  bed?: { id?: string; code?: string; status?: string }
+  room?: { id?: string; name?: string; code?: string }
+  floor?: { id?: string; name?: string; code?: string }
+  building?: { id?: string; name?: string; code?: string }
 }
 
 interface ResidentDocumentProps {

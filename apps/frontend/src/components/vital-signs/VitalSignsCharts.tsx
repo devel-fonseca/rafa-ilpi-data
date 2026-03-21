@@ -190,11 +190,11 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
                 position: 'end',
                 color: tokens.mutedText,
                 fontSize: 10,
-                formatter: ({ data }: { data?: { label?: string } }) => data?.label ?? '',
+                formatter: (params) => params.name ?? '',
               },
               data: thresholds.map((threshold) => ({
+                name: threshold.label,
                 yAxis: threshold.value,
-                label: threshold.label,
                 lineStyle: {
                   color: threshold.color,
                   type: 'dashed',

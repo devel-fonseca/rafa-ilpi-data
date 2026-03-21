@@ -33,10 +33,10 @@ export function WelcomeToActivePlanDialog() {
   const { data: subscriptionData } = useMySubscription()
   const { data: invoicesData } = useTenantInvoices({ status: 'OPEN', limit: 1 })
 
-  const pendingInvoice = invoicesData?.data?.[0]
+  const pendingInvoiceId = invoicesData?.data?.[0]?.id
   const storageKey =
-    user?.tenantId && pendingInvoice?.id
-      ? `welcome-active-plan-seen:${user.tenantId}:${pendingInvoice.id}`
+    user?.tenantId && pendingInvoiceId
+      ? `welcome-active-plan-seen:${user.tenantId}:${pendingInvoiceId}`
       : null
 
   useEffect(() => {
@@ -99,6 +99,7 @@ export function WelcomeToActivePlanDialog() {
     return null
   }
 
+  const pendingInvoice = invoicesData.data[0]
   const { plan } = subscriptionData
   const dueDate = new Date(pendingInvoice.dueDate)
   const dueDateFormatted = dueDate.toLocaleDateString('pt-BR', {

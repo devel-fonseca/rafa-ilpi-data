@@ -40,16 +40,31 @@ export function ResidentPrintView() {
     }
   }, [residentData, healthSummary])
 
+  const residentDocumentData = useMemo(() => {
+    if (!residentWithHealth) return null
+
+    return {
+      ...residentWithHealth,
+      allergies:
+        residentWithHealth.allergies?.map((allergy) => ({
+          substance: allergy.substance,
+          severity: allergy.severity,
+          reaction: allergy.reaction,
+        })) ?? null,
+      documents: residentWithHealth.documents?.map((document) => document.url) ?? null,
+    }
+  }, [residentWithHealth])
+
   // Função de impressão usando react-to-print
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Registro_Residente_${residentWithHealth?.fullName.replace(/\s/g, '_')}_${getCurrentDate()}`,
+    documentTitle: `Registro_Residente_${residentDocumentData?.fullName.replace(/\s/g, '_')}_${getCurrentDate()}`,
   })
 
   // Função de exportação para PDF
   // TODO: Migrar para @react-pdf/renderer
   const handleExportPDF = async () => {
-    if (!printRef.current || !residentWithHealth) return
+    if (!printRef.current || !residentDocumentData) return
 
     setIsExporting(true)
 
@@ -92,7 +107,7 @@ export function ResidentPrintView() {
     )
   }
 
-  if (residentError || !residentWithHealth) {
+  if (residentError || !residentDocumentData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -111,7 +126,7 @@ export function ResidentPrintView() {
     <Page className="min-h-screen bg-muted print:bg-white">
       <div className="print:hidden">
         <PageHeader
-          title={residentWithHealth.fullName}
+          title={residentDocumentData.fullName}
           subtitle="Visualizando as informações do residente"
           onBack={() => navigate('/dashboard/residentes')}
           actions={
@@ -151,7 +166,7 @@ export function ResidentPrintView() {
       <div className="py-8 print:py-0">
         <div ref={printRef}>
           <ResidentDocument
-            resident={residentWithHealth as Record<string, unknown>}
+            resident={residentDocumentData}
             isPrinting={false}
           />
         </div>

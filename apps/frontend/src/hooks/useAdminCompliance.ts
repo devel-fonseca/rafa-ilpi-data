@@ -4,6 +4,7 @@ import { tenantKey } from '@/lib/query-keys'
 
 interface ComplianceStats {
   activeResidents: number
+  residentsWithSchedules: number
   medications: {
     scheduled: number
     administered: number
@@ -25,7 +26,10 @@ export function useAdminCompliance() {
     queryKey: tenantKey('admin-compliance'),
     queryFn: async () => {
       const response = await api.get('/admin-dashboard/daily-summary')
-      return response.data
+      return {
+        residentsWithSchedules: 0,
+        ...response.data,
+      }
     },
     refetchInterval: 60000, // Atualiza a cada 1 minuto
     staleTime: 30000, // Considera dados frescos por 30 segundos

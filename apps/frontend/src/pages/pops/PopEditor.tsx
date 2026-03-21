@@ -38,8 +38,7 @@ import {
 } from '../../types/pop.types'
 import { toast } from 'sonner'
 import PopTemplatesModal from './PopTemplatesModal'
-import { usePermissions } from '../../hooks/usePermissions'
-import { PermissionType } from '../../types/permissions'
+import { usePermissions, PermissionType } from '../../hooks/usePermissions'
 import { Page, PageHeader, EmptyState } from '@/design-system/components'
 
 export default function PopEditor() {
@@ -131,7 +130,7 @@ export default function PopEditor() {
   const handleTemplateSelected = (
     templateTitle: string,
     templateContent: string,
-    templateCategory: PopCategory,
+    templateCategory: string,
     selectedTemplateId: string,
     suggestedReviewMonths?: number
   ) => {

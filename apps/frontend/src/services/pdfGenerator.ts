@@ -48,6 +48,18 @@ interface PDFData {
   records: DailyRecord[]
 }
 
+const getStringValue = (value: unknown, fallback = ''): string => {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  return fallback
+}
+
+const getNumberValue = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 // ==================== CONSTANTES ====================
 
 const PAGE_WIDTH = 210 // A4 em mm
@@ -79,12 +91,12 @@ function calculateTotalHydration(records: DailyRecord[]): number {
 
   // Hidratação direta
   records.filter(r => r.type === 'HIDRATACAO').forEach(r => {
-    total += r.data?.volumeMl || 0
+    total += getNumberValue(r.data?.volumeMl)
   })
 
   // Hidratação durante alimentação
   records.filter(r => r.type === 'ALIMENTACAO').forEach(r => {
-    total += r.data?.volumeMl || 0
+    total += getNumberValue(r.data?.volumeMl)
   })
 
   return total
@@ -108,7 +120,7 @@ function calculateFoodPercentage(records: DailyRecord[]): number {
   }
 
   const totalIngestao = alimentacaoRecords.reduce(
-    (sum, r) => sum + converteIngestao(r.data?.ingeriu || 'Recusou'),
+    (sum, r) => sum + converteIngestao(getStringValue(r.data?.ingeriu, 'Recusou')),
     0
   )
 
@@ -129,10 +141,10 @@ function getMealsByType(records: DailyRecord[]): Record<string, { percentage: st
   }
 
   records.filter(r => r.type === 'ALIMENTACAO').forEach(r => {
-    const refeicao = r.data?.refeicao
+    const refeicao = getStringValue(r.data?.refeicao)
     if (refeicao && meals[refeicao]) {
       meals[refeicao] = {
-        percentage: r.data?.ingeriu || '-',
+        percentage: getStringValue(r.data?.ingeriu, '-'),
         time: r.time || '-'
       }
     }
@@ -335,11 +347,11 @@ function drawVitals(doc: jsPDF, records: DailyRecord[], startY: number): number 
     const data = record.data || {}
     const values = [
       record.time || '-',
-      data.pressaoArterial || '-',
-      data.temperatura ? `${data.temperatura}°C` : '-',
-      data.frequenciaCardiaca ? `${data.frequenciaCardiaca}bpm` : '-',
-      data.saturacaoO2 ? `${data.saturacaoO2}%` : '-',
-      data.glicemia ? `${data.glicemia}mg/dL` : '-',
+      getStringValue(data.pressaoArterial, '-'),
+      data.temperatura ? `${getStringValue(data.temperatura)}°C` : '-',
+      data.frequenciaCardiaca ? `${getStringValue(data.frequenciaCardiaca)}bpm` : '-',
+      data.saturacaoO2 ? `${getStringValue(data.saturacaoO2)}%` : '-',
+      data.glicemia ? `${getStringValue(data.glicemia)}mg/dL` : '-',
     ]
 
     values.forEach((value, idx) => {
@@ -384,14 +396,17 @@ function drawHygieneElimination(doc: jsPDF, records: DailyRecord[], startY: numb
   let textY = y + 6
   if (higieneRecords.length > 0) {
     higieneRecords.forEach(record => {
-      const data = record.data || {}
-      if (data.tipoBanho) doc.text(`Banho: ${data.tipoBanho}`, MARGIN + 2, textY)
+      const data = (record.data || {}) as Record<string, unknown>
+      const tipoBanho = getStringValue(data.tipoBanho)
+      const condicaoPele = getStringValue(data.condicaoPele)
+      const quantidadeFraldas = getNumberValue(data.quantidadeFraldas)
+      if (tipoBanho) doc.text(`Banho: ${tipoBanho}`, MARGIN + 2, textY)
       textY += 3
-      if (data.condicaoPele) doc.text(`Pele: ${data.condicaoPele}`, MARGIN + 2, textY)
+      if (condicaoPele) doc.text(`Pele: ${condicaoPele}`, MARGIN + 2, textY)
       textY += 3
       if (data.higieneBucal !== undefined) doc.text(`Hig.Bucal: ${data.higieneBucal ? 'Sim' : 'Não'}`, MARGIN + 2, textY)
       textY += 3
-      if (data.trocaFralda) doc.text(`Fraldas: ${data.quantidadeFraldas || 0}x`, MARGIN + 2, textY)
+      if (data.trocaFralda) doc.text(`Fraldas: ${quantidadeFraldas}x`, MARGIN + 2, textY)
     })
   } else {
     doc.text('Nenhum registro', MARGIN + 2, textY)
@@ -400,8 +415,8 @@ function drawHygieneElimination(doc: jsPDF, records: DailyRecord[], startY: numb
   // Eliminação
   textY = y + 6
   if (eliminacaoRecords.length > 0) {
-    const urinaCount = eliminacaoRecords.filter(r => r.data?.tipo === 'Urina').length
-    const fezesCount = eliminacaoRecords.filter(r => r.data?.tipo === 'Fezes').length
+    const urinaCount = eliminacaoRecords.filter((r) => getStringValue(r.data?.tipo) === 'Urina').length
+    const fezesCount = eliminacaoRecords.filter((r) => getStringValue(r.data?.tipo) === 'Fezes').length
 
     doc.text(`Eliminação Urinária: ${urinaCount}x`, MARGIN + colWidth + 7, textY)
     textY += 3
@@ -410,10 +425,12 @@ function drawHygieneElimination(doc: jsPDF, records: DailyRecord[], startY: numb
     // Observações (limitadas)
     let obsCount = 0
     eliminacaoRecords.forEach(record => {
-      if (record.data?.frequencia && obsCount < 2) {
+      const tipo = getStringValue(record.data?.tipo)
+      const frequencia = getStringValue(record.data?.frequencia)
+      if (frequencia && obsCount < 2) {
         textY += 3
         doc.setFontSize(6)
-        doc.text(`${record.data.tipo}: ${record.data.frequencia}`, MARGIN + colWidth + 7, textY)
+        doc.text(`${tipo}: ${frequencia}`, MARGIN + colWidth + 7, textY)
         obsCount++
       }
     })
@@ -462,14 +479,14 @@ function drawActivitiesBehavior(doc: jsPDF, records: DailyRecord[], startY: numb
   // Atividades
   atividadesRecords.forEach(record => {
     if (textY > y + sectionHeight - 2) return // Evita overflow
-    doc.text(`• ${record.time} - ${record.data?.atividade || 'Atividade'}`, MARGIN + 2, textY)
+    doc.text(`• ${record.time} - ${getStringValue(record.data?.atividade, 'Atividade')}`, MARGIN + 2, textY)
     textY += lineHeight
   })
 
   // Comportamento
   comportamentoRecords.forEach(record => {
     if (textY > y + sectionHeight - 2) return // Evita overflow
-    const desc = record.data?.descricao || 'Comportamento adequado'
+    const desc = getStringValue(record.data?.descricao, 'Comportamento adequado')
     const shortDesc = desc.length > 70 ? desc.substring(0, 70) + '...' : desc
     doc.text(`• ${record.time} - ${shortDesc}`, MARGIN + 2, textY)
     textY += lineHeight
@@ -478,14 +495,14 @@ function drawActivitiesBehavior(doc: jsPDF, records: DailyRecord[], startY: numb
   // Visitas
   visitaRecords.forEach(record => {
     if (textY > y + sectionHeight - 2) return // Evita overflow
-    doc.text(`• ${record.time} - Visita: ${record.data?.visitante || 'Visitante'}`, MARGIN + 2, textY)
+    doc.text(`• ${record.time} - Visita: ${getStringValue(record.data?.visitante, 'Visitante')}`, MARGIN + 2, textY)
     textY += lineHeight
   })
 
   // Outros
   outrosRecords.forEach(record => {
     if (textY > y + sectionHeight - 2) return // Evita overflow
-    const desc = record.data?.descricao || 'Outros'
+    const desc = getStringValue(record.data?.descricao, 'Outros')
     const shortDesc = desc.length > 70 ? desc.substring(0, 70) + '...' : desc
     doc.text(`• ${record.time} - ${shortDesc}`, MARGIN + 2, textY)
     textY += lineHeight
@@ -516,7 +533,7 @@ function drawIncidents(doc: jsPDF, records: DailyRecord[], startY: number): numb
   let estimatedLines = 0
   intercorrenciaRecords.forEach(record => {
     estimatedLines++ // Linha da intercorrência
-    if (record.data?.acaoTomada) estimatedLines++ // Linha da ação
+    if (getStringValue(record.data?.acaoTomada)) estimatedLines++ // Linha da ação
   })
   const sectionHeight = Math.min(Math.max(10, estimatedLines * lineHeight + 5), 30) // Min 10mm, Max 30mm
 
@@ -531,12 +548,13 @@ function drawIncidents(doc: jsPDF, records: DailyRecord[], startY: number): numb
 
   intercorrenciaRecords.forEach(record => {
     if (textY > y + sectionHeight - 2) return // Evita overflow
-    const desc = record.data?.descricao || 'Intercorrência'
+    const desc = getStringValue(record.data?.descricao, 'Intercorrência')
     const shortDesc = desc.length > 75 ? desc.substring(0, 75) + '...' : desc
     doc.text(`• ${record.time} - ${shortDesc}`, MARGIN + 2, textY)
     textY += lineHeight
-    if (record.data?.acaoTomada && textY <= y + sectionHeight - 2) {
-      const acao = record.data.acaoTomada.length > 75 ? record.data.acaoTomada.substring(0, 75) + '...' : record.data.acaoTomada
+    const acaoTomada = getStringValue(record.data?.acaoTomada)
+    if (acaoTomada && textY <= y + sectionHeight - 2) {
+      const acao = acaoTomada.length > 75 ? acaoTomada.substring(0, 75) + '...' : acaoTomada
       doc.setFontSize(6)
       doc.text(`  Ação: ${acao}`, MARGIN + 4, textY)
       doc.setFontSize(7)

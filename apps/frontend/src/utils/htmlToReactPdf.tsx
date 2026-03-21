@@ -146,8 +146,9 @@ function renderNodes(nodes: ParsedNode[], parentType?: string): React.ReactNode 
 
     // Links
     if (node.type === 'a') {
+      const href = typeof node.attrs?.href === 'string' ? node.attrs.href : '#'
       return (
-        <Link key={key} src={node.attrs?.href || '#'} style={{ color: '#0066cc' }}>
+        <Link key={key} src={href} style={{ color: '#0066cc' }}>
           {node.children && renderNodes(node.children, parentType)}
         </Link>
       )

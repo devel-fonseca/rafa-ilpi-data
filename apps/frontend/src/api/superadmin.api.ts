@@ -82,6 +82,23 @@ export interface Subscription {
   plan: Plan
 }
 
+export interface SubscriptionChange {
+  id: string
+  date: string
+  oldPlanId?: string
+  newPlanId?: string
+  reason?: string
+  source: 'SELF_SERVICE' | 'SUPERADMIN'
+  message: string
+}
+
+export interface SubscriptionChangeHistoryResponse {
+  data: SubscriptionChange[]
+  meta: {
+    total: number
+  }
+}
+
 export interface Plan {
   id: string
   name: string
@@ -91,6 +108,7 @@ export interface Plan {
   billingCycle: 'MONTHLY' | 'ANNUAL'
   maxResidents: number
   maxUsers: number
+  features?: Record<string, boolean> | null
 }
 
 export interface TenantsListResponse {

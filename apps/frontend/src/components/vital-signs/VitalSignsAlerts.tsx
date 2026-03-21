@@ -90,6 +90,10 @@ type UnifiedAlert = {
   isSentinel?: boolean
 }
 
+function isUnifiedAlert(value: UnifiedAlert | null): value is UnifiedAlert {
+  return value !== null
+}
+
 const VITAL_RELATED_SUBTYPES = new Set([
   'FEBRE_HIPERTERMIA',
   'HIPOTERMIA',
@@ -433,8 +437,8 @@ export function VitalSignsAlerts({ residentId, periodDays = 7 }: VitalSignsAlert
           }
         })
 
-      const monitoringEvents: UnifiedAlert[] = monitoramentos
-        .map((record) => {
+      const monitoringEvents = monitoramentos
+        .map<UnifiedAlert | null>((record) => {
           const anomalies = detectMonitoringAnomalies(record)
           if (!anomalies) return null
 
@@ -453,7 +457,7 @@ export function VitalSignsAlerts({ residentId, periodDays = 7 }: VitalSignsAlert
             type: anomalies.type,
           } satisfies UnifiedAlert
         })
-        .filter((event): event is UnifiedAlert => !!event)
+        .filter(isUnifiedAlert)
 
       // Evitar duplicação: se já existe intercorrência clínica no mesmo minuto/parâmetro,
       // suprimir o evento "Monitoramento anormal" correspondente.

@@ -242,14 +242,15 @@ export function canManageVitalSignAlerts(user: User | null): boolean {
   if (!user) return false
 
   const medicalPositions = ['DOCTOR', 'NURSE', 'NURSING_COORDINATOR']
+  const positionCode = user.profile?.positionCode
 
   // Se é um cargo médico/enfermagem direto
-  if (medicalPositions.includes(user.profile?.positionCode)) {
+  if (positionCode && medicalPositions.includes(positionCode)) {
     return true
   }
 
   // Se é RT, verificar se tem registro de saúde (COREN, CRM, etc)
-  if (user.profile?.positionCode === 'TECHNICAL_MANAGER') {
+  if (positionCode === 'TECHNICAL_MANAGER') {
     const hasHealthRegistration =
       user.profile?.registrationType === 'COREN' ||
       user.profile?.registrationType === 'CRM'

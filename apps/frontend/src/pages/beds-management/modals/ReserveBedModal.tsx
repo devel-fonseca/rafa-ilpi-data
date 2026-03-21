@@ -115,7 +115,7 @@ export function ReserveBedModal({
     } catch (error) {
       toast({
         title: 'Erro ao reservar leito',
-        description: getErrorMessage(error),
+        description: getErrorMessage(error, 'Não foi possível reservar o leito.'),
         variant: 'destructive',
       })
     } finally {

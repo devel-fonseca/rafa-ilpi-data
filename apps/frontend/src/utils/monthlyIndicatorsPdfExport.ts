@@ -394,7 +394,7 @@ export async function generateMonthlyIndicatorsPdfReport(options: ExportOptions)
     },
   });
 
-  currentY = (doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  currentY = (doc.lastAutoTable?.finalY ?? currentY) + 10;
   const hasTrendHistory = Boolean(history && history.length > 0);
 
   // ====================
@@ -408,7 +408,7 @@ export async function generateMonthlyIndicatorsPdfReport(options: ExportOptions)
     currentY += 6;
 
     // Preparar dados históricos para tabela
-    const sortedHistory = [...history]
+    const sortedHistory = [...(history ?? [])]
       .sort((a, b) => {
         if (a.year !== b.year) return b.year - a.year;
         return b.month - a.month;

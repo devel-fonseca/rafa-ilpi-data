@@ -27,6 +27,11 @@ export interface User {
     profilePhoto?: string | null
     positionCode?: string | null
     registrationType?: string | null
+    registrationNumber?: string | null
+    registrationState?: string | null
+    isTechnicalManager?: boolean
+    isNursingCoordinator?: boolean
+    preferences?: Record<string, unknown> | null
   }
 }
 

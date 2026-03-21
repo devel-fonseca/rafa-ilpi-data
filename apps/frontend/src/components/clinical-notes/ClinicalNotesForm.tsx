@@ -305,7 +305,7 @@ export function ClinicalNotesForm({
   }
 
   const insertVitalSignsIntoObjective = () => {
-    const vitalSignsText = formatVitalSignsToText(lastVitalSign)
+    const vitalSignsText = formatVitalSignsToText(lastVitalSign ?? null)
     const currentObjective = objective || ''
     const newObjective = currentObjective
       ? `${currentObjective}\n\n${vitalSignsText}`

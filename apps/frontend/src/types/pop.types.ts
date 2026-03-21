@@ -29,7 +29,7 @@ export interface Pop {
   id: string
   tenantId: string
   title: string
-  category: PopCategory
+  category: string
   templateId: string | null
   content: string
   status: PopStatus
@@ -114,7 +114,7 @@ export interface PopHistory {
 export interface PopTemplate {
   id: string
   title: string
-  category: PopCategory
+  category: string
   description: string
   defaultContent: string
   suggestedReviewMonths?: number
@@ -125,7 +125,7 @@ export interface PopTemplate {
  */
 export interface CreatePopDto {
   title: string
-  category: PopCategory
+  category: string
   templateId?: string
   content: string
   reviewIntervalMonths?: number
@@ -162,7 +162,7 @@ export interface AddAttachmentDto {
 
 export interface FilterPopsDto {
   status?: PopStatus
-  category?: PopCategory
+  category?: string
   requiresReview?: boolean
   templateId?: string
   search?: string

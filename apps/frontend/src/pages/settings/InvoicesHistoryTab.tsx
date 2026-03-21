@@ -29,6 +29,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { PixPaymentDisplay } from '@/components/billing/PixPaymentDisplay'
+import type { Invoice } from '@/api/invoices.api'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   DRAFT: { label: 'Rascunho', variant: 'outline' },
@@ -100,7 +101,7 @@ export function InvoicesHistoryTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices.map((invoice: { id: string; status: string; dueDate: string; [key: string]: unknown }) => {
+                  {invoices.map((invoice: Invoice) => {
                     const statusInfo = STATUS_LABELS[invoice.status] || {
                       label: invoice.status,
                       variant: 'outline' as const,
@@ -176,7 +177,7 @@ export function InvoicesHistoryTab() {
                                   </DialogHeader>
                                   <PixPaymentDisplay
                                     pixPayload={invoice.asaasPixPayload}
-                                    pixQrCodeId={invoice.asaasPixQrCodeId}
+                                    pixQrCodeId={invoice.asaasPixQrCodeId ?? undefined}
                                     amount={Number(invoice.amount)}
                                     dueDate={invoice.dueDate}
                                   />
@@ -190,7 +191,11 @@ export function InvoicesHistoryTab() {
                                 variant="ghost"
                                 size="sm"
                                 className="text-primary hover:text-primary hover:bg-accent"
-                                onClick={() => window.open(invoice.paymentUrl, '_blank')}
+                                onClick={() => {
+                                  if (invoice.paymentUrl) {
+                                    window.open(invoice.paymentUrl, '_blank')
+                                  }
+                                }}
                               >
                                 <ExternalLink className="h-4 w-4 mr-1" />
                                 Ver no Asaas

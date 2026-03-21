@@ -23,6 +23,7 @@ export interface Invoice {
   discountPercent?: number
   discountReason?: string
   billingCycle?: string
+  billingType?: string | null
   description?: string
   currency: string
   status: InvoiceStatus
@@ -30,6 +31,8 @@ export interface Invoice {
   paidAt: string | null
   asaasInvoiceId: string | null
   paymentUrl: string | null
+  asaasPixPayload?: string | null
+  asaasPixQrCodeId?: string | null
   createdAt: string
   updatedAt: string
   tenant: {
@@ -39,6 +42,8 @@ export interface Invoice {
   }
   subscription: {
     id: string
+    currentPeriodStart?: string | null
+    currentPeriodEnd?: string | null
     plan: {
       id: string
       displayName: string

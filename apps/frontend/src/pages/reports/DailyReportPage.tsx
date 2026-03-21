@@ -23,6 +23,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+type OperationalReportType = Extract<ReportType, 'DAILY' | 'BY_SHIFT' | 'BY_RECORD_TYPE'>
+
 export default function DailyReportPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -30,6 +32,8 @@ export default function DailyReportPage() {
   const endDate = searchParams.get('endDate') || undefined
   const shiftTemplateId = searchParams.get('shiftTemplateId') || undefined
   const reportType = (searchParams.get('reportType') as ReportType | null) || 'DAILY'
+  const operationalReportType: OperationalReportType =
+    reportType === 'BY_SHIFT' || reportType === 'BY_RECORD_TYPE' ? reportType : 'DAILY'
   const recordType = (searchParams.get('recordType') as RecordTypeFilter | null) || undefined
   const periodType = (searchParams.get('periodType') as 'DAY' | 'MONTH' | null) || 'DAY'
   const yearMonth = searchParams.get('yearMonth') || undefined
@@ -44,7 +48,7 @@ export default function DailyReportPage() {
       getDailyReport(startDate, endDate, shiftTemplateId, {
         periodType,
         yearMonth,
-        reportType,
+        reportType: operationalReportType,
       }),
     enabled: !!startDate,
     staleTime: 1000 * 60 * 5, // 5 minutos
@@ -106,13 +110,13 @@ export default function DailyReportPage() {
         minute: '2-digit',
       })
 
-      downloadDailyReportPDF(filteredReport, {
+        downloadDailyReportPDF(filteredReport, {
         ilpiName,
         cnpj,
         cnes,
         userName,
         printDate,
-        reportType,
+        reportType: operationalReportType,
         periodType,
         recordType,
       })

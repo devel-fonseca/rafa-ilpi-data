@@ -21,21 +21,8 @@ import {
 } from '@/components/ui/select'
 import { useCreateInvoice } from '@/hooks/useInvoices'
 import { useTenants } from '@/hooks/useSuperAdmin'
+import type { Subscription, Tenant } from '@/api/superadmin.api'
 import { useToast } from '@/components/ui/use-toast'
-
-interface Subscription {
-  id: string
-  status: string
-  [key: string]: unknown
-}
-
-interface Tenant {
-  id: string
-  name: string
-  email: string
-  subscriptions: Subscription[]
-  [key: string]: unknown
-}
 
 interface CreateInvoiceDialogProps {
   open: boolean

@@ -18,11 +18,16 @@ import { useMessageReadStats } from '@/hooks/useMessages';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { POSITION_CODE_LABELS } from '@/types/permissions';
+import { POSITION_CODE_LABELS, type PositionCode } from '@/types/permissions';
 
 interface MessageReadStatsDialogProps {
   messageId: string;
   trigger?: React.ReactNode;
+}
+
+function getPositionLabel(positionCode?: string | null): string | undefined {
+  if (!positionCode) return undefined
+  return POSITION_CODE_LABELS[positionCode as PositionCode] || positionCode
 }
 
 export function MessageReadStatsDialog({ messageId, trigger }: MessageReadStatsDialogProps) {
@@ -123,7 +128,7 @@ export function MessageReadStatsDialog({ messageId, trigger }: MessageReadStatsD
                             </p>
                             {recipient.positionCode && (
                               <Badge variant="outline" className="text-xs mt-1">
-                                {POSITION_CODE_LABELS[recipient.positionCode] || recipient.positionCode}
+                                {getPositionLabel(recipient.positionCode)}
                               </Badge>
                             )}
                           </div>
@@ -173,7 +178,7 @@ export function MessageReadStatsDialog({ messageId, trigger }: MessageReadStatsD
                             </p>
                             {recipient.positionCode && (
                               <Badge variant="outline" className="text-xs mt-1">
-                                {POSITION_CODE_LABELS[recipient.positionCode] || recipient.positionCode}
+                                {getPositionLabel(recipient.positionCode)}
                               </Badge>
                             )}
                           </div>

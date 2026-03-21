@@ -81,7 +81,7 @@ const contentSpacingMap = {
 }
 
 export interface SectionProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'>,
     VariantProps<typeof sectionVariants> {
   /**
    * Título da seção (opcional)

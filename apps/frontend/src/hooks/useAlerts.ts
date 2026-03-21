@@ -36,7 +36,7 @@ export function useUnreadCount() {
 
   return useQuery({
     queryKey: tenantKey('alerts', 'unread-count'),
-    queryFn: getUnreadCount,
+    queryFn: () => getUnreadCount(),
     enabled: isAuthenticated, // Só pollar quando autenticado
     staleTime: 1000 * 60, // 1 minuto
     refetchOnWindowFocus: false,

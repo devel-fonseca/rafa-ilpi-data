@@ -19,7 +19,11 @@ export function SystemSettings() {
 
   const runJob = async (jobKey: string, endpoint: string, jobName: string) => {
     setLoadingJobs((prev) => ({ ...prev, [jobKey]: true }))
-    setJobResults((prev) => ({ ...prev, [jobKey]: undefined }))
+    setJobResults((prev) => {
+      const next = { ...prev }
+      delete next[jobKey]
+      return next
+    })
 
     try {
       const response = await api.post(endpoint)

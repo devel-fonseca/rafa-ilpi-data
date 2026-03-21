@@ -50,7 +50,7 @@ export default function Login() {
     try {
       const result = await login(formData.email, formData.password)
 
-      if (result?.requiresTenantSelection) {
+      if (result?.requiresTenantSelection && result.tenants && result.tenants.length > 0) {
         setShowTenantSelection(true)
         setSelectedTenantId(result.tenants[0].id) // Selecionar primeiro por padrão
       }

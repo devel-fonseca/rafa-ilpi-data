@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { dailyRecordsAPI } from '@/api/dailyRecords.api'
+import { dailyRecordsAPI, type RecordType } from '@/api/dailyRecords.api'
 import { useToast } from '@/components/ui/use-toast'
 import { tenantKey } from '@/lib/query-keys'
 
@@ -29,7 +29,7 @@ export function useUpdateDailyRecord() {
       id: string
       data: {
         editReason: string
-        type?: string
+        type?: RecordType
         date?: string
         time?: string
         data?: Record<string, unknown>

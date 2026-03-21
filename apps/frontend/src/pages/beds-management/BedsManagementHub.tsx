@@ -167,7 +167,11 @@ export default function BedsManagementHub() {
   }
 
   // Filtros de status para cada ação
-  const getSelectModalConfig = () => {
+  const getSelectModalConfig = (): {
+    title: string
+    description: string
+    allowedStatuses?: BedStatus[]
+  } => {
     if (pendingAction === 'reserve') {
       return {
         title: 'Selecionar Leito para Reservar',

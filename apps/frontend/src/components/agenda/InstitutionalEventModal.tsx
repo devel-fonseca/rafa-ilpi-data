@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { type SubmitHandler, useForm } from 'react-hook-form'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -74,7 +74,9 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
       notes: editData?.notes,
       documentType: editData?.documentType,
       documentNumber: editData?.documentNumber,
-      expiryDate: editData?.expiryDate,
+      expiryDate: editData?.expiryDate
+        ? extractDateOnly(String(editData.expiryDate))
+        : undefined,
       responsible: editData?.responsible,
       trainingTopic: editData?.trainingTopic,
       instructor: editData?.instructor,
@@ -86,7 +88,7 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
   const eventType = watch('eventType')
   const allDay = watch('allDay')
 
-  const handleFormSubmit = async (data: FormData) => {
+  const handleFormSubmit: SubmitHandler<FormData> = async (data) => {
     setIsSubmitting(true)
     try {
       await onSubmit(data)

@@ -57,17 +57,26 @@ export function useUpdateProfile() {
       useAuthStore.setState((state) => {
         if (!state.user) return state
 
+        const tenant = state.user.tenant
+        if (!tenant) {
+          return {
+            user: state.user,
+          }
+        }
+
         return {
           user: {
             ...state.user,
             tenant: {
-              ...state.user.tenant,
-              name: updatedProfile.tenant?.name ?? state.user.tenant?.name ?? '',
-              cnpj: updatedProfile.tenant?.cnpj ?? state.user.tenant?.cnpj ?? null,
+              ...tenant,
+              id: tenant.id,
+              status: tenant.status,
+              name: updatedProfile.tenant?.name ?? tenant.name,
+              cnpj: updatedProfile.tenant?.cnpj ?? tenant.cnpj ?? null,
               profile: {
-                ...state.user.tenant?.profile,
-                tradeName: updatedProfile.profile?.tradeName ?? null,
-                cnesCode: updatedProfile.profile?.cnesCode ?? null,
+                ...tenant.profile,
+                tradeName: updatedProfile.profile?.tradeName ?? tenant.profile?.tradeName ?? null,
+                cnesCode: updatedProfile.profile?.cnesCode ?? tenant.profile?.cnesCode ?? null,
               },
             },
           },

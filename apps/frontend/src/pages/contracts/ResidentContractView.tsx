@@ -187,9 +187,13 @@ export default function ResidentContractView() {
   }
 
   const buildFinancialDeepLink = (transaction: { status: string; dueDate: string }) => {
+    if (!contractId) {
+      return '/dashboard/financeiro?tab=transactions'
+    }
+
     const params = new URLSearchParams()
     params.set('tab', 'transactions')
-    params.set('residentContractId', contract.id)
+    params.set('residentContractId', contractId)
     params.set('status', transaction.status)
     const dueDate = transaction.dueDate ? transaction.dueDate.slice(0, 10) : ''
     if (dueDate) {

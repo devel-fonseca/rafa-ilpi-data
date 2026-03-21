@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { dailyRecordsAPI, type DailyRecord } from '@/api/dailyRecords.api'
 import { useToast } from '@/components/ui/use-toast'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Schema de validação para edição de Daily Record
@@ -39,7 +40,7 @@ const editSchema = z.object({
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido. Use HH:mm')
     .optional(),
   notes: z.string().optional(),
-  data: z.record(z.any()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 })
 
 type EditFormData = z.infer<typeof editSchema>
@@ -120,13 +121,10 @@ export function EditDailyRecordModal({
       handleClose()
       onSuccess?.()
     } catch (error: unknown) {
-      console.error('Erro ao atualizar registro:', error)
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
-        description:
-          error.response?.data?.message ||
-          'Não foi possível atualizar o registro. Tente novamente.',
+        description: getErrorMessage(error, 'Não foi possível atualizar o registro. Tente novamente.'),
       })
     } finally {
       setLoading(false)

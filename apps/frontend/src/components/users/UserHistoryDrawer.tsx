@@ -1,5 +1,5 @@
 import { useUserHistory } from '@/hooks/useUserVersioning'
-import type { User } from '@/api/users.api'
+import type { User as ApiUser } from '@/api/users.api'
 import {
   Sheet,
   SheetContent,
@@ -19,6 +19,7 @@ import {
   History as HistoryIcon,
   Calendar,
   Shield,
+  User as UserIcon,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -94,6 +95,11 @@ export function UserHistoryDrawer({
       ASSISTENTE_SOCIAL: 'Assistente Social',
     }
     return roles[role] || role
+  }
+
+  const toDisplayValue = (value: unknown) => {
+    if (value === undefined || value === null || value === '') return '-'
+    return String(value)
   }
 
   return (
@@ -203,8 +209,8 @@ export function UserHistoryDrawer({
                       {version.changeType === 'UPDATE' && version.previousData && (
                         <div className="space-y-2 text-sm">
                           {version.changedFields.map((field) => {
-                            const prevValue = (version.previousData as Partial<User>)?.[field as keyof User]
-                            const newValue = (version.newData as Partial<User>)?.[field as keyof User]
+                            const prevValue = (version.previousData as Partial<ApiUser> | Record<string, unknown> | null)?.[field as keyof ApiUser]
+                            const newValue = (version.newData as Partial<ApiUser> | Record<string, unknown>)?.[field as keyof ApiUser]
 
                             // Não exibir password
                             if (field === 'password') {
@@ -213,13 +219,13 @@ export function UserHistoryDrawer({
                                   <div>
                                     <p className="text-xs text-muted-foreground">Senha:</p>
                                     <p className="font-medium text-amber-600">
-                                      {prevValue?.passwordChanged ? '●●●●●●●● (alterada)' : '●●●●●●●●'}
+                                      ●●●●●●●●
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-muted-foreground">→</p>
                                     <p className="font-medium text-success">
-                                      {newValue?.passwordChanged ? '●●●●●●●● (alterada)' : '●●●●●●●●'}
+                                      ●●●●●●●● (alterada)
                                     </p>
                                   </div>
                                 </div>
@@ -233,14 +239,14 @@ export function UserHistoryDrawer({
                                     <p className="text-xs text-muted-foreground">Papel Anterior:</p>
                                     <div className="flex items-center gap-1">
                                       <Shield className="w-3 h-3" />
-                                      <p className="font-medium">{getRoleLabel(prevValue)}</p>
+                                      <p className="font-medium">{getRoleLabel(toDisplayValue(prevValue))}</p>
                                     </div>
                                   </div>
                                   <div>
                                     <p className="text-xs text-muted-foreground">→ Novo Papel:</p>
                                     <div className="flex items-center gap-1">
                                       <Shield className="w-3 h-3" />
-                                      <p className="font-medium text-success">{getRoleLabel(newValue)}</p>
+                                      <p className="font-medium text-success">{getRoleLabel(toDisplayValue(newValue))}</p>
                                     </div>
                                   </div>
                                 </div>
@@ -280,11 +286,11 @@ export function UserHistoryDrawer({
                                   <p className="text-xs text-muted-foreground capitalize">
                                     {field === 'name' ? 'Nome' : field === 'email' ? 'E-mail' : field} Anterior:
                                   </p>
-                                  <p className="font-medium">{String(prevValue || '-')}</p>
+                                  <p className="font-medium">{toDisplayValue(prevValue)}</p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-muted-foreground">→ Novo:</p>
-                                  <p className="font-medium text-success">{String(newValue || '-')}</p>
+                                  <p className="font-medium text-success">{toDisplayValue(newValue)}</p>
                                 </div>
                               </div>
                             )
@@ -294,9 +300,9 @@ export function UserHistoryDrawer({
 
                       {/* Rodapé com autor */}
                       <div className="mt-3 pt-3 border-t flex items-center gap-2 text-xs text-muted-foreground">
-                        <User className="w-3 h-3" />
+                        <UserIcon className="w-3 h-3" />
                         <span>
-                          Alterado por: <strong>{version.changedByName}</strong>
+                          Alterado por: <strong>{version.changedByName || 'Sistema'}</strong>
                         </span>
                       </div>
                     </CardContent>

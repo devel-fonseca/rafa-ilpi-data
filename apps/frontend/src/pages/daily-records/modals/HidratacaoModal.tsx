@@ -21,13 +21,14 @@ const hidratacaoSchema = z.object({
     .min(1, 'Horário é obrigatório')
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
   volumeMl: z.coerce
-    .number({ required_error: 'Volume é obrigatório' })
+    .number({ message: 'Volume é obrigatório' })
     .positive('Volume deve ser maior que zero')
     .max(5000, 'Volume máximo: 5000ml'),
   tipo: z.string().optional(),
 })
 
-type HidratacaoFormData = z.infer<typeof hidratacaoSchema>
+type HidratacaoFormInput = z.input<typeof hidratacaoSchema>
+type HidratacaoFormData = z.output<typeof hidratacaoSchema>
 
 interface HidratacaoModalProps {
   open: boolean
@@ -53,7 +54,7 @@ export function HidratacaoModal({
     handleSubmit,
     formState: { errors, isValid, isSubmitting, submitCount },
     reset,
-  } = useForm<HidratacaoFormData>({
+  } = useForm<HidratacaoFormInput, unknown, HidratacaoFormData>({
     resolver: zodResolver(hidratacaoSchema),
     mode: 'onChange',
     defaultValues: {

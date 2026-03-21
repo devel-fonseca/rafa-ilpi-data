@@ -1,4 +1,4 @@
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { FileCheck, AlertTriangle, CheckCircle } from 'lucide-react'
@@ -68,9 +68,9 @@ const medicalReviewSchema = z.object({
     .refine((uf) => BRAZILIAN_STATES.includes(uf), 'UF inválida'),
 
   prescriptionImage: z
-    .instanceof(File, { message: 'Upload da prescrição é obrigatório' })
-    .nullable()
-    .refine((file) => file !== null, { message: 'Upload da prescrição é obrigatório' }),
+    .custom<File>((file) => file instanceof File, {
+      message: 'Upload da prescrição é obrigatório',
+    }),
 
   newReviewDate: z
     .string()
@@ -150,7 +150,7 @@ export function MedicalReviewModal({
       reviewedByDoctor: '',
       reviewDoctorCrm: '',
       reviewDoctorState: '',
-      prescriptionImage: null,
+      prescriptionImage: undefined,
       newReviewDate: '',
       reviewNotes: '',
     },
@@ -164,7 +164,7 @@ export function MedicalReviewModal({
     onClose()
   }
 
-  const onSubmit = async (data: MedicalReviewFormData) => {
+  const onSubmit: SubmitHandler<MedicalReviewFormData> = async (data) => {
     try {
       // 1. Registrar revisão médica (apenas metadados)
       await recordReview.mutateAsync({
@@ -364,7 +364,11 @@ export function MedicalReviewModal({
             </h3>
 
             <SingleFileUpload
-              onFileSelect={(file) => setValue('prescriptionImage', file)}
+              onFileSelect={(file) => {
+                if (file) {
+                  setValue('prescriptionImage', file, { shouldValidate: true })
+                }
+              }}
               accept="image/*,application/pdf"
               maxSize={10}
               label="Prescrição"

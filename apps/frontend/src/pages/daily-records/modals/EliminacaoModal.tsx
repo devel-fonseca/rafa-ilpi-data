@@ -32,7 +32,7 @@ const eliminacaoSchema = z.object({
     .min(1, 'Horário é obrigatório')
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
   tipo: z.enum(['Urina', 'Fezes'], {
-    required_error: 'Tipo é obrigatório',
+    message: 'Tipo é obrigatório',
   }),
   // Campos para Fezes
   consistencia: z.string().optional(),

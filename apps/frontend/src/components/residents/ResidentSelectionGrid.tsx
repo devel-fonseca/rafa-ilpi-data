@@ -17,43 +17,10 @@ import type { LatestRecord } from '@/hooks/useDailyRecords'
 import { extractDateOnly, getCurrentDate, formatDateOnlySafe } from '@/utils/dateHelpers'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
 import { getRecordTypeLabel as getDailyRecordTypeLabel } from '@/utils/recordTypeLabels'
-import type { DependencyLevel } from '@/api/resident-health.api'
+import type { Resident } from '@/api/residents.api'
 import { ResidentBadges } from '@/components/residents/ResidentBadges'
 
 const ITEMS_PER_PAGE = 12
-
-interface Resident {
-  id: string
-  fullName: string
-  fotoUrl?: string
-  roomId?: string
-  bedId?: string
-  room?: {
-    id: string
-    name: string
-    code: string
-  }
-  bed?: {
-    id: string
-    code: string
-    status: string
-  }
-  floor?: {
-    id: string
-    name: string
-    code: string
-  }
-  building?: {
-    id: string
-    name: string
-    code: string
-  }
-  status: string
-  cpf?: string
-  cns?: string
-  mobilityAid?: boolean
-  dependencyLevel?: DependencyLevel | null
-}
 
 interface ResidentSelectionGridProps {
   residents: Resident[]

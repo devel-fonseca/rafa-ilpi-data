@@ -58,6 +58,10 @@ type SidebarActionItem = {
 type SidebarItem = SidebarLinkItem | SidebarActionItem
 type SidebarGroup = SidebarItem[]
 
+function isVisibleSidebarItem(item: SidebarItem): boolean {
+  return item.visible !== false
+}
+
 export function DashboardLayout() {
   useScrollToTop()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -307,7 +311,7 @@ export function DashboardLayout() {
     </>
   )
 
-  const sidebarGroups: SidebarGroup[] = [
+  const rawSidebarGroups = [
     [
       {
         kind: 'link',
@@ -429,8 +433,10 @@ export function DashboardLayout() {
         danger: true,
       },
     ],
-  ]
-    .map((group) => group.filter((item) => item.visible !== false))
+  ] satisfies SidebarGroup[]
+
+  const sidebarGroups: SidebarGroup[] = rawSidebarGroups
+    .map((group) => group.filter(isVisibleSidebarItem))
     .filter((group) => group.length > 0)
 
   const isSidebarItemActive = (item: SidebarItem) => {

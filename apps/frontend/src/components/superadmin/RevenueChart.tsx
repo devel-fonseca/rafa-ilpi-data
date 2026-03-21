@@ -57,9 +57,12 @@ export function RevenueChart({
       },
       extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
       formatter: (params) => {
-        const point = Array.isArray(params) ? params[0] : params
+        const point = (Array.isArray(params) ? params[0] : params) as {
+          axisValueLabel?: string
+          value?: number | string | Array<number | string | null> | null
+        }
         const value = Array.isArray(point.value) ? point.value[1] : point.value
-        return `${point.axisValueLabel}<br/>MRR: <strong>${formatCurrency(Number(value))}</strong>`
+        return `${point.axisValueLabel ?? ''}<br/>MRR: <strong>${formatCurrency(Number(value ?? 0))}</strong>`
       },
     },
     xAxis: {

@@ -1,5 +1,3 @@
-import type { Bed } from '@/api/beds.api'
-
 /**
  * Interface para residente com hierarquia de leito aninhada.
  * Usada por formatBedFromResident para acessar dados de localização.
@@ -39,6 +37,19 @@ export interface BedIdentificationParts {
   roomBed: string         // 823-B
 }
 
+type BedLike = {
+  code?: string | null
+  room?: {
+    code?: string | null
+    floor?: {
+      code?: string | null
+      building?: {
+        code?: string | null
+      } | null
+    } | null
+  } | null
+}
+
 /**
  * Formata identificação completa do leito no padrão hospitalar brasileiro
  * Formato: {building.code}{floor.code}-{room.code}-{bed.code}
@@ -75,24 +86,22 @@ export function formatBedIdentification(
  * @example
  * formatBedFromObject(bed) // "CLI6-823-B"
  */
-export function formatBedFromObject(bed: Bed): string {
+export function formatBedFromObject(bed: BedLike): string {
   // Se bed.code já contém o código completo (formato: XXX-XXX-X), retornar direto
   if (bed?.code && bed.code.includes('-')) {
     return bed.code
   }
 
-  // Se não tem hierarquia completa, retornar o código simples
-  if (!bed?.room?.floor?.building) {
-    return bed?.code || '-'
+  const buildingCode = bed?.room?.floor?.building?.code
+  const floorCode = bed?.room?.floor?.code
+  const roomCode = bed?.room?.code
+  const bedCode = bed?.code
+
+  if (buildingCode && floorCode && roomCode && bedCode) {
+    return formatBedIdentification(buildingCode, floorCode, roomCode, bedCode)
   }
 
-  // Montar código completo a partir da hierarquia
-  return formatBedIdentification(
-    bed.room.floor.building.code,
-    bed.room.floor.code,
-    bed.room.code,
-    bed.code
-  )
+  return bed?.code || '-'
 }
 
 /**
