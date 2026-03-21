@@ -4,6 +4,7 @@ import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { AccessDenied } from '@/design-system/components'
+import { devLogger } from '@/utils/devLogger'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -25,7 +26,7 @@ export function ProtectedRoute({
 
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('ProtectedRoute check:', {
+      devLogger.log('ProtectedRoute check:', {
         hasToken: !!accessToken,
         isAuthenticated,
         hasUser: !!user
@@ -36,7 +37,7 @@ export function ProtectedRoute({
         try {
           await refreshAuth()
         } catch (error) {
-          console.error('Erro ao renovar autenticação:', error)
+          devLogger.error('Erro ao renovar autenticação:', error)
         }
       }
       setIsChecking(false)
@@ -56,7 +57,7 @@ export function ProtectedRoute({
 
   // Não autenticado
   if (!isAuthenticated) {
-    console.log('ProtectedRoute: Não autenticado, redirecionando para login')
+    devLogger.log('ProtectedRoute: Não autenticado, redirecionando para login')
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 

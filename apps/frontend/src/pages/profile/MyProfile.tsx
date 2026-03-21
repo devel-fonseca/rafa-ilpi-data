@@ -26,6 +26,7 @@ import {
 import { Page, PageHeader, EmptyState } from '@/design-system/components'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { useRef } from 'react'
+import { devLogger } from '@/utils/devLogger'
 
 export default function MyProfile() {
   const { user } = useAuthStore()
@@ -68,7 +69,7 @@ export default function MyProfile() {
   // Preencher formulário quando dados do perfil carregarem ou mudarem
   useEffect(() => {
     if (profile) {
-      console.log('📝 MyProfile - Atualizando formulário com dados do perfil:', {
+      devLogger.log('📝 MyProfile - Atualizando formulário com dados do perfil:', {
         userId: profile.user.id,
         userName: profile.user.name,
         userEmail: profile.user.email
@@ -84,13 +85,13 @@ export default function MyProfile() {
 
   // Recarregar perfil quando usuário mudar
   useEffect(() => {
-    console.log('🔄 MyProfile - useEffect disparado. User:', {
+    devLogger.log('🔄 MyProfile - useEffect disparado. User:', {
       userId: user?.id,
       userName: user?.name,
       userEmail: user?.email
     })
     if (user) {
-      console.log('🔄 MyProfile - Disparando refetch do perfil...')
+      devLogger.log('🔄 MyProfile - Disparando refetch do perfil...')
       refetch()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

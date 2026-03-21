@@ -22,6 +22,7 @@ import { residentsAPI } from '@/api/residents.api'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { tenantKey } from '@/lib/query-keys'
+import { devLogger } from '@/utils/devLogger'
 
 interface BedsMapVisualizationProps {
   data: BedsHierarchy
@@ -100,7 +101,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
       fromLocation,
     }
 
-    console.log('🎯 [DRAG START] Iniciando drag:', dragData)
+    devLogger.log('🎯 [DRAG START] Iniciando drag:', dragData)
     e.dataTransfer.effectAllowed = 'move'
 
     // Expandir todos os accordions PRIMEIRO
@@ -114,16 +115,16 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
         })
       })
     })
-    console.log('📂 [DRAG START] Expandindo accordions:', allIds.length, 'items')
+    devLogger.log('📂 [DRAG START] Expandindo accordions:', allIds.length, 'items')
     setExpandedItems(allIds)
 
     // Setar draggedResident IMEDIATAMENTE (sem setTimeout)
-    console.log('✨ [DRAG START] Aplicando estado draggedResident IMEDIATAMENTE')
+    devLogger.log('✨ [DRAG START] Aplicando estado draggedResident IMEDIATAMENTE')
     setDraggedResident(dragData)
   }
 
   const handleDragEnd = (e: React.DragEvent) => {
-    console.log('🏁 [DRAG END] Drag finalizado', {
+    devLogger.log('🏁 [DRAG END] Drag finalizado', {
       dropEffect: e.dataTransfer.dropEffect,
       effectAllowed: e.dataTransfer.effectAllowed
     })
@@ -133,14 +134,14 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
   }
 
   const handleDragOver = (e: React.DragEvent, bedId: string, bedStatus: string) => {
-    console.log('🔄 [DRAG OVER]', { bedId, bedStatus, hasDraggedResident: !!draggedResident })
+    devLogger.log('🔄 [DRAG OVER]', { bedId, bedStatus, hasDraggedResident: !!draggedResident })
 
     if (isAvailableBedStatus(bedStatus) && draggedResident && bedId !== draggedResident.fromBedId) {
-      console.log('✅ [DRAG OVER] Permitindo drop no leito', bedId)
+      devLogger.log('✅ [DRAG OVER] Permitindo drop no leito', bedId)
       e.preventDefault()
       setDropTargetBed(bedId)
     } else {
-      console.log('❌ [DRAG OVER] Drop não permitido', {
+      devLogger.log('❌ [DRAG OVER] Drop não permitido', {
         bedStatus,
         hasDraggedResident: !!draggedResident,
         isSameBed: bedId === draggedResident?.fromBedId
@@ -149,14 +150,14 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
   }
 
   const handleDragLeave = (e: React.DragEvent, bedId: string) => {
-    console.log('👋 [DRAG LEAVE]', bedId)
+    devLogger.log('👋 [DRAG LEAVE]', bedId)
     // Verifica se realmente saiu do card (não apenas de um elemento filho)
     const currentTarget = e.currentTarget as HTMLElement
     const relatedTarget = e.relatedTarget as HTMLElement
 
     // Se o relatedTarget não é descendente do currentTarget, realmente saiu
     if (!currentTarget.contains(relatedTarget) && dropTargetBed === bedId) {
-      console.log('🚪 [DRAG LEAVE] Limpando dropTargetBed')
+      devLogger.log('🚪 [DRAG LEAVE] Limpando dropTargetBed')
       setDropTargetBed(null)
     }
   }
@@ -168,7 +169,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
     toFloor: Floor,
     toBuilding: Building
   ) => {
-    console.log('🎯 [DROP] Evento drop acionado!', {
+    devLogger.log('🎯 [DROP] Evento drop acionado!', {
       toBedId: toBed.id,
       toBedCode: formatBedFromObject(toBed),
       hasDraggedResident: !!draggedResident
@@ -178,13 +179,13 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
     setDropTargetBed(null)
 
     if (!draggedResident) {
-      console.log('❌ [DROP] draggedResident é null, abortando')
+      devLogger.log('❌ [DROP] draggedResident é null, abortando')
       return
     }
 
     const toLocation = `${toBuilding.name} - ${toFloor.name} - ${toRoom.name}`
 
-    console.log('📋 [DROP] Preparando transferência:', {
+    devLogger.log('📋 [DROP] Preparando transferência:', {
       from: draggedResident.fromBedCode,
       to: formatBedFromObject(toBed),
       resident: draggedResident.name
@@ -203,7 +204,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
     setTransferModalOpen(true)
     setDraggedResident(null)
 
-    console.log('✅ [DROP] Modal de transferência aberto')
+    devLogger.log('✅ [DROP] Modal de transferência aberto')
   }
 
   const handleOpenTransferModal = (

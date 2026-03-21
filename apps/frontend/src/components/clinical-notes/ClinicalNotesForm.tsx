@@ -47,6 +47,7 @@ import {
   DEFAULT_CLINICAL_TAGS,
   PROFESSION_CONFIG,
 } from '@/utils/clinicalNotesConstants'
+import { devLogger } from '@/utils/devLogger'
 import { formatVitalSignsToText } from '@/utils/vitalSignsFormatter'
 
 /**
@@ -340,7 +341,7 @@ export function ClinicalNotesForm({
         // Verificar autenticação antes de iniciar
         if (!user) {
           toast.error('Sessão expirada. Por favor, faça login novamente.')
-          console.error('❌ [onSubmit] Usuário não autenticado')
+          devLogger.error('❌ [onSubmit] Usuário não autenticado')
           return
         }
 
@@ -356,7 +357,7 @@ export function ClinicalNotesForm({
           }
         }
 
-        console.log('🚀 [onSubmit] Salvando evolução clínica...', {
+        devLogger.log('🚀 [onSubmit] Salvando evolução clínica...', {
           userId: user.id,
           userName: user.name,
           userEmail: user.email,
@@ -382,7 +383,7 @@ export function ClinicalNotesForm({
               : undefined,
         }
 
-        console.log('📋 [onSubmit] Dados preparados:', {
+        devLogger.log('📋 [onSubmit] Dados preparados:', {
           hasDocument: !!clinicalNoteData.document,
           documentTitle,
           contentLength: documentContent?.length,
@@ -393,7 +394,7 @@ export function ClinicalNotesForm({
         // Gerar PDF se documento estiver habilitado
         if (documentEnabled && documentTitle && documentContent && residentData && user) {
           try {
-            console.log('📄 [onSubmit] Gerando PDF do documento...')
+            devLogger.log('📄 [onSubmit] Gerando PDF do documento...')
             toast.info('Gerando PDF do documento...')
 
             pdfBlob = await generateDocumentPdf({
@@ -427,38 +428,38 @@ export function ClinicalNotesForm({
                 : undefined,
             })
 
-            console.log('✅ [onSubmit] PDF gerado com sucesso!', {
+            devLogger.log('✅ [onSubmit] PDF gerado com sucesso!', {
               pdfSize: pdfBlob.size,
               pdfType: pdfBlob.type,
             })
           } catch (pdfError) {
-            console.error('❌ [onSubmit] Erro ao gerar PDF:', pdfError)
+            devLogger.error('❌ [onSubmit] Erro ao gerar PDF:', pdfError)
             toast.error('Erro ao gerar PDF do documento')
             return
           }
         }
 
         // Salvar evolução com ou sem documento
-        console.log('💾 [onSubmit] Salvando no servidor...', {
+        devLogger.log('💾 [onSubmit] Salvando no servidor...', {
           hasPdf: !!pdfBlob,
           hasDocument: !!clinicalNoteData.document,
         })
 
         try {
           if (pdfBlob) {
-            console.log('📤 [onSubmit] Enviando com PDF via FormData...')
+            devLogger.log('📤 [onSubmit] Enviando com PDF via FormData...')
             await createClinicalNoteWithDocument(clinicalNoteData, pdfBlob)
           } else {
-            console.log('📤 [onSubmit] Enviando sem PDF...')
+            devLogger.log('📤 [onSubmit] Enviando sem PDF...')
             await createClinicalNoteWithDocument(clinicalNoteData, undefined)
           }
 
-          console.log('✅ [onSubmit] Salvo com sucesso!')
+          devLogger.log('✅ [onSubmit] Salvo com sucesso!')
           toast.success('Evolução salva com sucesso!')
           onOpenChange(false)
           onSuccess?.()
         } catch (saveError: unknown) {
-          console.error('❌ [onSubmit] Erro ao salvar:', saveError)
+          devLogger.error('❌ [onSubmit] Erro ao salvar:', saveError)
 
           // Tratamento específico para erros de autenticação
           const errorResponse = (saveError as { response?: { status?: number } }).response
@@ -472,7 +473,7 @@ export function ClinicalNotesForm({
       }
     } catch (error: unknown) {
       // Erro já tratado pelo hook com toast
-      console.error('Erro ao salvar evolução:', error)
+      devLogger.error('Erro ao salvar evolução:', error)
     }
   }
 
@@ -482,12 +483,12 @@ export function ClinicalNotesForm({
 
     try {
       setIsConfirming(true)
-      console.log('🚀 [handleConfirmSave] Iniciando salvamento...')
+      devLogger.log('🚀 [handleConfirmSave] Iniciando salvamento...')
 
       // Verificar autenticação antes de iniciar
       if (!user) {
         toast.error('Sessão expirada. Por favor, faça login novamente.')
-        console.error('❌ [handleConfirmSave] Usuário não autenticado')
+        devLogger.error('❌ [handleConfirmSave] Usuário não autenticado')
         setShowPreview(false)
         return
       }
@@ -512,7 +513,7 @@ export function ClinicalNotesForm({
             : undefined,
       }
 
-      console.log('📋 [handleConfirmSave] Dados preparados:', {
+      devLogger.log('📋 [handleConfirmSave] Dados preparados:', {
         hasDocument: !!clinicalNoteData.document,
         documentTitle,
         contentLength: documentContent?.length,
@@ -521,7 +522,7 @@ export function ClinicalNotesForm({
       // Se tem documento, gerar PDF agora
       let pdfBlob: Blob | undefined
       if (documentEnabled && documentTitle && documentContent && residentData && user) {
-        console.log('📄 [handleConfirmSave] Gerando PDF para envio...')
+        devLogger.log('📄 [handleConfirmSave] Gerando PDF para envio...')
         toast.info('Gerando PDF do documento...')
 
         try {
@@ -556,32 +557,32 @@ export function ClinicalNotesForm({
               : undefined,
           })
 
-          console.log('✅ [handleConfirmSave] PDF gerado com sucesso!', {
+          devLogger.log('✅ [handleConfirmSave] PDF gerado com sucesso!', {
             pdfSize: pdfBlob.size,
             pdfType: pdfBlob.type,
           })
         } catch (pdfError) {
-          console.error('❌ [handleConfirmSave] Erro ao gerar PDF:', pdfError)
+          devLogger.error('❌ [handleConfirmSave] Erro ao gerar PDF:', pdfError)
           throw new Error(`Falha ao gerar PDF: ${pdfError instanceof Error ? pdfError.message : String(pdfError)}`)
         }
       }
 
       // Salvar evolução com documento
-      console.log('💾 [handleConfirmSave] Salvando no servidor...', {
+      devLogger.log('💾 [handleConfirmSave] Salvando no servidor...', {
         hasPdf: !!pdfBlob,
         hasDocument: !!clinicalNoteData.document,
       })
 
       try {
         if (pdfBlob) {
-          console.log('📤 [handleConfirmSave] Enviando com PDF via FormData...')
+          devLogger.log('📤 [handleConfirmSave] Enviando com PDF via FormData...')
           await createClinicalNoteWithDocument(clinicalNoteData, pdfBlob)
         } else {
-          console.log('📤 [handleConfirmSave] Enviando sem PDF...')
+          devLogger.log('📤 [handleConfirmSave] Enviando sem PDF...')
           await createMutation.mutateAsync(clinicalNoteData)
         }
 
-        console.log('✅ [handleConfirmSave] Salvo com sucesso!')
+        devLogger.log('✅ [handleConfirmSave] Salvo com sucesso!')
         toast.success('Evolução e documento salvos com sucesso!')
 
         // Fechar modals e limpar estados
@@ -590,7 +591,7 @@ export function ClinicalNotesForm({
         onOpenChange(false)
         onSuccess?.()
       } catch (saveError: unknown) {
-        console.error('❌ [handleConfirmSave] Erro ao salvar:', saveError)
+        devLogger.error('❌ [handleConfirmSave] Erro ao salvar:', saveError)
 
         // Tratamento específico para erros de autenticação
         const errorResponse = (saveError as { response?: { status?: number }; message?: string }).response
@@ -604,9 +605,9 @@ export function ClinicalNotesForm({
         throw saveError
       }
     } catch (error: unknown) {
-      console.error('❌ [handleConfirmSave] Erro completo:', error)
+      devLogger.error('❌ [handleConfirmSave] Erro completo:', error)
       const errorWithStack = error as { stack?: string }
-      console.error('❌ [handleConfirmSave] Stack:', errorWithStack.stack)
+      devLogger.error('❌ [handleConfirmSave] Stack:', errorWithStack.stack)
     } finally {
       setIsConfirming(false)
     }

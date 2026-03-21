@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api } from '../services/api'
+import { devLogger } from '../utils/devLogger'
 import { useFeaturesStore } from './features.store'
 
 export interface User {
@@ -90,7 +91,7 @@ export const useAuthStore = create<AuthState>()(
           // Login direto (único tenant)
           const { user, accessToken, refreshToken } = response.data
 
-          console.log('Login bem-sucedido:', { user: user.email, hasToken: !!accessToken })
+          devLogger.log('Login bem-sucedido:', { user: user.email, hasToken: !!accessToken })
 
           set({
             user,
@@ -106,9 +107,9 @@ export const useAuthStore = create<AuthState>()(
 
           return response.data
         } catch (error: unknown) {
-          console.error('Erro completo no login:', error)
+          devLogger.error('Erro completo no login:', error)
           const errorResponse = (error as { response?: { data?: { message?: string }; status?: number } }).response
-          console.error('Detalhes do erro:', {
+          devLogger.error('Detalhes do erro:', {
             message: errorResponse?.data?.message,
             status: errorResponse?.status,
             data: errorResponse?.data
@@ -145,7 +146,7 @@ export const useAuthStore = create<AuthState>()(
           //
           // Ver: src/lib/query-keys.ts para helpers de namespace
           if (typeof window !== 'undefined' && window.queryClient) {
-            console.log('🧹 Auth Store - Limpando cache ao trocar tenant...')
+            devLogger.log('🧹 Auth Store - Limpando cache ao trocar tenant...')
             window.queryClient.clear()
           }
 
@@ -220,7 +221,7 @@ export const useAuthStore = create<AuthState>()(
             await api.post('/auth/logout', { refreshToken, reason })
           }
         } catch (error) {
-          console.error('Erro ao fazer logout:', error)
+          devLogger.error('Erro ao fazer logout:', error)
         } finally {
           set({
             user: null,
@@ -236,22 +237,22 @@ export const useAuthStore = create<AuthState>()(
           // IMPORTANTE: Limpar TODO o cache do React Query no logout
           // Isso garante que dados do usuário anterior não apareçam
           if (typeof window !== 'undefined') {
-            console.log('🧹 Auth Store - Limpando cache no logout...')
+            devLogger.log('🧹 Auth Store - Limpando cache no logout...')
 
             // Limpar features store
             useFeaturesStore.getState().clearFeatures()
 
             // Limpar cache do React Query
             if (window.queryClient) {
-              console.log('🧹 Limpando React Query cache...')
+              devLogger.log('🧹 Limpando React Query cache...')
               window.queryClient.clear()
             } else {
-              console.warn('⚠️ queryClient não encontrado no window!')
+              devLogger.warn('⚠️ queryClient não encontrado no window!')
             }
             // Limpar localStorage manualmente (força limpeza do Zustand persist)
-            console.log('🧹 Removendo rafa-ilpi-auth do localStorage...')
+            devLogger.log('🧹 Removendo rafa-ilpi-auth do localStorage...')
             localStorage.removeItem('rafa-ilpi-auth')
-            console.log('✅ Logout completo - cache limpo!')
+            devLogger.log('✅ Logout completo - cache limpo!')
           }
         }
       },
