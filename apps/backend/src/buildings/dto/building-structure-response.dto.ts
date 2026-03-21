@@ -80,6 +80,9 @@ export class FloorResponseDto {
   id: string
 
   @Expose()
+  name: string
+
+  @Expose()
   floorNumber: number
 
   @Expose()
