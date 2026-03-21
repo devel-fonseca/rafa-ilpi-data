@@ -2,6 +2,32 @@ import path from "path"
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const markdownPackages = [
+  'react-markdown',
+  'remark-',
+  'rehype-',
+  'mdast-',
+  'micromark',
+  'unified',
+  'vfile',
+  'hast-',
+  'unist-',
+  'property-information',
+]
+
+const pdfPackages = [
+  '@react-pdf/',
+  'react-pdf',
+  'pdfkit',
+  'fontkit',
+  'yoga-layout',
+  'canvg',
+  'jspdf',
+  'jspdf-autotable',
+  'html2canvas',
+  'html2pdf.js',
+]
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -36,18 +62,7 @@ export default defineConfig({
           if (id.includes('socket.io-client')) return 'vendor-socket'
           if (id.includes('@dnd-kit/')) return 'vendor-dnd'
           if (id.includes('react-hook-form') || id.includes('@hookform/resolvers')) return 'vendor-forms'
-          if (
-            id.includes('react-markdown') ||
-            id.includes('remark-') ||
-            id.includes('rehype-') ||
-            id.includes('mdast-') ||
-            id.includes('micromark') ||
-            id.includes('unified') ||
-            id.includes('vfile') ||
-            id.includes('hast-') ||
-            id.includes('unist-') ||
-            id.includes('property-information')
-          ) {
+          if (markdownPackages.some((pkg) => id.includes(pkg))) {
             return 'vendor-markdown'
           }
           if (id.includes('axios')) return 'vendor-axios'
@@ -57,19 +72,7 @@ export default defineConfig({
 
           if (id.includes('react-router')) return 'vendor-router'
           if (id.includes('@tanstack/react-query')) return 'vendor-query'
-          if (
-            id.includes('@react-pdf/') ||
-            id.includes('react-pdf') ||
-            id.includes('pdfkit') ||
-            id.includes('fontkit') ||
-            id.includes('yoga-layout') ||
-            id.includes('canvg') ||
-            id.includes('jspdf') ||
-            id.includes('jspdf-autotable') ||
-            id.includes('html2canvas') ||
-            id.includes('html2pdf.js') ||
-            id.includes('@react-pdf/renderer')
-          ) {
+          if (pdfPackages.some((pkg) => id.includes(pkg))) {
             return 'vendor-pdf'
           }
           if (id.includes('date-fns')) return 'vendor-date'

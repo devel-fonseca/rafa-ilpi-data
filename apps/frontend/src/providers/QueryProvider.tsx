@@ -1,6 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { ReactNode, useEffect } from 'react'
+import { lazy, ReactNode, Suspense, useEffect } from 'react'
+
+const DevQueryDevtools = import.meta.env.DEV
+  ? lazy(async () => {
+      const mod = await import('@tanstack/react-query-devtools')
+      return { default: mod.ReactQueryDevtools }
+    })
+  : null
 
 // ✅ Criar instância do QueryClient
 const queryClient = new QueryClient({
@@ -40,7 +46,11 @@ export function QueryProvider({ children }: QueryProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {DevQueryDevtools ? (
+        <Suspense fallback={null}>
+          <DevQueryDevtools initialIsOpen={false} />
+        </Suspense>
+      ) : null}
     </QueryClientProvider>
   )
 }
