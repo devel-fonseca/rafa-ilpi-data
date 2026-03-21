@@ -66,7 +66,7 @@ export default function EmailTemplatePreview() {
           } else if (variable.name === 'planName') {
             mock[variable.name] = 'Plano Premium';
           } else if (variable.name.includes('url') || variable.name.includes('Url')) {
-            mock[variable.name] = 'https://rafa-ilpi.rafalabs.com.br';
+            mock[variable.name] = 'https://ilpi.rafalabs.com.br';
           } else if (variable.name.includes('password') || variable.name.includes('Password')) {
             mock[variable.name] = 'Temp@123456';
           } else if (variable.name.includes('email') || variable.name.includes('Email')) {

@@ -20,6 +20,14 @@ import {
 export class FileProcessingService {
   private readonly logger = new Logger(FileProcessingService.name);
 
+  private getPublicAppUrl(): string {
+    return (
+      process.env.APP_URL
+      || process.env.FRONTEND_URL
+      || 'http://localhost:5173'
+    ).replace(/\/$/, '');
+  }
+
   /**
    * Processar arquivo de imagem: converter para PDF A4 + carimbo institucional
    *
@@ -389,7 +397,7 @@ export class FileProcessingService {
    * ILPI: [Nome] | CNPJ: [CNPJ]
    * Validado por: [Nome] - [Cargo] ([Registro]) | [dd/mm/yyyy hh:mm:ss] (UTC-3)
    * SHA-256: [16 chars iniciais]...[16 chars finais]
-   * Validar: https://rafa-ilpi.rafalabs.com.br/validar/{token}
+   * Validar: [APP_URL]/api/validar/{token}
    * ────────────────────────────────────────────────────────────────────
    *
    * IMPORTANTE: Texto sanitizado para compatibilidade com fonte Helvetica (apenas ASCII)
@@ -435,7 +443,7 @@ export class FileProcessingService {
     const line3 = `SHA-256: ${hashPreview}`;
 
     // Linha 4: URL de validação
-    const line4 = `Validar: https://rafa-ilpi.rafalabs.com.br/api/validar/${metadata.publicToken}`;
+    const line4 = `Validar: ${this.getPublicAppUrl()}/api/validar/${metadata.publicToken}`;
 
     return `${line1}\n${line2}\n${line3}\n${line4}`;
   }
