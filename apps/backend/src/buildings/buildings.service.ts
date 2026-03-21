@@ -45,6 +45,17 @@ export class BuildingsService {
       code = generateBuildingCode(createBuildingDto.name, existingCodes)
     }
 
+    const existingBuilding = await this.tenantContext.client.building.findFirst({
+      where: {
+        code,
+        deletedAt: null,
+      },
+    })
+
+    if (existingBuilding) {
+      throw new BadRequestException(`Já existe um prédio com o código ${code}`)
+    }
+
     const building = await this.tenantContext.client.building.create({
       data: {
         ...createBuildingDto,
@@ -150,11 +161,25 @@ export class BuildingsService {
 
   async update(id: string, updateBuildingDto: UpdateBuildingDto) {
     // Validar que o building existe
-    await this.findOne(id)
+    const existing = await this.findOne(id)
 
     const data = { ...updateBuildingDto }
     if (updateBuildingDto.code !== undefined) {
       data.code = normalizeInfrastructureCode(updateBuildingDto.code)
+    }
+
+    const nextCode = data.code ?? existing.code
+
+    const duplicateBuilding = await this.tenantContext.client.building.findFirst({
+      where: {
+        id: { not: id },
+        code: nextCode,
+        deletedAt: null,
+      },
+    })
+
+    if (duplicateBuilding) {
+      throw new BadRequestException(`Já existe um prédio com o código ${nextCode}`)
     }
 
     const building = await this.tenantContext.client.building.update({

@@ -8,7 +8,7 @@ model Building {
   id          String    @id @default(uuid()) @db.Uuid
   tenantId    String    @db.Uuid
   name        String // "Casa Principal", "Bloco A"
-  code        String // "PRED-001", "BLOCO-A"
+  code        String // "PRED-001", "BLOCO-A" (único entre registros ativos por tenant via partial unique index)
   description String?   @db.Text
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
@@ -27,7 +27,7 @@ model Floor {
   tenantId    String    @db.Uuid
   buildingId  String    @db.Uuid
   name        String // "Térreo", "1º Andar", "Ala Feminina"
-  code        String // "PISO-0", "PISO-1"
+  code        String // "PISO-0", "PISO-1" (único entre registros ativos por prédio via partial unique index)
   orderIndex  Int       @default(0) // Ordenação visual (crescente)
   description String?   @db.Text
   isActive    Boolean   @default(true)
@@ -50,7 +50,7 @@ model Room {
   tenantId           String    @db.Uuid // Stored for reference, no FK (cross-schema)
   floorId            String    @db.Uuid
   name               String // "101", "Quarto 3"
-  code               String // "Q-101", "Q-102"
+  code               String // "Q-101", "Q-102" (único entre registros ativos por andar via partial unique index)
   roomNumber         String // "101", "102"
   capacity           Int       @default(1) // Número total de leitos (calculado automaticamente)
   roomType           String? // "Coletivo", "Suíte", "Enfermaria", "Individual", "Duplo", "Triplo"
@@ -80,7 +80,7 @@ model Bed {
   tenantId  String    @db.Uuid
   roomId    String    @db.Uuid
   code      String // "101-A", "101-B", "Leito 1"
-  status    String    @default("Disponível") // "Disponível", "Ocupado", "Manutenção" (calculado dinamicamente)
+  status    String    @default("Disponível") // "Disponível", "Ocupado", "Manutenção", "Reservado" (check constraint na migration)
   notes     String?   @db.Text
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now()) @db.Timestamptz(3)

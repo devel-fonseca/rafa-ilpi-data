@@ -48,6 +48,18 @@ export class RoomsService {
           Number.isNaN(Number(createRoomDto.roomNumber)) ? undefined : Number(createRoomDto.roomNumber),
         )
 
+    const existingRoom = await this.tenantContext.client.room.findFirst({
+      where: {
+        floorId: createRoomDto.floorId,
+        code,
+        deletedAt: null,
+      },
+    })
+
+    if (existingRoom) {
+      throw new BadRequestException(`Já existe um quarto com o código ${code} neste andar`)
+    }
+
     const room = await this.tenantContext.client.room.create({
       data: {
         name: createRoomDto.name,
@@ -161,7 +173,7 @@ export class RoomsService {
 
   async update(id: string, updateRoomDto: UpdateRoomDto) {
     // Validar que o room existe
-    await this.findOne(id)
+    const existing = await this.findOne(id)
 
     // Se está mudando o floorId, validar que o novo floor existe
     if (updateRoomDto.floorId) {
@@ -189,6 +201,22 @@ export class RoomsService {
     if (updateRoomDto.notes !== undefined) dataToUpdate.notes = updateRoomDto.notes
     if (updateRoomDto.floorId !== undefined) dataToUpdate.floor = { connect: { id: updateRoomDto.floorId } }
     if (updateRoomDto.code !== undefined) dataToUpdate.code = normalizeInfrastructureCode(updateRoomDto.code)
+
+    const nextFloorId = updateRoomDto.floorId ?? existing.floorId
+    const nextCode = (dataToUpdate.code as string | undefined) ?? existing.code
+
+    const duplicateRoom = await this.tenantContext.client.room.findFirst({
+      where: {
+        id: { not: id },
+        floorId: nextFloorId,
+        code: nextCode,
+        deletedAt: null,
+      },
+    })
+
+    if (duplicateRoom) {
+      throw new BadRequestException(`Já existe um quarto com o código ${nextCode} neste andar`)
+    }
 
     const room = await this.tenantContext.client.room.update({
       where: { id },

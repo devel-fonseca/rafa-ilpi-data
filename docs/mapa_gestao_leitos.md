@@ -155,7 +155,7 @@ model Building {
   tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   floors Floor[]
 
-  @@unique([tenantId, code])
+  // Unicidade entre registros ativos via partial unique index na migration
   @@index([tenantId])
   @@map("building")
 }
@@ -177,7 +177,7 @@ model Floor {
   building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   rooms    Room[]
 
-  @@unique([tenantId, buildingId, code])
+  // Unicidade entre registros ativos via partial unique index na migration
   @@index([tenantId])
   @@index([buildingId])
   @@map("floor")
@@ -207,7 +207,7 @@ model Room {
   floor  Floor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
   beds   Bed[]
 
-  @@unique([tenantId, floorId, code])
+  // Unicidade entre registros ativos via partial unique index na migration
   @@index([tenantId])
   @@index([floorId])
   @@map("room")
@@ -238,6 +238,8 @@ model Bed {
   @@index([status])
   @@map("bed")
 }
+
+> Observação: para `Building`, `Floor` e `Room`, a implementação final usa índices únicos parciais em SQL (`deletedAt IS NULL`) para preservar o comportamento de soft delete. Para `Bed`, a unicidade global por tenant foi mantida, e o schema hardening adicional adiciona check constraint para `status`.
 
 model BedTransferHistory {
   id            String   @id @default(uuid()) @db.Uuid

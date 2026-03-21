@@ -41,6 +41,18 @@ export class FloorsService {
       ? normalizeInfrastructureCode(createFloorDto.code)
       : generateFloorCode(createFloorDto.name, createFloorDto.floorNumber)
 
+    const existingFloor = await this.tenantContext.client.floor.findFirst({
+      where: {
+        buildingId: createFloorDto.buildingId,
+        code,
+        deletedAt: null,
+      },
+    })
+
+    if (existingFloor) {
+      throw new BadRequestException(`Já existe um andar com o código ${code} neste prédio`)
+    }
+
     const floor = await this.tenantContext.client.floor.create({
       data: {
         name: createFloorDto.name,
@@ -148,7 +160,7 @@ export class FloorsService {
 
   async update(id: string, updateFloorDto: UpdateFloorDto) {
     // Validar que o floor existe
-    await this.findOne(id)
+    const existing = await this.findOne(id)
 
     // Se está mudando o buildingId, validar que o novo building existe
     if (updateFloorDto.buildingId) {
@@ -171,6 +183,22 @@ export class FloorsService {
     }
     if (updateFloorDto.code !== undefined) {
       dataToUpdate.code = normalizeInfrastructureCode(updateFloorDto.code)
+    }
+
+    const nextBuildingId = updateFloorDto.buildingId ?? existing.buildingId
+    const nextCode = (dataToUpdate.code as string | undefined) ?? existing.code
+
+    const duplicateFloor = await this.tenantContext.client.floor.findFirst({
+      where: {
+        id: { not: id },
+        buildingId: nextBuildingId,
+        code: nextCode,
+        deletedAt: null,
+      },
+    })
+
+    if (duplicateFloor) {
+      throw new BadRequestException(`Já existe um andar com o código ${nextCode} neste prédio`)
     }
 
     const floor = await this.tenantContext.client.floor.update({
