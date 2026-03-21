@@ -2,7 +2,6 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import { CloudUpload, X, Loader2, Scan } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { PhotoViewer } from './PhotoViewer'
-import { processImageWithFaceDetection } from '@/services/faceDetection'
 
 interface PhotoUploadNewProps {
   onPhotoSelect: (file: File | null) => void
@@ -77,6 +76,7 @@ export function PhotoUploadNew({
         setIsProcessing(true)
 
         // Processar imagem com detecção facial
+        const { processImageWithFaceDetection } = await import('@/services/faceDetection')
         const result = await processImageWithFaceDetection(file)
 
         // Converter blob para DataURL para preview
