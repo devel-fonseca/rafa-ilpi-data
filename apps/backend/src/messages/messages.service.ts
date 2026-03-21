@@ -130,6 +130,26 @@ export class MessagesService {
         );
       }
       recipients = recipientIds;
+
+      const uniqueRecipientIds = Array.from(new Set(recipientIds));
+      const existingRecipients = await this.tenantContext.client.user.findMany({
+        where: {
+          id: { in: uniqueRecipientIds },
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+
+      const existingRecipientIds = new Set(existingRecipients.map((user) => user.id));
+      const missingRecipientId = uniqueRecipientIds.find(
+        (recipientId) => !existingRecipientIds.has(recipientId),
+      );
+
+      if (missingRecipientId) {
+        throw new BadRequestException(
+          `Destinatário ${missingRecipientId} não encontrado ou não pertence ao tenant`,
+        );
+      }
     } else {
       // BROADCAST: buscar todos usuários ativos do tenant (exceto remetente)
       const allUsers = await this.tenantContext.client.user.findMany({
@@ -141,22 +161,6 @@ export class MessagesService {
         select: { id: true },
       });
       recipients = allUsers.map((u) => u.id);
-    }
-
-    // Validar que destinatários existem e pertencem ao tenant
-    for (const recipientId of recipients) {
-      const user = await this.tenantContext.client.user.findFirst({
-        where: {
-          id: recipientId,
-          deletedAt: null,
-        },
-      });
-
-      if (!user) {
-        throw new BadRequestException(
-          `Destinatário ${recipientId} não encontrado ou não pertence ao tenant`,
-        );
-      }
     }
 
     // Validar threadId se for resposta
