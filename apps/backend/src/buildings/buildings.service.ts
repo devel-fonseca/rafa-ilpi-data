@@ -72,11 +72,6 @@ export class BuildingsService {
     const [data, total] = await Promise.all([
       this.tenantContext.client.building.findMany({
         where: { deletedAt: null },
-        include: {
-          _count: {
-            select: { floors: true },
-          },
-        },
         skip,
         take,
         orderBy: { createdAt: 'desc' },
@@ -86,57 +81,143 @@ export class BuildingsService {
       }),
     ])
 
-    // Enriquecer com contagem de quartos e leitos
-    const enriched = await Promise.all(
-      data.map(async (building) => {
-        const rooms = await this.tenantContext.client.room.count({
-          where: {
-            floor: {
-              buildingId: building.id,
-              deletedAt: null
-            },
-            deletedAt: null,
-          },
-        })
+    if (data.length === 0) {
+      return { data: [], total, skip, take }
+    }
 
-        const beds = await this.tenantContext.client.bed.count({
-          where: {
-            room: {
-              floor: {
-                buildingId: building.id,
-                deletedAt: null
-              },
-              deletedAt: null,
-            },
-            deletedAt: null,
-          },
-        })
+    const buildingIds = data.map((building) => building.id)
 
-        const occupiedBeds = await this.tenantContext.client.bed.count({
-          where: {
-            status: 'Ocupado',
-            room: {
-              floor: {
-                buildingId: building.id,
-                deletedAt: null
-              },
-              deletedAt: null,
-            },
-            deletedAt: null,
-          },
-        })
+    const [floorCounts, floors] = await Promise.all([
+      this.tenantContext.client.floor.groupBy({
+        by: ['buildingId'],
+        where: {
+          buildingId: { in: buildingIds },
+          deletedAt: null,
+        },
+        _count: { _all: true },
+      }),
+      this.tenantContext.client.floor.findMany({
+        where: {
+          buildingId: { in: buildingIds },
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          buildingId: true,
+        },
+      }),
+    ])
 
-        return {
-          ...building,
-          totalFloors: building._count.floors,
-          totalRooms: rooms,
-          totalBeds: beds,
-          occupiedBeds,
-          availableBeds: beds - occupiedBeds,
-          _count: undefined,
-        }
-      })
+    const floorCountByBuilding = new Map(
+      floorCounts.map((item) => [item.buildingId, item._count._all] as const),
     )
+
+    const floorToBuilding = new Map(
+      floors.map((floor) => [floor.id, floor.buildingId] as const),
+    )
+
+    const floorIds = floors.map((floor) => floor.id)
+
+    let roomCountByBuilding = new Map<string, number>()
+    let roomToBuilding = new Map<string, string>()
+
+    if (floorIds.length > 0) {
+      const [roomCounts, rooms] = await Promise.all([
+        this.tenantContext.client.room.groupBy({
+          by: ['floorId'],
+          where: {
+            floorId: { in: floorIds },
+            deletedAt: null,
+          },
+          _count: { _all: true },
+        }),
+        this.tenantContext.client.room.findMany({
+          where: {
+            floorId: { in: floorIds },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            floorId: true,
+          },
+        }),
+      ])
+
+      roomCountByBuilding = roomCounts.reduce((acc, item) => {
+        const buildingId = floorToBuilding.get(item.floorId)
+        if (!buildingId) return acc
+
+        acc.set(buildingId, (acc.get(buildingId) ?? 0) + item._count._all)
+        return acc
+      }, new Map<string, number>())
+
+      roomToBuilding = new Map(
+        rooms
+          .map((room) => {
+            const buildingId = floorToBuilding.get(room.floorId)
+            return buildingId ? ([room.id, buildingId] as const) : null
+          })
+          .filter((entry): entry is readonly [string, string] => entry !== null),
+      )
+    }
+
+    const roomIds = Array.from(roomToBuilding.keys())
+    let totalBedsByBuilding = new Map<string, number>()
+    let occupiedBedsByBuilding = new Map<string, number>()
+
+    if (roomIds.length > 0) {
+      const [bedCounts, occupiedBedCounts] = await Promise.all([
+        this.tenantContext.client.bed.groupBy({
+          by: ['roomId'],
+          where: {
+            roomId: { in: roomIds },
+            deletedAt: null,
+          },
+          _count: { _all: true },
+        }),
+        this.tenantContext.client.bed.groupBy({
+          by: ['roomId'],
+          where: {
+            roomId: { in: roomIds },
+            status: 'Ocupado',
+            deletedAt: null,
+          },
+          _count: { _all: true },
+        }),
+      ])
+
+      totalBedsByBuilding = bedCounts.reduce((acc, item) => {
+        const buildingId = roomToBuilding.get(item.roomId)
+        if (!buildingId) return acc
+
+        acc.set(buildingId, (acc.get(buildingId) ?? 0) + item._count._all)
+        return acc
+      }, new Map<string, number>())
+
+      occupiedBedsByBuilding = occupiedBedCounts.reduce((acc, item) => {
+        const buildingId = roomToBuilding.get(item.roomId)
+        if (!buildingId) return acc
+
+        acc.set(buildingId, (acc.get(buildingId) ?? 0) + item._count._all)
+        return acc
+      }, new Map<string, number>())
+    }
+
+    const enriched = data.map((building) => {
+      const totalFloors = floorCountByBuilding.get(building.id) ?? 0
+      const totalRooms = roomCountByBuilding.get(building.id) ?? 0
+      const totalBeds = totalBedsByBuilding.get(building.id) ?? 0
+      const occupiedBeds = occupiedBedsByBuilding.get(building.id) ?? 0
+
+      return {
+        ...building,
+        totalFloors,
+        totalRooms,
+        totalBeds,
+        occupiedBeds,
+        availableBeds: totalBeds - occupiedBeds,
+      }
+    })
 
     return { data: enriched, total, skip, take }
   }

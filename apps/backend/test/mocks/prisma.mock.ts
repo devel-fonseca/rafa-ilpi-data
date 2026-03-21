@@ -145,6 +145,7 @@ export const mockPrismaService = {
     update: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
+    groupBy: jest.fn(),
   },
 
   room: {
@@ -155,6 +156,7 @@ export const mockPrismaService = {
     update: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
+    groupBy: jest.fn(),
   },
 
   floor: {
@@ -165,6 +167,7 @@ export const mockPrismaService = {
     update: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
+    groupBy: jest.fn(),
   },
 
   building: {
@@ -175,6 +178,7 @@ export const mockPrismaService = {
     update: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
+    groupBy: jest.fn(),
   },
 
   dailyRecordHistory: {
