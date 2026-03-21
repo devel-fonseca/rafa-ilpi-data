@@ -37,7 +37,7 @@ export class CreateEmailTemplateDto {
   description?: string;
 
   @IsNotEmpty()
-  jsonContent: Record<string, unknown>; // Easy Email JSON structure
+  jsonContent: Record<string, unknown>; // { content: htmlString }
 
   @IsArray()
   @ValidateNested({ each: true })
