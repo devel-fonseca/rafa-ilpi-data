@@ -34,7 +34,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth.store';
-import { generateMonthlyIndicatorsPdfReport } from '@/utils/monthlyIndicatorsPdfExport';
 import { useProfile } from '@/hooks/useInstitutionalProfile';
 import {
   formatDateOnlySafe,
@@ -523,6 +522,7 @@ export function IndicadoresMensaisPage() {
     }
 
     try {
+      const { generateMonthlyIndicatorsPdfReport } = await import('@/utils/monthlyIndicatorsPdfExport');
       const ilpiName = user?.tenant?.profile?.tradeName || user?.tenant?.name || 'ILPI';
       const cnpj = user?.tenant?.cnpj || 'CNPJ não cadastrado';
       const cnes =

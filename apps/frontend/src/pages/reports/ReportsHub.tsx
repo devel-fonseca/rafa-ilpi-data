@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getDailyReport } from '@/services/reportsApi'
-import { downloadDailyReportPDF } from '@/services/dailyReportPdf'
 import { applyOperationalReportFilter } from '@/services/operationalReports'
 import { useAuthStore } from '@/stores/auth.store'
 import { useQuery } from '@tanstack/react-query'
@@ -116,6 +115,8 @@ export default function ReportsHub() {
           console.error('Data inicial é obrigatória')
           return
         }
+
+        const { downloadDailyReportPDF } = await import('@/services/dailyReportPdf')
 
         const operationalReportType: OperationalReportType =
           filters.reportType === 'BY_SHIFT' || filters.reportType === 'BY_RECORD_TYPE'

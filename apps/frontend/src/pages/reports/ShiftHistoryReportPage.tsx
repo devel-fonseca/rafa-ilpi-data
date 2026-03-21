@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { FileDown, Loader2 } from 'lucide-react'
 import { getShiftHistoryReport } from '@/services/reportsApi'
 import { ShiftHistoryReportView } from '@/components/reports/ShiftHistoryReportView'
-import { downloadShiftHistoryReportPDF } from '@/services/shiftHistoryReportPdf'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProfile } from '@/hooks/useInstitutionalProfile'
 
@@ -24,11 +23,12 @@ export default function ShiftHistoryReportPage() {
     staleTime: 1000 * 60 * 5,
   })
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!report || !user) return
 
     setIsGeneratingPdf(true)
     try {
+      const { downloadShiftHistoryReportPDF } = await import('@/services/shiftHistoryReportPdf')
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
       const cnes =

@@ -34,7 +34,6 @@ import {
 import { useTenantInvoices } from '@/hooks/useInvoices'
 import type { Invoice } from '@/api/invoices.api'
 import { useTenantContractAcceptance, useTenantPrivacyPolicyAcceptance } from '@/hooks/useContracts'
-import { generateTermsAcceptancePDF, generatePrivacyPolicyAcceptancePDF } from '@/utils/acceptance-pdf'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -129,6 +128,18 @@ export function TenantDetails() {
 
   const reactivateMutation = useReactivateTenant()
   const createTenantBackupMutation = useCreateTenantBackup()
+
+  const handleDownloadTermsAcceptancePdf = async () => {
+    if (!contractAcceptance) return
+    const { generateTermsAcceptancePDF } = await import('@/utils/acceptance-pdf')
+    generateTermsAcceptancePDF(contractAcceptance)
+  }
+
+  const handleDownloadPrivacyPolicyPdf = async () => {
+    if (!privacyPolicyAcceptance) return
+    const { generatePrivacyPolicyAcceptancePDF } = await import('@/utils/acceptance-pdf')
+    generatePrivacyPolicyAcceptancePDF(privacyPolicyAcceptance)
+  }
 
   const timelineEvents = useMemo(() => {
     if (!tenant) return []
@@ -868,7 +879,7 @@ export function TenantDetails() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => generateTermsAcceptancePDF(contractAcceptance)}
+                          onClick={handleDownloadTermsAcceptancePdf}
                           className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
                           title="Baixar PDF do comprovante de aceite"
                         >
@@ -937,7 +948,7 @@ export function TenantDetails() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => generatePrivacyPolicyAcceptancePDF(privacyPolicyAcceptance)}
+                          onClick={handleDownloadPrivacyPolicyPdf}
                           className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
                           title="Baixar PDF do comprovante de aceite"
                         >

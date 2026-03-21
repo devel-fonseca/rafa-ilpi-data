@@ -10,7 +10,6 @@ import { residentsAPI } from '@/api/residents.api'
 import { useAuthStore } from '@/stores/auth.store'
 import { getResidentCareSummaryReport } from '@/services/reportsApi'
 import { ResidentCareSummaryReportView } from '@/components/reports/ResidentCareSummaryReportView'
-import { downloadResidentCareSummaryReportPDF } from '@/services/residentCareSummaryReportPdf'
 import { ResidentSearchSelect } from '@/components/residents/ResidentSearchSelect'
 import { useProfile } from '@/hooks/useInstitutionalProfile'
 
@@ -54,11 +53,12 @@ export default function ResidentCareSummaryReportPage() {
     staleTime: 1000 * 60 * 5,
   })
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!report || !user) return
 
     setIsGeneratingPdf(true)
     try {
+      const { downloadResidentCareSummaryReportPDF } = await import('@/services/residentCareSummaryReportPdf')
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
       const cnes =

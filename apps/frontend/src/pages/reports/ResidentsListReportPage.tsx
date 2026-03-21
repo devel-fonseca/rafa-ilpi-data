@@ -6,7 +6,6 @@ import { Loader2, FileDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { getResidentsListReport } from '@/services/reportsApi'
 import { ResidentsListReportView } from '@/components/reports/ResidentsListReportView'
-import { downloadResidentsListReportPDF } from '@/services/residentsListReportPdf'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProfile } from '@/hooks/useInstitutionalProfile'
 
@@ -21,11 +20,12 @@ export default function ResidentsListReportPage() {
     staleTime: 1000 * 60 * 5, // 5 minutos
   })
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!report || !user) return
 
     setIsGeneratingPdf(true)
     try {
+      const { downloadResidentsListReportPDF } = await import('@/services/residentsListReportPdf')
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
       const cnes =

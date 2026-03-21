@@ -7,7 +7,6 @@ import { getCurrentDate } from '@/utils/dateHelpers'
 import { useQuery } from '@tanstack/react-query'
 import { getDailyReport } from '@/services/reportsApi'
 import { DailyReportView } from '@/components/reports/DailyReportView'
-import { downloadDailyReportPDF } from '@/services/dailyReportPdf'
 import { applyOperationalReportFilter } from '@/services/operationalReports'
 import { useAuthStore } from '@/stores/auth.store'
 import { useEffect, useState } from 'react'
@@ -90,11 +89,12 @@ export default function DailyReportPage() {
         ? 'Visualize os registros assistenciais dentro do turno selecionado'
         : 'Visualize todos os registros, medicações e sinais vitais de um ou mais dias'
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!filteredReport || !user) return
 
     setIsGeneratingPdf(true)
     try {
+      const { downloadDailyReportPDF } = await import('@/services/dailyReportPdf')
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
       const cnes =
@@ -110,7 +110,7 @@ export default function DailyReportPage() {
         minute: '2-digit',
       })
 
-        downloadDailyReportPDF(filteredReport, {
+      downloadDailyReportPDF(filteredReport, {
         ilpiName,
         cnpj,
         cnes,

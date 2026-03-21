@@ -12,7 +12,6 @@ import { ResidentSearchSelect } from '@/components/residents/ResidentSearchSelec
 import { useProfile } from '@/hooks/useInstitutionalProfile'
 import { useResidentDocuments } from '@/hooks/useResidentDocuments'
 import { ResidentRegistrationReportView } from '@/components/reports/ResidentRegistrationReportView'
-import { downloadResidentRegistrationReportPDF } from '@/services/residentRegistrationReportPdf'
 
 export default function ResidentRegistrationReportPage() {
   const [searchParams] = useSearchParams()
@@ -77,11 +76,12 @@ export default function ResidentRegistrationReportPage() {
     error: residentDocumentsError,
   } = useResidentDocuments(selectedResidentId)
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!resident || !user) return
 
     setIsGeneratingPdf(true)
     try {
+      const { downloadResidentRegistrationReportPDF } = await import('@/services/residentRegistrationReportPdf')
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
       const cnes =

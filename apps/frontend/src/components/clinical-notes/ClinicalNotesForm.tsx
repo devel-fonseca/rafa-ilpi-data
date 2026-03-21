@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { Suspense, lazy, useState, useEffect, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -22,11 +22,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { DocumentPreviewModal } from './DocumentPreviewModal'
 import { DocumentEditorModal } from './DocumentEditorModal'
 import { toast } from 'sonner'
 import { getCurrentDateTimeLocal, formatDateTimeSafe } from '@/utils/dateHelpers'
-import { generateDocumentPdf } from '@/utils/generateDocumentPdf'
 import { useProfile } from '@/hooks/useInstitutionalProfile'
 import { useResident } from '@/hooks/useResidents'
 import { useAuthStore } from '@/stores/auth.store'
@@ -49,6 +47,12 @@ import {
 } from '@/utils/clinicalNotesConstants'
 import { devLogger } from '@/utils/devLogger'
 import { formatVitalSignsToText } from '@/utils/vitalSignsFormatter'
+
+const DocumentPreviewModal = lazy(() =>
+  import('./DocumentPreviewModal').then((module) => ({
+    default: module.DocumentPreviewModal,
+  }))
+)
 
 /**
  * Mapeia positionCode + registrationType para a profissão clínica correspondente
@@ -394,6 +398,7 @@ export function ClinicalNotesForm({
         // Gerar PDF se documento estiver habilitado
         if (documentEnabled && documentTitle && documentContent && residentData && user) {
           try {
+            const { generateDocumentPdf } = await import('@/utils/generateDocumentPdf')
             devLogger.log('📄 [onSubmit] Gerando PDF do documento...')
             toast.info('Gerando PDF do documento...')
 
@@ -526,6 +531,7 @@ export function ClinicalNotesForm({
         toast.info('Gerando PDF do documento...')
 
         try {
+          const { generateDocumentPdf } = await import('@/utils/generateDocumentPdf')
           pdfBlob = await generateDocumentPdf({
             title: documentTitle,
             content: documentContent,
@@ -983,45 +989,47 @@ export function ClinicalNotesForm({
 
       {/* Modal de Preview do Documento */}
       {showPreview && (
-        <DocumentPreviewModal
-          open={showPreview}
-          onOpenChange={setShowPreview}
-          documentTitle={documentTitle}
-          documentContent={documentContent}
-          resident={{
-            fullName: residentData?.fullName || '',
-            age: residentData?.birthDate
-              ? new Date().getFullYear() - new Date(residentData.birthDate).getFullYear()
-              : 0,
-            cpf: residentData?.cpf || '',
-            cns: residentData?.cns,
-            admissionDate: residentData?.admissionDate,
-          }}
-          professional={professionalData}
-          date={pendingFormData?.noteDate || new Date().toISOString()}
-          documentId={undefined} // TODO: Gerar UUID ao criar documento
-          institutionalData={
-            profileData?.profile
-              ? {
-                  tenantName: profileData.tenant?.name,
-                  logoUrl: profileData.profile.logoUrl || undefined,
-                  cnpj: profileData.tenant?.cnpj || undefined,
-                  cnesCode: profileData.profile.cnesCode || undefined,
-                  phone: profileData.tenant?.phone || undefined,
-                  email: profileData.tenant?.email || undefined,
-                  addressStreet: profileData.tenant?.addressStreet || undefined,
-                  addressNumber: profileData.tenant?.addressNumber || undefined,
-                  addressDistrict: profileData.tenant?.addressDistrict || undefined,
-                  addressCity: profileData.tenant?.addressCity || undefined,
-                  addressState: profileData.tenant?.addressState || undefined,
-                  addressZipCode: profileData.tenant?.addressZipCode || undefined,
-                }
-              : undefined
-          }
-          onConfirm={handleConfirmSave}
-          onEdit={handleBackToEdit}
-          isConfirming={isConfirming}
-        />
+        <Suspense fallback={null}>
+          <DocumentPreviewModal
+            open={showPreview}
+            onOpenChange={setShowPreview}
+            documentTitle={documentTitle}
+            documentContent={documentContent}
+            resident={{
+              fullName: residentData?.fullName || '',
+              age: residentData?.birthDate
+                ? new Date().getFullYear() - new Date(residentData.birthDate).getFullYear()
+                : 0,
+              cpf: residentData?.cpf || '',
+              cns: residentData?.cns,
+              admissionDate: residentData?.admissionDate,
+            }}
+            professional={professionalData}
+            date={pendingFormData?.noteDate || new Date().toISOString()}
+            documentId={undefined} // TODO: Gerar UUID ao criar documento
+            institutionalData={
+              profileData?.profile
+                ? {
+                    tenantName: profileData.tenant?.name,
+                    logoUrl: profileData.profile.logoUrl || undefined,
+                    cnpj: profileData.tenant?.cnpj || undefined,
+                    cnesCode: profileData.profile.cnesCode || undefined,
+                    phone: profileData.tenant?.phone || undefined,
+                    email: profileData.tenant?.email || undefined,
+                    addressStreet: profileData.tenant?.addressStreet || undefined,
+                    addressNumber: profileData.tenant?.addressNumber || undefined,
+                    addressDistrict: profileData.tenant?.addressDistrict || undefined,
+                    addressCity: profileData.tenant?.addressCity || undefined,
+                    addressState: profileData.tenant?.addressState || undefined,
+                    addressZipCode: profileData.tenant?.addressZipCode || undefined,
+                  }
+                : undefined
+            }
+            onConfirm={handleConfirmSave}
+            onEdit={handleBackToEdit}
+            isConfirming={isConfirming}
+          />
+        </Suspense>
       )}
 
       {/* Modal do Editor de Documentos (fullscreen) */}

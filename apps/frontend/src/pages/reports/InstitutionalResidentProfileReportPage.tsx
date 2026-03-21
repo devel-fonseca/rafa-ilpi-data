@@ -11,7 +11,6 @@ import {
   getInstitutionalResidentProfileReport,
 } from '@/services/reportsApi'
 import { InstitutionalResidentProfileReportView } from '@/components/reports/InstitutionalResidentProfileReportView'
-import { downloadInstitutionalResidentProfileReportPDF } from '@/services/institutionalResidentProfileReportPdf'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { useProfile } from '@/hooks/useInstitutionalProfile'
 
@@ -30,11 +29,12 @@ export default function InstitutionalResidentProfileReportPage() {
 
   const canGeneratePdf = useMemo(() => !!report && !isLoading && !error, [report, isLoading, error])
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!report || !user) return
 
     setIsGeneratingPdf(true)
     try {
+      const { downloadInstitutionalResidentProfileReportPDF } = await import('@/services/institutionalResidentProfileReportPdf')
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
       const cnes =
