@@ -1,7 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../auth/decorators/public.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantSchemasHealth } from './tenant-schemas.health';
+import { SuperAdminGuard } from '../superadmin/guards/superadmin.guard';
 
 @Controller('health')
 export class HealthController {
@@ -39,7 +41,7 @@ export class HealthController {
    *
    * GET /health/tenant-schemas
    */
-  @Public()
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @Get('tenant-schemas')
   async checkTenantSchemas() {
     return this.tenantSchemasHealth.check();
