@@ -11,6 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://l
 // eslint-disable-next-line no-restricted-syntax
 export const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -103,6 +104,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+    const requestUrl = String(originalRequest?.url || '')
+    const isAuthRequest = requestUrl.startsWith('/auth/')
+
+    if (error.response?.status === 401 && isAuthRequest) {
+      return Promise.reject(error)
+    }
 
     // Se token expirou (401) e não é retry
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -123,31 +130,20 @@ api.interceptors.response.use(
       originalRequest._retry = true
       isRefreshing = true
 
-      const refreshToken = useAuthStore.getState().refreshToken
-
-      if (!refreshToken) {
-        // Tentar registrar logout automático (best effort)
-        isRefreshing = false
-        processQueue(error, null)
-        tryLogoutOnExpiration() // Fire-and-forget
-        useAuthStore.getState().clearAuth()
-        window.location.href = '/session-expired'
-        return Promise.reject(error)
-      }
-
       try {
         // Tenta refresh
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        })
+        const response = await axios.post(
+          `${API_URL}/auth/refresh`,
+          undefined,
+          {
+            withCredentials: true,
+          },
+        )
 
-        const { accessToken, refreshToken: newRefreshToken } = response.data
+        const { accessToken } = response.data
 
         // Atualiza tokens
         useAuthStore.getState().updateToken(accessToken)
-        if (newRefreshToken) {
-          useAuthStore.setState({ refreshToken: newRefreshToken })
-        }
 
         // Processa fila de requisições pendentes
         processQueue(null, accessToken)
@@ -175,8 +171,8 @@ api.interceptors.response.use(
 
 /**
  * Registra logout de sessão expirada no backend
- * Usa endpoint público /auth/logout-expired que aceita apenas refreshToken
- * (não precisa de accessToken válido)
+ * Usa endpoint público /auth/logout-expired com refresh token em cookie httpOnly.
+ * Não precisa de accessToken válido.
  *
  * Esta função executa em "fire-and-forget" mode - não bloqueia o fluxo
  * mesmo se demorar ou falhar, garantindo que o logout seja registrado
@@ -184,20 +180,14 @@ api.interceptors.response.use(
  */
 async function tryLogoutOnExpiration() {
   try {
-    const { refreshToken } = useAuthStore.getState()
-
-    if (!refreshToken) {
-      console.log('[LOGOUT-EXPIRED] Sem refreshToken para registrar logout')
-      return
-    }
-
     // Usar endpoint público que não requer JWT
     // Timeout aumentado para 10 segundos para redes lentas
     await axios.post(
       `${API_URL}/auth/logout-expired`,
-      { refreshToken },
+      undefined,
       {
         timeout: 10000, // 10 segundos de timeout (aumentado de 3s)
+        withCredentials: true,
       }
     )
 

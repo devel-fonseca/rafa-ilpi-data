@@ -6,6 +6,8 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,9 +16,11 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Throttle, minutes } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { SelectTenantDto } from './dto/select-tenant.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -25,12 +29,20 @@ import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
-import { Request } from 'express';
+import { Request, Response } from 'express';
+import {
+  clearRefreshTokenCookie,
+  resolveRefreshTokenFromRequest,
+  setRefreshTokenCookie,
+} from './auth-cookie.util';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
 
   /**
@@ -39,11 +51,14 @@ export class AuthController {
    */
   @ApiOperation({
     summary: 'Login de usuário',
-    description: 'Login de usuário. Se o usuário tem múltiplos tenants, retorna lista para seleção.',
+    description:
+      'Login de usuário. Se o usuário tem múltiplos tenants, retorna lista para seleção. ' +
+      'Em caso de login direto, o refresh token é entregue em cookie httpOnly.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Login realizado com sucesso. Retorna access token e refresh token',
+    description:
+      'Login realizado com sucesso. Retorna access token no body e refresh token em cookie httpOnly',
   })
   @ApiResponse({
     status: 401,
@@ -53,10 +68,22 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: minutes(1) } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return this.authService.login(loginDto, ipAddress, userAgent);
+    const result = await this.authService.login(loginDto, ipAddress, userAgent);
+
+    if ('refreshToken' in result && result.refreshToken) {
+      setRefreshTokenCookie(response, this.configService, result.refreshToken);
+      const { refreshToken: _refreshToken, ...sanitizedResult } = result;
+      return sanitizedResult;
+    }
+
+    return result;
   }
 
   /**
@@ -65,11 +92,14 @@ export class AuthController {
    */
   @ApiOperation({
     summary: 'Selecionar tenant',
-    description: 'Seleciona um tenant específico quando o usuário tem acesso a múltiplas ILPIs',
+    description:
+      'Seleciona um tenant específico quando o usuário tem acesso a múltiplas ILPIs. ' +
+      'O refresh token é entregue em cookie httpOnly.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Tenant selecionado. Retorna access token e refresh token',
+    description:
+      'Tenant selecionado. Retorna access token no body e refresh token em cookie httpOnly',
   })
   @ApiResponse({
     status: 401,
@@ -83,20 +113,38 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: minutes(1) } })
   @Post('select-tenant')
   @HttpCode(HttpStatus.OK)
-  async selectTenant(@Body() selectTenantDto: SelectTenantDto, @Req() req: Request) {
+  async selectTenant(
+    @Body() selectTenantDto: SelectTenantDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return this.authService.selectTenant(selectTenantDto, ipAddress, userAgent);
+    const result = await this.authService.selectTenant(
+      selectTenantDto,
+      ipAddress,
+      userAgent,
+    );
+
+    setRefreshTokenCookie(response, this.configService, result.refreshToken);
+    const { refreshToken: _refreshToken, ...sanitizedResult } = result;
+    return sanitizedResult;
   }
 
   /**
    * POST /auth/refresh
    * Renovar access token
    */
-  @ApiOperation({ summary: 'Renovar access token usando refresh token' })
+  @ApiOperation({
+    summary: 'Renovar access token usando refresh token',
+    description:
+      'Renova a sessão usando o refresh token armazenado em cookie httpOnly. ' +
+      'Mantém compatibilidade temporária com refresh token no body.',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Tokens renovados com sucesso',
+    description:
+      'Sessão renovada com sucesso. Retorna novo access token no body e rotaciona o refresh token em cookie httpOnly',
   })
   @ApiResponse({
     status: 401,
@@ -106,10 +154,32 @@ export class AuthController {
   @Throttle({ default: { limit: 20, ttl: minutes(1) } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto, @Req() req: Request) {
+  async refresh(
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return this.authService.refresh(refreshTokenDto.refreshToken, ipAddress, userAgent);
+    const refreshToken = resolveRefreshTokenFromRequest(
+      req,
+      this.configService,
+      refreshTokenDto.refreshToken,
+    );
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token ausente');
+    }
+
+    const result = await this.authService.refresh(
+      refreshToken,
+      ipAddress,
+      userAgent,
+    );
+
+    setRefreshTokenCookie(response, this.configService, result.refreshToken);
+    const { refreshToken: _refreshToken, ...sanitizedResult } = result;
+    return sanitizedResult;
   }
 
   /**
@@ -131,18 +201,28 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(
     @CurrentUser() user: JwtPayload,
-    @Body() logoutDto: { refreshToken?: string; reason?: string },
+    @Body() logoutDto: LogoutDto & { reason?: string },
     @Req() req: Request,
+    @Res({ passthrough: true }) response: Response,
   ) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return this.authService.logout(
-      user.id,
+    const refreshToken = resolveRefreshTokenFromRequest(
+      req,
+      this.configService,
       logoutDto.refreshToken,
+    );
+
+    const result = await this.authService.logout(
+      user.id,
+      refreshToken,
       ipAddress,
       userAgent,
       logoutDto.reason,
     );
+
+    clearRefreshTokenCookie(response, this.configService);
+    return result;
   }
 
   /**
@@ -151,7 +231,9 @@ export class AuthController {
    */
   @ApiOperation({
     summary: 'Registrar logout de sessão expirada',
-    description: 'Endpoint público para registrar logout quando accessToken expirou mas refreshToken ainda é válido. Usado pelo frontend no interceptor.',
+    description:
+      'Endpoint público para registrar logout quando accessToken expirou mas o refresh token em cookie ainda é válido. ' +
+      'Usado pelo frontend no interceptor.',
   })
   @ApiResponse({
     status: 200,
@@ -165,10 +247,26 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: minutes(1) } })
   @Post('logout-expired')
   @HttpCode(HttpStatus.OK)
-  async logoutExpired(@Body() body: { refreshToken: string }, @Req() req: Request) {
+  async logoutExpired(
+    @Body() body: RefreshTokenDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return this.authService.logoutExpired(body.refreshToken, ipAddress, userAgent);
+    const refreshToken = resolveRefreshTokenFromRequest(
+      req,
+      this.configService,
+      body.refreshToken,
+    );
+
+    clearRefreshTokenCookie(response, this.configService);
+
+    if (!refreshToken) {
+      return { message: 'Logout registrado' };
+    }
+
+    return this.authService.logoutExpired(refreshToken, ipAddress, userAgent);
   }
 
   /**

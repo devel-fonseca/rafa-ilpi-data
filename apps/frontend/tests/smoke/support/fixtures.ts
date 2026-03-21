@@ -212,7 +212,7 @@ export const bedsHierarchy = {
 }
 
 function persistedState(state: unknown) {
-  return JSON.stringify({ state, version: 0 })
+  return JSON.stringify({ state, version: 2 })
 }
 
 async function fulfillJson(route: Route, body: unknown, status = 200) {
@@ -235,7 +235,6 @@ export async function seedAuthenticatedSession(page: Page) {
       authState: persistedState({
         user: baseUser,
         accessToken: 'access-token',
-        refreshToken: 'refresh-token',
         isAuthenticated: true,
       }),
       featuresState: persistedState(baseFeatures),
@@ -299,7 +298,6 @@ export async function mockLogin(page: Page) {
         email: body.email ?? baseUser.email,
       },
       accessToken: 'access-token',
-      refreshToken: 'refresh-token',
     })
   })
 }
@@ -324,7 +322,6 @@ export async function mockSuccessfulRefresh(page: Page) {
     refreshed = true
     return fulfillJson(route, {
       accessToken: 'new-access-token',
-      refreshToken: 'new-refresh-token',
     })
   })
 }

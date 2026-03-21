@@ -47,20 +47,19 @@ interface AuthState {
   // State
   user: User | null
   accessToken: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
   availableTenants: Tenant[] | null
 
   // Actions
-  login: (email: string, password: string) => Promise<{ requiresTenantSelection?: boolean; tenants?: Tenant[]; user?: User; accessToken?: string; refreshToken?: string }>
+  login: (email: string, password: string) => Promise<{ requiresTenantSelection?: boolean; tenants?: Tenant[]; user?: User; accessToken?: string }>
   selectTenant: (tenantId: string, email: string, password: string) => Promise<void>
   register: (data: Record<string, unknown>) => Promise<{ user: User; tenant: Tenant }>
   logout: (reason?: string) => Promise<void>
   refreshAuth: () => Promise<void>
   clearError: () => void
-  setAuth: (user: User, accessToken: string, refreshToken: string) => void
+  setAuth: (user: User, accessToken: string) => void
   clearAuth: () => void
   updateToken: (token: string) => void
 }
@@ -71,7 +70,6 @@ export const useAuthStore = create<AuthState>()(
       // Initial state
       user: null,
       accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
@@ -94,14 +92,13 @@ export const useAuthStore = create<AuthState>()(
           }
 
           // Login direto (único tenant)
-          const { user, accessToken, refreshToken } = response.data
+          const { user, accessToken } = response.data
 
           devLogger.log('Login bem-sucedido:', { user: user.email, hasToken: !!accessToken })
 
           set({
             user,
             accessToken,
-            refreshToken,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -138,7 +135,7 @@ export const useAuthStore = create<AuthState>()(
             password,
           })
 
-          const { user, accessToken, refreshToken } = response.data
+          const { user, accessToken } = response.data
 
           // ✅ CRÍTICO: Limpar TODO o cache do React Query ANTES de setar novo tenant
           // Isso garante isolamento completo de dados entre tenants.
@@ -158,7 +155,6 @@ export const useAuthStore = create<AuthState>()(
           set({
             user,
             accessToken,
-            refreshToken,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -191,11 +187,10 @@ export const useAuthStore = create<AuthState>()(
             password: data.adminPassword,
           })
 
-          const { accessToken, refreshToken } = loginResponse.data
+          const { accessToken } = loginResponse.data
           set({
             user: { ...user, tenant },
             accessToken,
-            refreshToken,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -219,11 +214,10 @@ export const useAuthStore = create<AuthState>()(
       logout: async (reason?: string) => {
         set({ isLoading: true })
         try {
-          const { accessToken, refreshToken } = get()
+          const { accessToken } = get()
           if (accessToken) {
             api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
-            // Enviar refreshToken para deletar apenas esta sessão específica
-            await api.post('/auth/logout', { refreshToken, reason })
+            await api.post('/auth/logout', { reason })
           }
         } catch (error) {
           devLogger.error('Erro ao fazer logout:', error)
@@ -231,7 +225,6 @@ export const useAuthStore = create<AuthState>()(
           set({
             user: null,
             accessToken: null,
-            refreshToken: null,
             isAuthenticated: false,
             isLoading: false,
             error: null,
@@ -264,20 +257,18 @@ export const useAuthStore = create<AuthState>()(
 
       // Refresh token
       refreshAuth: async () => {
-        const { refreshToken } = get()
-        if (!refreshToken) {
+        const { accessToken, user } = get()
+        if (!accessToken && !user) {
           set({ isAuthenticated: false })
           return
         }
 
         try {
-          const response = await api.post('/auth/refresh', { refreshToken })
-          const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
-            response.data
+          const response = await api.post('/auth/refresh')
+          const { accessToken: newAccessToken } = response.data
 
           set({
             accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
             isAuthenticated: true, // ✅ CORRIGIDO: Sincronizar estado após refresh bem-sucedido
           })
 
@@ -286,7 +277,6 @@ export const useAuthStore = create<AuthState>()(
           set({
             user: null,
             accessToken: null,
-            refreshToken: null,
             isAuthenticated: false,
           })
           delete api.defaults.headers.common['Authorization']
@@ -297,11 +287,10 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null }),
 
       // Set auth (mantido para compatibilidade)
-      setAuth: (user: User, accessToken: string, refreshToken: string) => {
+      setAuth: (user: User, accessToken: string) => {
         set({
           user,
           accessToken,
-          refreshToken,
           isAuthenticated: true,
         })
         api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
@@ -312,7 +301,6 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           accessToken: null,
-          refreshToken: null,
           isAuthenticated: false,
         })
         delete api.defaults.headers.common['Authorization']
@@ -326,10 +314,27 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'rafa-ilpi-auth',
+      version: 2,
+      migrate: (persistedState) => {
+        if (!persistedState || typeof persistedState !== 'object') {
+          return persistedState
+        }
+
+        const state = persistedState as {
+          user?: User | null
+          accessToken?: string | null
+          isAuthenticated?: boolean
+        }
+
+        return {
+          user: state.user ?? null,
+          accessToken: state.accessToken ?? null,
+          isAuthenticated: state.isAuthenticated ?? false,
+        }
+      },
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     },
