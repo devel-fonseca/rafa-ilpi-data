@@ -1,20 +1,22 @@
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts'
+import { useMemo } from 'react'
+import type { EChartsOption } from 'echarts'
 import type { OverdueTrend } from '@/api/overdue.api'
+import { EChart, useEChartThemeTokens } from '@/components/ui/echart'
 
 interface OverdueTrendChartProps {
   data: OverdueTrend[]
 }
 
+interface TooltipRow {
+  seriesName?: string
+  marker?: string
+  axisValueLabel?: string
+  value?: number | string | Array<number | string | null> | null
+}
+
 export function OverdueTrendChart({ data }: OverdueTrendChartProps) {
+  const tokens = useEChartThemeTokens()
+
   // Formatar dados para o gráfico
   const chartData = data.map((item) => ({
     month: formatMonth(item.month),
@@ -23,92 +25,172 @@ export function OverdueTrendChart({ data }: OverdueTrendChartProps) {
     'Taxa (%)': item.overdueRate,
   }))
 
+  const chartOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 400,
+    grid: {
+      top: 32,
+      right: 24,
+      bottom: 56,
+      left: 56,
+      containLabel: true,
+    },
+    legend: {
+      bottom: 8,
+      textStyle: {
+        color: tokens.mutedText,
+        fontSize: 14,
+      },
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'line',
+      },
+      backgroundColor: tokens.popover,
+      borderColor: tokens.border,
+      borderWidth: 1,
+      textStyle: {
+        color: tokens.text,
+      },
+      extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+      formatter: (params: TooltipRow | TooltipRow[]) => {
+        const rows = Array.isArray(params) ? params : [params]
+        const lines = rows.map((row) => {
+          const rawValue = Array.isArray(row.value) ? row.value[row.value.length - 1] : row.value
+          const value = Number(rawValue ?? 0)
+
+          if (row.seriesName === 'Valor (R$)') {
+            return `${row.marker} ${row.seriesName}: <strong>${new Intl.NumberFormat('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            }).format(value)}</strong>`
+          }
+
+          if (row.seriesName === 'Taxa (%)') {
+            return `${row.marker} ${row.seriesName}: <strong>${value.toFixed(1)}%</strong>`
+          }
+
+          return `${row.marker} ${row.seriesName}: <strong>${value}</strong>`
+        })
+
+        const title = rows[0]?.axisValueLabel ?? ''
+        return [title, ...lines].join('<br/>')
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: chartData.map((item) => item.month),
+      axisLine: { lineStyle: { color: tokens.border } },
+      axisTick: { show: false },
+      axisLabel: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: 'Valor',
+        position: 'left',
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: tokens.border,
+            type: 'dashed',
+            opacity: 0.7,
+          },
+        },
+        axisLabel: {
+          color: tokens.mutedText,
+          fontSize: 12,
+          formatter: (value: number) => `R$ ${(value / 1000).toFixed(0)}k`,
+        },
+      },
+      {
+        type: 'value',
+        name: 'Qtd./Taxa',
+        position: 'right',
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: {
+          color: tokens.mutedText,
+          fontSize: 12,
+        },
+      },
+    ],
+    series: [
+      {
+        name: 'Valor (R$)',
+        type: 'line',
+        yAxisIndex: 0,
+        smooth: true,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        data: chartData.map((item) => item['Valor (R$)']),
+        lineStyle: {
+          color: tokens.danger,
+          width: 2,
+        },
+        itemStyle: {
+          color: tokens.danger,
+          opacity: 1,
+        },
+        emphasis: {
+          disabled: true,
+        },
+      },
+      {
+        name: 'Quantidade',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        data: chartData.map((item) => item.Quantidade),
+        lineStyle: {
+          color: '#f97316',
+          width: 2,
+        },
+        itemStyle: {
+          color: '#f97316',
+          opacity: 1,
+        },
+        emphasis: {
+          disabled: true,
+        },
+      },
+      {
+        name: 'Taxa (%)',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        data: chartData.map((item) => item['Taxa (%)']),
+        lineStyle: {
+          color: '#facc15',
+          width: 2,
+          type: 'dashed',
+        },
+        itemStyle: {
+          color: '#facc15',
+          opacity: 1,
+        },
+        emphasis: {
+          disabled: true,
+        },
+      },
+    ],
+  }), [chartData, tokens.border, tokens.danger, tokens.mutedText, tokens.popover, tokens.text])
+
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <LineChart
-        data={chartData}
-        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis
-          dataKey="month"
-          stroke="#64748b"
-          style={{ fontSize: '12px' }}
-        />
-        <YAxis
-          yAxisId="left"
-          stroke="#64748b"
-          style={{ fontSize: '12px' }}
-          tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-        />
-        <YAxis
-          yAxisId="right"
-          orientation="right"
-          stroke="#64748b"
-          style={{ fontSize: '12px' }}
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: '#1e293b',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#f1f5f9',
-          }}
-          formatter={(value: number, name: string) => {
-            if (name === 'Valor (R$)') {
-              return [
-                new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(value),
-                name,
-              ]
-            }
-            if (name === 'Taxa (%)') {
-              return [`${value.toFixed(1)}%`, name]
-            }
-            return [value, name]
-          }}
-        />
-        <Legend
-          wrapperStyle={{ fontSize: '14px', paddingTop: '20px' }}
-        />
-
-        {/* Linha de Valor em Atraso */}
-        <Line
-          yAxisId="left"
-          type="monotone"
-          dataKey="Valor (R$)"
-          stroke="#dc2626"
-          strokeWidth={2}
-          dot={{ fill: '#dc2626', r: 4 }}
-          activeDot={{ r: 6 }}
-        />
-
-        {/* Linha de Quantidade de Faturas */}
-        <Line
-          yAxisId="right"
-          type="monotone"
-          dataKey="Quantidade"
-          stroke="#f97316"
-          strokeWidth={2}
-          dot={{ fill: '#f97316', r: 4 }}
-          activeDot={{ r: 6 }}
-        />
-
-        {/* Linha de Taxa de Inadimplência */}
-        <Line
-          yAxisId="right"
-          type="monotone"
-          dataKey="Taxa (%)"
-          stroke="#facc15"
-          strokeWidth={2}
-          dot={{ fill: '#facc15', r: 4 }}
-          activeDot={{ r: 6 }}
-          strokeDasharray="5 5"
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <EChart option={chartOption} height={350} />
   )
 }
 

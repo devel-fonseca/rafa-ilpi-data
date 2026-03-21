@@ -1,22 +1,9 @@
 import { useMemo, useState } from 'react'
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts'
+import type { EChartsOption } from 'echarts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
+import { EChart, useEChartThemeTokens } from '@/components/ui/echart'
 import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Clock, TrendingUp } from 'lucide-react'
 import type { FinancialTransaction, FinancialCategory } from '@/types/financial-operations'
 import { formatDateOnly, formatMonthLabel, parseCurrencyValue, statusLabel } from '../financial.utils'
@@ -62,16 +49,6 @@ const PERIOD_OPTIONS = [
 
 type DashboardPeriod = (typeof PERIOD_OPTIONS)[number]['value']
 
-const tooltipStyle = {
-  backgroundColor: 'hsl(var(--popover))',
-  border: '1px solid hsl(var(--border))',
-  borderRadius: '8px',
-  color: 'hsl(var(--popover-foreground))',
-}
-
-const axisStroke = 'hsl(var(--muted-foreground))'
-const axisStyle = { fontSize: '12px' }
-const legendStyle = { fontSize: '12px', color: 'hsl(var(--foreground))' }
 const compactNumberFormatter = new Intl.NumberFormat('pt-BR', {
   notation: 'compact',
   maximumFractionDigits: 1,
@@ -102,6 +79,7 @@ export function DashboardSection({
   formatCurrency,
 }: DashboardSectionProps) {
   const [period, setPeriod] = useState<DashboardPeriod>('6m')
+  const tokens = useEChartThemeTokens()
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>()
@@ -338,6 +316,254 @@ export function DashboardSection({
       .slice(0, 8)
   }, [scopedTransactions])
 
+  const axisLabel = useMemo(
+    () => ({
+      color: tokens.mutedText,
+      fontSize: 12,
+    }),
+    [tokens.mutedText],
+  )
+
+  const monthlyOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 400,
+    grid: { top: 16, right: 16, bottom: 40, left: 16, containLabel: true },
+    legend: {
+      bottom: 0,
+      textStyle: { color: tokens.mutedText, fontSize: 12 },
+      data: ['Receitas', 'Despesas'],
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow',
+        shadowStyle: { color: 'rgba(148, 163, 184, 0.12)' },
+      },
+      backgroundColor: tokens.popover,
+      borderColor: tokens.border,
+      borderWidth: 1,
+      textStyle: { color: tokens.text, fontFamily: 'inherit' },
+      extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+      formatter: (params: unknown) => {
+        const rows = (Array.isArray(params) ? params : [params]) as Array<{
+          axisValueLabel?: string
+          seriesName?: string
+          marker?: string
+          value?: number | string
+        }>
+        const title = rows[0]?.axisValueLabel ?? ''
+        const lines = rows.map((row) => `${row.marker ?? ''} ${row.seriesName}: <strong>${formatCurrency(Number(row.value ?? 0))}</strong>`)
+        return [title, ...lines].join('<br/>')
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: monthlyData.map((item) => item.month),
+      axisLine: { lineStyle: { color: tokens.border } },
+      axisTick: { show: false },
+      axisLabel,
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        ...axisLabel,
+        formatter: (value: number) => compactNumberFormatter.format(Number(value)),
+      },
+      splitLine: {
+        lineStyle: { color: tokens.border, type: 'dashed', opacity: 0.3 },
+      },
+    },
+    series: [
+      {
+        name: 'Receitas',
+        type: 'bar',
+        data: monthlyData.map((item) => item.Receitas),
+        itemStyle: { color: tokens.success, borderRadius: [4, 4, 0, 0] },
+        emphasis: { disabled: true },
+      },
+      {
+        name: 'Despesas',
+        type: 'bar',
+        data: monthlyData.map((item) => item.Despesas),
+        itemStyle: { color: tokens.danger, borderRadius: [4, 4, 0, 0] },
+        emphasis: { disabled: true },
+      },
+    ],
+  }), [axisLabel, formatCurrency, monthlyData, tokens.border, tokens.danger, tokens.mutedText, tokens.popover, tokens.success, tokens.text])
+
+  const categoryOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 400,
+    color: CHART_COLORS,
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: tokens.popover,
+      borderColor: tokens.border,
+      borderWidth: 1,
+      textStyle: { color: tokens.text, fontFamily: 'inherit' },
+      extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+      formatter: (params: unknown) => {
+        const row = params as { name?: string; value?: number | string; percent?: number }
+        const value = Number(row.value ?? 0)
+        return `
+          <div style="min-width: 140px;">
+            <div style="font-size: 12px; color: ${tokens.mutedText};">${row.name ?? 'Categoria'}</div>
+            <div style="font-size: 14px; font-weight: 600; color: ${tokens.text};">${formatCurrency(value)}</div>
+            <div style="font-size: 12px; color: ${tokens.mutedText}; margin-top: 2px;">${Number(row.percent ?? 0).toFixed(1)}%</div>
+          </div>
+        `
+      },
+    },
+    legend: {
+      type: 'scroll',
+      bottom: 0,
+      left: 'center',
+      textStyle: { color: tokens.mutedText, fontSize: 12 },
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['45%', '65%'],
+        center: ['50%', '42%'],
+        avoidLabelOverlap: true,
+        itemStyle: {
+          borderColor: tokens.card,
+          borderWidth: 2,
+        },
+        label: { show: false },
+        emphasis: {
+          disabled: true,
+        },
+        data: categoryData,
+      },
+    ],
+  }), [categoryData, formatCurrency, tokens.border, tokens.card, tokens.mutedText, tokens.popover, tokens.text])
+
+  const balanceOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 400,
+    grid: { top: 16, right: 16, bottom: 24, left: 16, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'line',
+        lineStyle: { color: tokens.border, type: 'dashed' },
+      },
+      backgroundColor: tokens.popover,
+      borderColor: tokens.border,
+      borderWidth: 1,
+      textStyle: { color: tokens.text, fontFamily: 'inherit' },
+      extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+      formatter: (params: unknown) => {
+        const rows = (Array.isArray(params) ? params : [params]) as Array<{
+          axisValueLabel?: string
+          value?: number | string
+        }>
+        const value = Number(rows[0]?.value ?? 0)
+        return `${rows[0]?.axisValueLabel ?? ''}<br/><strong>${formatCurrency(value)}</strong>`
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: balanceEvolution.map((item) => item.month),
+      axisLine: { lineStyle: { color: tokens.border } },
+      axisTick: { show: false },
+      axisLabel,
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        ...axisLabel,
+        formatter: (value: number) => compactNumberFormatter.format(Number(value)),
+      },
+      splitLine: {
+        lineStyle: { color: tokens.border, type: 'dashed', opacity: 0.3 },
+      },
+    },
+    series: [
+      {
+        type: 'line',
+        smooth: true,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 7,
+        data: balanceEvolution.map((item) => item.Saldo),
+        lineStyle: { color: tokens.primary, width: 3 },
+        itemStyle: { color: tokens.primary, opacity: 1 },
+        emphasis: { disabled: true },
+      },
+    ],
+  }), [axisLabel, balanceEvolution, formatCurrency, tokens.border, tokens.popover, tokens.primary, tokens.text])
+
+  const realizedOpenOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 400,
+    grid: { top: 16, right: 16, bottom: 40, left: 16, containLabel: true },
+    legend: {
+      bottom: 0,
+      textStyle: { color: tokens.mutedText, fontSize: 12 },
+      data: ['Realizado', 'Aberto'],
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow',
+        shadowStyle: { color: 'rgba(148, 163, 184, 0.12)' },
+      },
+      backgroundColor: tokens.popover,
+      borderColor: tokens.border,
+      borderWidth: 1,
+      textStyle: { color: tokens.text, fontFamily: 'inherit' },
+      extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+      formatter: (params: unknown) => {
+        const rows = (Array.isArray(params) ? params : [params]) as Array<{
+          axisValueLabel?: string
+          seriesName?: string
+          marker?: string
+          value?: number | string
+        }>
+        const title = rows[0]?.axisValueLabel ?? ''
+        const lines = rows.map((row) => `${row.marker ?? ''} ${row.seriesName}: <strong>${formatCurrency(Number(row.value ?? 0))}</strong>`)
+        return [title, ...lines].join('<br/>')
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: realizedVsOpenData.map((item) => item.tipo),
+      axisLine: { lineStyle: { color: tokens.border } },
+      axisTick: { show: false },
+      axisLabel,
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        ...axisLabel,
+        formatter: (value: number) => compactNumberFormatter.format(Number(value)),
+      },
+      splitLine: {
+        lineStyle: { color: tokens.border, type: 'dashed', opacity: 0.3 },
+      },
+    },
+    series: [
+      {
+        name: 'Realizado',
+        type: 'bar',
+        data: realizedVsOpenData.map((item) => item.Realizado),
+        itemStyle: { color: tokens.success, borderRadius: [4, 4, 0, 0] },
+        emphasis: { disabled: true },
+      },
+      {
+        name: 'Aberto',
+        type: 'bar',
+        data: realizedVsOpenData.map((item) => item.Aberto),
+        itemStyle: { color: tokens.warning, borderRadius: [4, 4, 0, 0] },
+        emphasis: { disabled: true },
+      },
+    ],
+  }), [axisLabel, formatCurrency, realizedVsOpenData, tokens.border, tokens.mutedText, tokens.popover, tokens.success, tokens.text, tokens.warning])
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -386,7 +612,6 @@ export function DashboardSection({
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-card border-border">
           <CardContent className="pt-6">
@@ -448,9 +673,7 @@ export function DashboardSection({
         </Card>
       </div>
 
-      {/* Charts - Row 1 */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Revenue vs Expenses Bar Chart */}
         <Card className="bg-card border-border h-[320px] flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium text-foreground">Receitas vs Despesas</CardTitle>
@@ -462,26 +685,11 @@ export function DashboardSection({
                 <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
               </div>
             ) : (
-              <ResponsiveChartContainer className="h-full">
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="month" stroke={axisStroke} style={axisStyle} />
-                  <YAxis
-                    stroke={axisStroke}
-                    style={axisStyle}
-                    tickFormatter={(value) => compactNumberFormatter.format(Number(value))}
-                  />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-                  <Legend wrapperStyle={legendStyle} />
-                  <Bar dataKey="Receitas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Despesas" fill="hsl(var(--danger))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveChartContainer>
+              <EChart option={monthlyOption} className="h-full" />
             )}
           </CardContent>
         </Card>
 
-        {/* Expenses by Category Pie Chart */}
         <Card className="bg-card border-border h-[320px] flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium text-foreground">Despesas por categoria</CardTitle>
@@ -493,49 +701,13 @@ export function DashboardSection({
                 <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
               </div>
             ) : (
-              <ResponsiveChartContainer className="h-full">
-                <PieChart margin={{ top: 8, right: 4, bottom: 8, left: 4 }}>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="48%"
-                    innerRadius={46}
-                    outerRadius={64}
-                    dataKey="value"
-                    nameKey="name"
-                    paddingAngle={1}
-                  >
-                    {categoryData.map((_, index) => (
-                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null
-                      const entry = payload[0]
-                      const rawValue = typeof entry.value === 'number' ? entry.value : Number(entry.value ?? 0)
-                      const value = Number.isFinite(rawValue) ? rawValue : 0
-                      const name = entry.name ? String(entry.name) : 'Categoria'
-
-                      return (
-                        <div style={tooltipStyle} className="px-3 py-2">
-                          <p className="text-xs text-muted-foreground">{name}</p>
-                          <p className="text-sm font-semibold text-foreground">{formatCurrency(value)}</p>
-                        </div>
-                      )
-                    }}
-                  />
-                  <Legend wrapperStyle={legendStyle} />
-                </PieChart>
-              </ResponsiveChartContainer>
+              <EChart option={categoryOption} className="h-full" />
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts - Row 2 */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Balance Evolution Line Chart */}
         <Card className="bg-card border-border h-[320px] flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium text-foreground">Evolução do saldo</CardTitle>
@@ -547,31 +719,11 @@ export function DashboardSection({
                 <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
               </div>
             ) : (
-              <ResponsiveChartContainer className="h-full">
-                <LineChart data={balanceEvolution}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="month" stroke={axisStroke} style={axisStyle} />
-                  <YAxis
-                    stroke={axisStroke}
-                    style={axisStyle}
-                    tickFormatter={(value) => compactNumberFormatter.format(Number(value))}
-                  />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-                  <Line
-                    type="monotone"
-                    dataKey="Saldo"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={3}
-                    dot={{ fill: 'hsl(var(--primary))', r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveChartContainer>
+              <EChart option={balanceOption} className="h-full" />
             )}
           </CardContent>
         </Card>
 
-        {/* Realized vs Open Bar Chart */}
         <Card className="bg-card border-border h-[320px] flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium text-foreground">Realizado x em aberto</CardTitle>
@@ -583,21 +735,7 @@ export function DashboardSection({
                 <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
               </div>
             ) : (
-              <ResponsiveChartContainer className="h-full">
-                <BarChart data={realizedVsOpenData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="tipo" stroke={axisStroke} style={axisStyle} />
-                  <YAxis
-                    stroke={axisStroke}
-                    style={axisStyle}
-                    tickFormatter={(value) => compactNumberFormatter.format(Number(value))}
-                  />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-                  <Legend wrapperStyle={legendStyle} />
-                  <Bar dataKey="Realizado" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Aberto" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveChartContainer>
+              <EChart option={realizedOpenOption} className="h-full" />
             )}
           </CardContent>
         </Card>

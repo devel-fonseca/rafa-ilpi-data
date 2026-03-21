@@ -1,119 +1,191 @@
-import React from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { RdcIndicatorType, RDC_INDICATOR_LABELS } from '@/types/incidents';
-import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container';
+import { useMemo } from 'react'
+import type { EChartsOption } from 'echarts'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { EChart, useEChartThemeTokens } from '@/components/ui/echart'
+import { RdcIndicatorType, RDC_INDICATOR_LABELS } from '@/types/incidents'
 
 interface HistoricalIndicator {
-  year: number;
-  month: number;
+  year: number
+  month: number
   indicators: {
     [indicatorType: string]: {
-      numerator: number;
-      denominator: number;
-      rate: number;
-      calculatedAt: string;
-    };
-  };
+      numerator: number
+      denominator: number
+      rate: number
+      calculatedAt: string
+    }
+  }
 }
 
 interface RdcTrendChartProps {
-  data: HistoricalIndicator[];
-  isLoading?: boolean;
+  data: HistoricalIndicator[]
+  isLoading?: boolean
 }
 
-// Cores para cada indicador (seguindo padrão do sistema)
 const INDICATOR_COLORS: Record<RdcIndicatorType, string> = {
-  [RdcIndicatorType.MORTALIDADE]: '#DC2626', // red-600
-  [RdcIndicatorType.DIARREIA_AGUDA]: '#EA580C', // orange-600
-  [RdcIndicatorType.ESCABIOSE]: '#D97706', // amber-600
-  [RdcIndicatorType.DESIDRATACAO]: '#CA8A04', // yellow-600
-  [RdcIndicatorType.ULCERA_DECUBITO]: '#65A30D', // lime-600
-  [RdcIndicatorType.DESNUTRICAO]: '#16A34A', // green-600
-};
+  [RdcIndicatorType.MORTALIDADE]: '#DC2626',
+  [RdcIndicatorType.DIARREIA_AGUDA]: '#EA580C',
+  [RdcIndicatorType.ESCABIOSE]: '#D97706',
+  [RdcIndicatorType.DESIDRATACAO]: '#CA8A04',
+  [RdcIndicatorType.ULCERA_DECUBITO]: '#65A30D',
+  [RdcIndicatorType.DESNUTRICAO]: '#16A34A',
+}
+
+const INDICATORS_IN_ORDER: RdcIndicatorType[] = [
+  RdcIndicatorType.MORTALIDADE,
+  RdcIndicatorType.DIARREIA_AGUDA,
+  RdcIndicatorType.ESCABIOSE,
+  RdcIndicatorType.DESIDRATACAO,
+  RdcIndicatorType.ULCERA_DECUBITO,
+  RdcIndicatorType.DESNUTRICAO,
+]
 
 export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
-  // Transformar dados para o formato do Recharts
-  const chartData = React.useMemo(() => {
-    if (!data || data.length === 0) return [];
+  const tokens = useEChartThemeTokens()
 
-    // Ordenar por data (mais antigo primeiro)
+  const chartData = useMemo(() => {
+    if (!data || data.length === 0) return []
+
     const sorted = [...data].sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    });
+      if (a.year !== b.year) return a.year - b.year
+      return a.month - b.month
+    })
 
-    // Transformar para formato do Recharts
     return sorted.map((item) => {
-      const monthLabel = new Date(item.year, item.month - 1, 1).toLocaleDateString(
-        'pt-BR',
-        {
-          month: 'short',
-          year: '2-digit',
-        },
-      );
+      const monthLabel = new Date(item.year, item.month - 1, 1).toLocaleDateString('pt-BR', {
+        month: 'short',
+        year: '2-digit',
+      })
 
-      const dataPoint: Record<string, unknown> = {
+      const point: Record<string, unknown> = {
         month: monthLabel,
         fullDate: `${item.year}-${String(item.month).padStart(2, '0')}`,
-      };
+      }
 
-      // Adicionar cada indicador
-      Object.entries(RdcIndicatorType).forEach(([, value]) => {
-        const indicatorData = item.indicators[value];
-        if (indicatorData) {
-          dataPoint[value] = Number(indicatorData.rate.toFixed(2));
-        }
-      });
+      INDICATORS_IN_ORDER.forEach((indicator) => {
+        const indicatorData = item.indicators[indicator]
+        point[indicator] = indicatorData ? Number(indicatorData.rate.toFixed(2)) : null
+      })
 
-      return dataPoint;
-    });
-  }, [data]);
+      return point
+    })
+  }, [data])
 
-  // Tooltip customizado
-  interface TooltipPayloadEntry {
-    dataKey: string
-    color: string
-    value: number
-    [key: string]: unknown
-  }
+  const chartOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 400,
+    grid: {
+      top: 20,
+      right: 24,
+      bottom: 72,
+      left: 48,
+      containLabel: true,
+    },
+    legend: {
+      bottom: 8,
+      icon: 'circle',
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+      data: INDICATORS_IN_ORDER,
+      formatter: (value: string) => RDC_INDICATOR_LABELS[value as RdcIndicatorType] || value,
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'line',
+        lineStyle: {
+          color: tokens.border,
+          width: 1,
+          type: 'dashed',
+        },
+      },
+      backgroundColor: tokens.popover,
+      borderColor: tokens.border,
+      borderWidth: 1,
+      textStyle: {
+        color: tokens.text,
+        fontFamily: 'inherit',
+      },
+      extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+      formatter: (params: unknown) => {
+        const rows = Array.isArray(params) ? params : [params]
+        const typedRows = rows as Array<{
+          seriesName?: string
+          marker?: string
+          axisValueLabel?: string
+          value?: number | string | null
+        }>
 
-  interface CustomTooltipProps {
-    active?: boolean
-    payload?: TooltipPayloadEntry[]
-    label?: string
-  }
+        const title = typedRows[0]?.axisValueLabel ?? ''
+        const lines = typedRows
+          .filter((row) => row.seriesName)
+          .map((row) => {
+            const value = Number(row.value ?? 0)
+            return `${row.marker ?? ''} ${RDC_INDICATOR_LABELS[row.seriesName as RdcIndicatorType] || row.seriesName}: <strong>${value.toFixed(2)}%</strong>`
+          })
 
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-card border border-border rounded-lg shadow-lg p-4">
-          <p className="font-semibold text-sm mb-2">{label}</p>
-          {payload.map((entry: TooltipPayloadEntry) => (
-            <div key={entry.dataKey} className="flex items-center gap-2 text-xs mb-1">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-muted-foreground">
-                {RDC_INDICATOR_LABELS[entry.dataKey as RdcIndicatorType]}:
-              </span>
-              <span className="font-medium">{entry.value}%</span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+        return [title, ...lines].join('<br/>')
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: chartData.map((item) => item.month as string),
+      axisLine: { lineStyle: { color: tokens.border } },
+      axisTick: { show: false },
+      axisLabel: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Taxa (%)',
+      nameLocation: 'middle',
+      nameGap: 42,
+      nameTextStyle: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: tokens.mutedText,
+        fontSize: 12,
+        formatter: (value: number) => `${value}%`,
+      },
+      splitLine: {
+        lineStyle: {
+          color: tokens.border,
+          type: 'dashed',
+          opacity: 0.7,
+        },
+      },
+    },
+    series: INDICATORS_IN_ORDER.map((indicator) => ({
+      name: indicator,
+      type: 'line',
+      smooth: true,
+      showSymbol: true,
+      symbol: 'circle',
+      symbolSize: 7,
+      data: chartData.map((item) => item[indicator] as number | null),
+      lineStyle: {
+        color: INDICATOR_COLORS[indicator],
+        width: 2,
+      },
+      itemStyle: {
+        color: INDICATOR_COLORS[indicator],
+        opacity: 1,
+      },
+      emphasis: {
+        disabled: true,
+      },
+      connectNulls: false,
+    })),
+  }), [chartData, tokens.border, tokens.mutedText, tokens.popover, tokens.text])
 
   if (isLoading) {
     return (
@@ -129,10 +201,10 @@ export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  if (!chartData || chartData.length === 0) {
+  if (!chartData.length) {
     return (
       <Card>
         <CardHeader>
@@ -146,7 +218,7 @@ export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
@@ -158,94 +230,10 @@ export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
         </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveChartContainer height={400} minHeight={400}>
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis
-              dataKey="month"
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
-            />
-            <YAxis
-              label={{
-                value: 'Taxa (%)',
-                angle: -90,
-                position: 'insideLeft',
-                style: { fontSize: 12 },
-              }}
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{ fontSize: '12px' }}
-              formatter={(value) =>
-                RDC_INDICATOR_LABELS[value as RdcIndicatorType] || value
-              }
-            />
+        <div className="h-[400px]">
+          <EChart option={chartOption} className="h-full" />
+        </div>
 
-            {/* Linhas para cada indicador */}
-            <Line
-              type="monotone"
-              dataKey={RdcIndicatorType.MORTALIDADE}
-              stroke={INDICATOR_COLORS[RdcIndicatorType.MORTALIDADE]}
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-              name={RdcIndicatorType.MORTALIDADE}
-            />
-            <Line
-              type="monotone"
-              dataKey={RdcIndicatorType.DIARREIA_AGUDA}
-              stroke={INDICATOR_COLORS[RdcIndicatorType.DIARREIA_AGUDA]}
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-              name={RdcIndicatorType.DIARREIA_AGUDA}
-            />
-            <Line
-              type="monotone"
-              dataKey={RdcIndicatorType.ESCABIOSE}
-              stroke={INDICATOR_COLORS[RdcIndicatorType.ESCABIOSE]}
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-              name={RdcIndicatorType.ESCABIOSE}
-            />
-            <Line
-              type="monotone"
-              dataKey={RdcIndicatorType.DESIDRATACAO}
-              stroke={INDICATOR_COLORS[RdcIndicatorType.DESIDRATACAO]}
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-              name={RdcIndicatorType.DESIDRATACAO}
-            />
-            <Line
-              type="monotone"
-              dataKey={RdcIndicatorType.ULCERA_DECUBITO}
-              stroke={INDICATOR_COLORS[RdcIndicatorType.ULCERA_DECUBITO]}
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-              name={RdcIndicatorType.ULCERA_DECUBITO}
-            />
-            <Line
-              type="monotone"
-              dataKey={RdcIndicatorType.DESNUTRICAO}
-              stroke={INDICATOR_COLORS[RdcIndicatorType.DESNUTRICAO]}
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-              name={RdcIndicatorType.DESNUTRICAO}
-            />
-          </LineChart>
-        </ResponsiveChartContainer>
-
-        {/* Legenda adicional */}
         <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
           <p>
             <strong>Como interpretar:</strong> Quanto menor a taxa, melhor o
@@ -255,5 +243,5 @@ export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

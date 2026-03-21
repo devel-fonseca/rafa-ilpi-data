@@ -1,28 +1,18 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import type { EChartsOption } from 'echarts'
 import { formatDateTimeShortSafe } from '@/utils/dateHelpers'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ReferenceLine,
-} from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
-import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
+import { EChart, useEChartThemeTokens } from '@/components/ui/echart'
 
-// Cores do design system
 const CHART_COLORS = {
   danger: 'hsl(var(--danger))',
   primary: 'hsl(var(--primary))',
   success: 'hsl(var(--success))',
   warning: 'hsl(var(--warning))',
-  pink: 'hsl(330 81% 60%)', // Aproximação de #ec4899 para FC
-  cyan: 'hsl(188 95% 42%)', // Aproximação de #06b6d4 para SpO₂
+  pink: 'hsl(330 81% 60%)',
+  cyan: 'hsl(188 95% 42%)',
 }
 
 interface VitalSignData {
@@ -40,10 +30,24 @@ interface VitalSignsChartsProps {
   data: VitalSignData[]
 }
 
+interface SeriesConfig {
+  key: 'systolic' | 'diastolic' | 'temperature' | 'heartRate' | 'oxygenSaturation' | 'bloodGlucose'
+  name: string
+  color: string
+  unit: string
+}
+
+interface ThresholdLine {
+  value: number
+  color: string
+  label: string
+}
+
 export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
-  // Preparar dados para os gráficos
+  const tokens = useEChartThemeTokens()
+
   const chartData = useMemo(() => {
-    return data
+    return [...data]
       .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
       .map((item) => ({
         date: formatDateTimeShortSafe(item.timestamp),
@@ -57,54 +61,219 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
       }))
   }, [data])
 
-  // Tooltip customizado
-  interface TooltipEntry {
-    name: string
-    value: number
-    color: string
-    dataKey: string
-    [key: string]: unknown
-  }
+  const buildLineOption = useCallback(
+    (
+      series: SeriesConfig[],
+      yDomain: [number, number],
+      thresholds: ThresholdLine[],
+      showLegend = false,
+    ): EChartsOption => ({
+      animationDuration: 400,
+      grid: {
+        top: showLegend ? 28 : 20,
+        right: 24,
+        bottom: showLegend ? 48 : 24,
+        left: 20,
+        containLabel: true,
+      },
+      legend: showLegend
+        ? {
+            bottom: 8,
+            textStyle: {
+              color: tokens.mutedText,
+              fontSize: 12,
+            },
+            data: series.map((item) => item.name),
+          }
+        : undefined,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'line',
+          lineStyle: {
+            color: tokens.border,
+            width: 1,
+            type: 'dashed',
+          },
+        },
+        backgroundColor: tokens.popover,
+        borderColor: tokens.border,
+        borderWidth: 1,
+        textStyle: {
+          color: tokens.text,
+          fontFamily: 'inherit',
+        },
+        extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+        formatter: (params: unknown) => {
+          const rows = Array.isArray(params) ? params : [params]
+          const typedRows = rows as Array<{
+            axisValueLabel?: string
+            seriesName?: string
+            marker?: string
+            value?: number | string | null
+          }>
 
-  interface CustomTooltipProps {
-    active?: boolean
-    payload?: TooltipEntry[]
-    label?: string
-  }
+          const title = typedRows[0]?.axisValueLabel ?? ''
+          const lines = typedRows
+            .filter((row) => row.seriesName && row.value != null)
+            .map((row) => {
+              const config = series.find((item) => item.name === row.seriesName)
+              const value = Number(row.value ?? 0)
+              return `${row.marker ?? ''} ${row.seriesName}: <strong>${value} ${config?.unit ?? ''}</strong>`
+            })
 
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-background border rounded-lg shadow-lg p-3">
-          <p className="font-medium">{label}</p>
-          {payload.map((entry: TooltipEntry, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value} {getUnit(entry.dataKey)}
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
+          return [title, ...lines].join('<br/>')
+        },
+      },
+      xAxis: {
+        type: 'category',
+        data: chartData.map((item) => item.date),
+        axisLine: {
+          lineStyle: {
+            color: tokens.border,
+          },
+        },
+        axisTick: { show: false },
+        axisLabel: {
+          color: tokens.mutedText,
+          fontSize: 12,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        min: yDomain[0],
+        max: yDomain[1],
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: tokens.mutedText,
+          fontSize: 12,
+        },
+        splitLine: {
+          lineStyle: {
+            color: tokens.border,
+            type: 'dashed',
+            opacity: 0.7,
+          },
+        },
+      },
+      series: series.map((item, index) => ({
+        name: item.name,
+        type: 'line',
+        smooth: true,
+        connectNulls: true,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        data: chartData.map((row) => row[item.key] as number | null),
+        lineStyle: {
+          color: item.color,
+          width: 2,
+        },
+        itemStyle: {
+          color: item.color,
+          opacity: 1,
+        },
+        emphasis: {
+          disabled: true,
+        },
+        markLine: index === 0 && thresholds.length > 0
+          ? {
+              silent: true,
+              symbol: 'none',
+              lineStyle: {
+                type: 'dashed',
+                width: 1,
+              },
+              label: {
+                show: true,
+                position: 'end',
+                color: tokens.mutedText,
+                fontSize: 10,
+                formatter: ({ data }: { data?: { label?: string } }) => data?.label ?? '',
+              },
+              data: thresholds.map((threshold) => ({
+                yAxis: threshold.value,
+                label: threshold.label,
+                lineStyle: {
+                  color: threshold.color,
+                  type: 'dashed',
+                },
+              })),
+            }
+          : undefined,
+      })),
+    }),
+    [chartData, tokens.border, tokens.mutedText, tokens.popover, tokens.text],
+  )
 
-  const getUnit = (dataKey: string) => {
-    switch (dataKey) {
-      case 'systolic':
-      case 'diastolic':
-        return 'mmHg'
-      case 'temperature':
-        return '°C'
-      case 'heartRate':
-        return 'bpm'
-      case 'oxygenSaturation':
-        return '%'
-      case 'bloodGlucose':
-        return 'mg/dL'
-      default:
-        return ''
-    }
-  }
+  const bloodPressureOption = useMemo(
+    () =>
+      buildLineOption(
+        [
+          { key: 'systolic', name: 'Sistólica', color: CHART_COLORS.danger, unit: 'mmHg' },
+          { key: 'diastolic', name: 'Diastólica', color: CHART_COLORS.primary, unit: 'mmHg' },
+        ],
+        [0, 200],
+        [
+          { value: 140, color: CHART_COLORS.warning, label: 'PA Alta' },
+          { value: 90, color: CHART_COLORS.warning, label: 'PA Baixa' },
+        ],
+        true,
+      ),
+    [buildLineOption],
+  )
+
+  const glucoseOption = useMemo(
+    () =>
+      buildLineOption(
+        [{ key: 'bloodGlucose', name: 'Glicemia', color: CHART_COLORS.success, unit: 'mg/dL' }],
+        [0, 300],
+        [
+          { value: 180, color: CHART_COLORS.danger, label: 'Hiperglicemia' },
+          { value: 70, color: CHART_COLORS.warning, label: 'Hipoglicemia' },
+        ],
+        true,
+      ),
+    [buildLineOption],
+  )
+
+  const temperatureOption = useMemo(
+    () =>
+      buildLineOption(
+        [{ key: 'temperature', name: 'Temperatura', color: CHART_COLORS.warning, unit: '°C' }],
+        [34, 40],
+        [
+          { value: 37.5, color: CHART_COLORS.warning, label: 'Febre' },
+          { value: 35.5, color: CHART_COLORS.primary, label: 'Hipotermia' },
+        ],
+      ),
+    [buildLineOption],
+  )
+
+  const heartRateOption = useMemo(
+    () =>
+      buildLineOption(
+        [{ key: 'heartRate', name: 'FC', color: CHART_COLORS.pink, unit: 'bpm' }],
+        [40, 120],
+        [
+          { value: 100, color: CHART_COLORS.warning, label: 'Taquicardia' },
+          { value: 60, color: CHART_COLORS.warning, label: 'Bradicardia' },
+        ],
+      ),
+    [buildLineOption],
+  )
+
+  const oxygenOption = useMemo(
+    () =>
+      buildLineOption(
+        [{ key: 'oxygenSaturation', name: 'SpO₂', color: CHART_COLORS.cyan, unit: '%' }],
+        [85, 100],
+        [{ value: 92, color: CHART_COLORS.danger, label: 'Baixa saturação' }],
+        true,
+      ),
+    [buildLineOption],
+  )
 
   if (data.length === 0) {
     return (
@@ -120,99 +289,37 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Gráfico de Pressão Arterial */}
       <Card className="border-2">
         <CardHeader>
           <CardTitle>Pressão Arterial</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveChartContainer height={300} minHeight={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" style={{ fontSize: '12px' }} />
-              <YAxis domain={[0, 200]} style={{ fontSize: '12px' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <ReferenceLine y={140} stroke="orange" strokeDasharray="5 5" label="PA Alta" />
-              <ReferenceLine y={90} stroke="orange" strokeDasharray="5 5" label="PA Baixa" />
-              <Line
-                type="monotone"
-                dataKey="systolic"
-                stroke={CHART_COLORS.danger}
-                name="Sistólica"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="diastolic"
-                stroke={CHART_COLORS.primary}
-                name="Diastólica"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                connectNulls
-              />
-            </LineChart>
-          </ResponsiveChartContainer>
+          <div className="h-[300px]">
+            <EChart option={bloodPressureOption} className="h-full" />
+          </div>
         </CardContent>
       </Card>
 
-      {/* Gráfico de Glicemia */}
       <Card className="border-2">
         <CardHeader>
           <CardTitle>Glicemia</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveChartContainer height={300} minHeight={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" style={{ fontSize: '12px' }} />
-              <YAxis domain={[0, 300]} style={{ fontSize: '12px' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <ReferenceLine y={180} stroke="red" strokeDasharray="5 5" label="Hiperglicemia" />
-              <ReferenceLine y={70} stroke="orange" strokeDasharray="5 5" label="Hipoglicemia" />
-              <Line
-                type="monotone"
-                dataKey="bloodGlucose"
-                stroke={CHART_COLORS.success}
-                name="Glicemia"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                connectNulls
-              />
-            </LineChart>
-          </ResponsiveChartContainer>
+          <div className="h-[300px]">
+            <EChart option={glucoseOption} className="h-full" />
+          </div>
         </CardContent>
       </Card>
 
-      {/* Gráficos de Temperatura e Frequência Cardíaca */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-2">
           <CardHeader>
             <CardTitle>Temperatura</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveChartContainer height={250} minHeight={250}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" style={{ fontSize: '12px' }} />
-                <YAxis domain={[34, 40]} style={{ fontSize: '12px' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={37.5} stroke="orange" strokeDasharray="5 5" label="Febre" />
-                <ReferenceLine y={35.5} stroke="blue" strokeDasharray="5 5" label="Hipotermia" />
-                <Line
-                  type="monotone"
-                  dataKey="temperature"
-                  stroke={CHART_COLORS.warning}
-                  name="Temperatura"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  connectNulls
-                />
-              </LineChart>
-            </ResponsiveChartContainer>
+            <div className="h-[250px]">
+              <EChart option={temperatureOption} className="h-full" />
+            </div>
           </CardContent>
         </Card>
 
@@ -221,54 +328,21 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
             <CardTitle>Frequência Cardíaca</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveChartContainer height={250} minHeight={250}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" style={{ fontSize: '12px' }} />
-                <YAxis domain={[40, 120]} style={{ fontSize: '12px' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={100} stroke="orange" strokeDasharray="5 5" label="Taquicardia" />
-                <ReferenceLine y={60} stroke="orange" strokeDasharray="5 5" label="Bradicardia" />
-                <Line
-                  type="monotone"
-                  dataKey="heartRate"
-                  stroke={CHART_COLORS.pink}
-                  name="FC"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  connectNulls
-                />
-              </LineChart>
-            </ResponsiveChartContainer>
+            <div className="h-[250px]">
+              <EChart option={heartRateOption} className="h-full" />
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráfico de Saturação de Oxigênio */}
       <Card className="border-2">
         <CardHeader>
           <CardTitle>Saturação de Oxigênio</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveChartContainer height={250} minHeight={250}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" style={{ fontSize: '12px' }} />
-              <YAxis domain={[85, 100]} style={{ fontSize: '12px' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <ReferenceLine y={92} stroke="red" strokeDasharray="5 5" label="Baixa saturação" />
-              <Line
-                type="monotone"
-                dataKey="oxygenSaturation"
-                stroke={CHART_COLORS.cyan}
-                name="SpO₂"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                connectNulls
-              />
-            </LineChart>
-          </ResponsiveChartContainer>
+          <div className="h-[250px]">
+            <EChart option={oxygenOption} className="h-full" />
+          </div>
         </CardContent>
       </Card>
     </div>

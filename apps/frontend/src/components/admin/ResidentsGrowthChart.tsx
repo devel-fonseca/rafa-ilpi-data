@@ -1,13 +1,7 @@
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from 'recharts'
+import { useMemo } from 'react'
+import { graphic, type EChartsOption } from 'echarts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
+import { EChart, useEChartThemeTokens } from '@/components/ui/echart'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { normalizeUTCDate } from '@/utils/dateHelpers'
@@ -29,20 +23,106 @@ interface ResidentsGrowthChartProps {
  * Exibe os últimos 6 meses de dados.
  */
 export function ResidentsGrowthChart({ data = [], isLoading = false }: ResidentsGrowthChartProps) {
-  // Formatar mês para exibição (Jan, Fev, Mar, etc.) - timezone-safe
-  const formatMonth = (monthStr: string): string => {
-    // monthStr vem como 'YYYY-MM', precisamos converter para 'YYYY-MM-01' para normalizar
-    const dateStr = `${monthStr}-01` // Primeiro dia do mês
-    const date = normalizeUTCDate(dateStr)
-    const formatted = format(date, 'MMM', { locale: ptBR })
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
-  }
+  const tokens = useEChartThemeTokens()
 
-  // Preparar dados para o gráfico
   const chartData = data.map((item) => ({
     month: formatMonth(item.month),
     count: item.count,
   }))
+
+  const chartOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 400,
+    grid: {
+      top: 16,
+      right: 16,
+      bottom: 24,
+      left: 12,
+      containLabel: true,
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'line',
+        lineStyle: {
+          color: tokens.border,
+        },
+      },
+      backgroundColor: tokens.popover,
+      borderColor: tokens.border,
+      borderWidth: 1,
+      textStyle: {
+        color: tokens.text,
+        fontFamily: 'inherit',
+      },
+      extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+      formatter: (params) => {
+        const point = Array.isArray(params) ? params[0] : params
+        const value = Array.isArray(point.value) ? point.value[1] : point.value
+        return `${point.axisValueLabel}<br/><strong>${value}</strong> residente(s)`
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: chartData.map((item) => item.month),
+      boundaryGap: false,
+      axisLine: {
+        lineStyle: {
+          color: tokens.border,
+        },
+      },
+      axisTick: { show: false },
+      axisLabel: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+      splitLine: {
+        lineStyle: {
+          color: tokens.border,
+          type: 'dashed',
+          opacity: 0.6,
+        },
+      },
+    },
+    series: [
+      {
+        name: 'Residentes',
+        type: 'line',
+        smooth: true,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        data: chartData.map((item) => item.count),
+        lineStyle: {
+          color: tokens.primary,
+          width: 2,
+        },
+        itemStyle: {
+          color: tokens.primary,
+          opacity: 1,
+        },
+        emphasis: {
+          disabled: true,
+        },
+        areaStyle: {
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: tokens.primary },
+            { offset: 1, color: 'rgba(37, 99, 235, 0.08)' },
+          ]),
+          opacity: 0.35,
+        },
+      },
+    ],
+  }), [chartData, tokens.border, tokens.mutedText, tokens.popover, tokens.primary, tokens.text])
 
   if (isLoading) {
     return (
@@ -89,44 +169,14 @@ export function ResidentsGrowthChart({ data = [], isLoading = false }: Residents
         <CardDescription>Crescimento nos últimos 6 meses</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 min-h-0">
-        <ResponsiveChartContainer className="h-full">
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-            <XAxis
-              dataKey="month"
-              stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
-            />
-            <YAxis
-              stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--popover))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                color: 'hsl(var(--popover-foreground))',
-              }}
-              formatter={(value: number) => [value, 'Residentes']}
-            />
-            <Area
-              type="monotone"
-              dataKey="count"
-              stroke="hsl(var(--primary))"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorCount)"
-            />
-          </AreaChart>
-        </ResponsiveChartContainer>
+        <EChart option={chartOption} className="h-full" />
       </CardContent>
     </Card>
   )
+}
+
+function formatMonth(monthStr: string): string {
+  const date = normalizeUTCDate(`${monthStr}-01`)
+  const formatted = format(date, 'MMM', { locale: ptBR })
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
 }

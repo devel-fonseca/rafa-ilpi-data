@@ -1,14 +1,7 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts'
+import { useMemo } from 'react'
+import type { EChartsOption } from 'echarts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ResponsiveChartContainer } from '@/components/ui/responsive-chart-container'
+import { EChart, useEChartThemeTokens } from '@/components/ui/echart'
 import { normalizeUTCDate } from '@/utils/dateHelpers'
 
 interface DailyData {
@@ -32,19 +25,118 @@ export function MedicationAdministrationChart({
   data = [],
   isLoading = false,
 }: MedicationAdministrationChartProps) {
-  // Formatar dia da semana (timezone-safe seguindo DATETIME_STANDARD.md)
-  const formatDay = (dayStr: string): string => {
-    const date = normalizeUTCDate(dayStr) // Converte YYYY-MM-DD para Date sem timezone shift
-    const dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' })
-    return dayName.charAt(0).toUpperCase() + dayName.slice(1)
-  }
+  const tokens = useEChartThemeTokens()
 
-  // Preparar dados para o gráfico
   const chartData = data.map((item) => ({
     day: formatDay(item.day),
-    Agendadas: item.scheduled,
-    Administradas: item.administered,
+    scheduled: item.scheduled,
+    administered: item.administered,
   }))
+
+  const chartOption = useMemo<EChartsOption>(() => ({
+    animationDuration: 400,
+    grid: {
+      top: 20,
+      right: 16,
+      bottom: 42,
+      left: 12,
+      containLabel: true,
+    },
+    legend: {
+      bottom: 8,
+      icon: 'roundRect',
+      itemWidth: 12,
+      itemHeight: 12,
+      textStyle: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+      data: ['Agendadas', 'Administradas'],
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow',
+        shadowStyle: {
+          color: 'rgba(148, 163, 184, 0.12)',
+        },
+      },
+      backgroundColor: tokens.popover,
+      borderColor: tokens.border,
+      borderWidth: 1,
+      textStyle: {
+        color: tokens.text,
+        fontFamily: 'inherit',
+      },
+      extraCssText: 'border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);',
+    },
+    xAxis: {
+      type: 'category',
+      data: chartData.map((item) => item.day),
+      axisLine: {
+        lineStyle: {
+          color: tokens.border,
+        },
+      },
+      axisTick: { show: false },
+      axisLabel: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: tokens.mutedText,
+        fontSize: 12,
+      },
+      splitLine: {
+        lineStyle: {
+          color: tokens.border,
+          type: 'dashed',
+          opacity: 0.6,
+        },
+      },
+    },
+    series: [
+      {
+        name: 'Agendadas',
+        type: 'bar',
+        barGap: '15%',
+        z: 2,
+        itemStyle: {
+          color: tokens.info,
+          borderRadius: [4, 4, 0, 0],
+        },
+        emphasis: {
+          focus: 'none',
+          itemStyle: {
+            color: tokens.info,
+          },
+        },
+        data: chartData.map((item) => item.scheduled),
+      },
+      {
+        name: 'Administradas',
+        type: 'bar',
+        z: 2,
+        itemStyle: {
+          color: tokens.success,
+          borderRadius: [4, 4, 0, 0],
+        },
+        emphasis: {
+          focus: 'none',
+          itemStyle: {
+            color: tokens.success,
+          },
+        },
+        data: chartData.map((item) => item.administered),
+      },
+    ],
+  }), [chartData, tokens.border, tokens.info, tokens.mutedText, tokens.popover, tokens.success, tokens.text])
 
   if (isLoading) {
     return (
@@ -91,45 +183,14 @@ export function MedicationAdministrationChart({
         <CardDescription>Últimos 7 dias</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 min-h-0">
-        <ResponsiveChartContainer className="h-full">
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-            <XAxis
-              dataKey="day"
-              stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
-            />
-            <YAxis
-              stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--popover))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                color: 'hsl(var(--popover-foreground))',
-              }}
-            />
-            <Legend
-              wrapperStyle={{
-                fontSize: '12px',
-                color: 'hsl(var(--foreground))',
-              }}
-            />
-            <Bar
-              dataKey="Agendadas"
-              fill="hsl(var(--info))"
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar
-              dataKey="Administradas"
-              fill="hsl(var(--success))"
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveChartContainer>
+        <EChart option={chartOption} className="h-full" />
       </CardContent>
     </Card>
   )
+}
+
+function formatDay(dayStr: string): string {
+  const date = normalizeUTCDate(dayStr)
+  const dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' })
+  return dayName.charAt(0).toUpperCase() + dayName.slice(1)
 }
