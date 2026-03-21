@@ -111,6 +111,10 @@ import { HttpLoggerInterceptor } from './common/interceptors/http-logger.interce
               return (
                 path === '/api/health' ||
                 path === '/api/health/' ||
+                path === '/api/health/live' ||
+                path === '/api/health/live/' ||
+                path === '/api/health/ready' ||
+                path === '/api/health/ready/' ||
                 path.startsWith('/api/docs')
               );
             },

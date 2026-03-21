@@ -86,6 +86,26 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Verifica conectividade real com Redis.
+   *
+   * Usado em readiness checks para garantir que cache/filas compartilham
+   * a mesma dependência crítica antes de marcar a API como saudável.
+   */
+  async ping(): Promise<boolean> {
+    try {
+      if (!this.isConnected || !this.client) {
+        return false;
+      }
+
+      const result = await this.client.ping();
+      return result === 'PONG';
+    } catch (error) {
+      this.logger.error(`Erro ao executar Redis PING: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
    * Recupera um valor do cache
    *
    * @param key - Chave do cache
