@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Building2, Layers, DoorOpen, Bed as BedIcon, ArrowRightLeft } from 'lucide-react'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { formatBedFromObject } from '@/utils/formatters'
+import { isAvailableBedStatus, normalizeBedStatus } from '@/utils/bedStatus'
 import { TransferBedModal } from './TransferBedModal'
 import { SelectBedModal } from './SelectBedModal'
 import { residentsAPI } from '@/api/residents.api'
@@ -90,11 +91,12 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
     building: Building
   ) => {
     const fromLocation = `${building.name} - ${floor.name} - ${room.name}`
+    const fromBedCode = formatBedFromObject(bed)
     const dragData = {
       id: resident.id,
       name: resident.fullName,
       fromBedId: bed.id,
-      fromBedCode: bed.code,
+      fromBedCode,
       fromLocation,
     }
 
@@ -133,8 +135,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
   const handleDragOver = (e: React.DragEvent, bedId: string, bedStatus: string) => {
     console.log('🔄 [DRAG OVER]', { bedId, bedStatus, hasDraggedResident: !!draggedResident })
 
-    // Só permite drop em leitos disponíveis (backend retorna "Disponível" com acento)
-    if (bedStatus === 'Disponível' && draggedResident && bedId !== draggedResident.fromBedId) {
+    if (isAvailableBedStatus(bedStatus) && draggedResident && bedId !== draggedResident.fromBedId) {
       console.log('✅ [DRAG OVER] Permitindo drop no leito', bedId)
       e.preventDefault()
       setDropTargetBed(bedId)
@@ -169,7 +170,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
   ) => {
     console.log('🎯 [DROP] Evento drop acionado!', {
       toBedId: toBed.id,
-      toBedCode: toBed.code,
+      toBedCode: formatBedFromObject(toBed),
       hasDraggedResident: !!draggedResident
     })
 
@@ -185,7 +186,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
 
     console.log('📋 [DROP] Preparando transferência:', {
       from: draggedResident.fromBedCode,
-      to: toBed.code,
+      to: formatBedFromObject(toBed),
       resident: draggedResident.name
     })
 
@@ -195,7 +196,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
       residentName: draggedResident.name,
       fromBedCode: draggedResident.fromBedCode,
       toBedId: toBed.id,
-      toBedCode: toBed.code,
+      toBedCode: formatBedFromObject(toBed),
       fromLocation: draggedResident.fromLocation,
       toLocation,
     })
@@ -217,7 +218,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
       id: resident.id,
       name: resident.fullName,
       fromBedId: bed.id,
-      fromBedCode: bed.code,
+      fromBedCode: formatBedFromObject(bed),
       fromLocation,
     })
     setSelectBedModalOpen(true)
@@ -238,7 +239,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
       residentName: residentToTransfer.name,
       fromBedCode: residentToTransfer.fromBedCode,
       toBedId: toBed.id,
-      toBedCode: toBed.code,
+      toBedCode: formatBedFromObject(toBed),
       fromLocation: residentToTransfer.fromLocation,
       toLocation,
     })
@@ -378,7 +379,10 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                             <div className="px-3 pb-2">
                                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                                 {room.beds && room.beds.length > 0 ? (
-                                                  room.beds.map((bed) => (
+                                                  room.beds.map((bed) => {
+                                                    const status = normalizeBedStatus(bed.status) || bed.status
+
+                                                    return (
                                                     <Card
                                                       key={bed.id}
                                                       draggable={!!bed.resident}
@@ -391,13 +395,13 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                                       onDragLeave={(e) => handleDragLeave(e, bed.id)}
                                                       onDrop={(e) => handleDrop(e, bed, room, floor, building)}
                                                       className={`border-2 transition-all ${
-                                                        BED_STATUS_COLORS[bed.status] || 'bg-muted/20'
+                                                        BED_STATUS_COLORS[status] || 'bg-muted/20'
                                                       } ${
                                                         draggedResident?.fromBedId === bed.id
                                                           ? 'opacity-50 cursor-grabbing'
                                                           : bed.resident
                                                           ? 'cursor-grab hover:shadow-md active:cursor-grabbing'
-                                                          : draggedResident && bed.status === 'Disponível'
+                                                          : draggedResident && isAvailableBedStatus(status)
                                                           ? 'ring-2 ring-dashed ring-primary/70 bg-primary/10 cursor-copy'
                                                           : ''
                                                       } ${
@@ -407,7 +411,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                                       }`}
                                                     >
                                                       <CardContent className="p-3 relative">
-                                                        {draggedResident && bed.status === 'Disponível' && bed.id !== draggedResident.fromBedId && (
+                                                        {draggedResident && isAvailableBedStatus(status) && bed.id !== draggedResident.fromBedId && (
                                                           <div className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded pointer-events-none">
                                                             <span className="text-xs font-semibold text-primary bg-background px-2 py-1 rounded shadow-md border border-primary/30">
                                                               ⬇ Solte aqui
@@ -423,7 +427,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                                               </span>
                                                             </div>
                                                             <div className="text-xs text-muted-foreground mt-1">
-                                                              {BED_STATUS_LABELS[bed.status]}
+                                                              {BED_STATUS_LABELS[status] || status}
                                                             </div>
                                                             {bed.resident && (
                                                               <>
@@ -463,7 +467,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                                         </div>
                                                       </CardContent>
                                                     </Card>
-                                                  ))
+                                                  )})
                                                 ) : (
                                                   <div className="col-span-full text-center text-xs text-muted-foreground py-2">
                                                     Nenhum leito cadastrado

@@ -1,4 +1,5 @@
 import { api } from '../services/api'
+import type { BedStatus } from '../utils/bedStatus'
 
 // ==================== TIPOS ====================
 
@@ -46,6 +47,7 @@ export interface Room {
   availableBeds?: number
   hasPrivateBathroom?: boolean
   accessible?: boolean
+  notes?: string
   observations?: string
   createdAt: string
   updatedAt: string
@@ -56,8 +58,7 @@ export interface Bed {
   roomId: string
   room?: Room
   code: string
-  bedNumber: string
-  status: 'Disponível' | 'Ocupado' | 'Manutenção' | 'Reservado' // ✅ Valores reais do banco
+  status: BedStatus
   residentId?: string
   resident?: {
     id: string
@@ -65,7 +66,7 @@ export interface Bed {
     fotoUrl?: string
   }
   occupiedSince?: string
-  observations?: string
+  notes?: string
   createdAt: string
   updatedAt: string
 }
@@ -74,7 +75,7 @@ export interface Bed {
 
 export interface CreateBuildingDto {
   name: string
-  code: string
+  code?: string
   description?: string
 }
 
@@ -87,7 +88,7 @@ export interface UpdateBuildingDto {
 export interface CreateFloorDto {
   buildingId: string
   name: string
-  code: string
+  code?: string
   floorNumber: number
   description?: string
 }
@@ -102,13 +103,13 @@ export interface UpdateFloorDto {
 export interface CreateRoomDto {
   floorId: string
   name: string
-  code: string
+  code?: string
   roomNumber: string
   roomType: 'INDIVIDUAL' | 'DUPLO' | 'TRIPLO' | 'COLETIVO'
   capacity: number
   hasPrivateBathroom?: boolean
   accessible?: boolean
-  observations?: string
+  notes?: string
 }
 
 export interface UpdateRoomDto {
@@ -119,23 +120,23 @@ export interface UpdateRoomDto {
   capacity?: number
   hasPrivateBathroom?: boolean
   accessible?: boolean
-  observations?: string
+  notes?: string
 }
 
 export interface CreateBedDto {
   roomId: string
-  code: string
-  bedNumber: string
-  status?: 'DISPONIVEL' | 'OCUPADO' | 'MANUTENCAO' | 'RESERVADO'
-  observations?: string
+  code?: string
+  bedSuffix?: string
+  status?: BedStatus
+  notes?: string
 }
 
 export interface UpdateBedDto {
   code?: string
-  bedNumber?: string
-  status?: 'DISPONIVEL' | 'OCUPADO' | 'MANUTENCAO' | 'RESERVADO'
+  bedSuffix?: string
+  status?: BedStatus
   residentId?: string
-  observations?: string
+  notes?: string
 }
 
 export interface AssignBedDto {

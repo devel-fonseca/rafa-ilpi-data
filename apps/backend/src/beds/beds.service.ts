@@ -11,6 +11,12 @@ import {
   ReleaseBedDto,
 } from './dto'
 import { FullMapResponseDto } from '../buildings/dto'
+import {
+  composeBedCode,
+  extractBedSuffix,
+  normalizeBedStatus,
+  normalizeInfrastructureCode,
+} from './bed.utils'
 
 /**
  * Service para gerenciamento de leitos.
@@ -47,30 +53,87 @@ export class BedsService {
     })
   }
 
-  async create(createBedDto: CreateBedDto) {
-    // ✅ Validar que o room existe (usando tenant client)
+  private async findRoomForBedCode(roomId: string) {
     const room = await this.tenantContext.client.room.findFirst({
-      where: { id: createBedDto.roomId, deletedAt: null },
+      where: { id: roomId, deletedAt: null },
+      select: {
+        id: true,
+        code: true,
+        floor: {
+          select: {
+            code: true,
+            building: {
+              select: { code: true },
+            },
+          },
+        },
+      },
     })
 
     if (!room) {
-      throw new NotFoundException(`Quarto com ID ${createBedDto.roomId} não encontrado`)
+      throw new NotFoundException(`Quarto com ID ${roomId} não encontrado`)
     }
+
+    return room
+  }
+
+  private resolveBedCode(
+    room: Awaited<ReturnType<BedsService['findRoomForBedCode']>>,
+    payload: Pick<CreateBedDto, 'code' | 'bedSuffix'>,
+  ) {
+    const providedSuffix = payload.bedSuffix?.trim()
+    const providedCode = payload.code?.trim()
+
+    if (providedSuffix) {
+      return composeBedCode(
+        room.floor.building.code,
+        room.floor.code,
+        room.code,
+        providedSuffix,
+      )
+    }
+
+    if (!providedCode) {
+      throw new BadRequestException('bedSuffix ou code é obrigatório para o leito')
+    }
+
+    if (providedCode.includes('-')) {
+      return normalizeInfrastructureCode(providedCode)
+    }
+
+    return composeBedCode(
+      room.floor.building.code,
+      room.floor.code,
+      room.code,
+      providedCode,
+    )
+  }
+
+  async create(createBedDto: CreateBedDto) {
+    const room = await this.findRoomForBedCode(createBedDto.roomId)
+    const code = this.resolveBedCode(room, createBedDto)
+    const normalizedStatus = normalizeBedStatus(createBedDto.status)
+    if (createBedDto.status !== undefined && !normalizedStatus) {
+      throw new BadRequestException(`Status de leito inválido: ${createBedDto.status}`)
+    }
+    const status = normalizedStatus || 'Disponível'
 
     // ✅ Verificar se o code já existe (sem filtro tenantId!)
     const existingBed = await this.tenantContext.client.bed.findFirst({
-      where: { code: createBedDto.code, deletedAt: null },
+      where: { code, deletedAt: null },
     })
 
     if (existingBed) {
-      throw new BadRequestException(`Já existe um leito com o código ${createBedDto.code}`)
+      throw new BadRequestException(`Já existe um leito com o código ${code}`)
     }
 
     const bed = await this.tenantContext.client.bed.create({
       data: {
-        ...createBedDto,
+        roomId: createBedDto.roomId,
+        code,
+        notes: createBedDto.notes,
         tenantId: this.tenantContext.tenantId, // Schema isolation já funciona, mas campo ainda é obrigatório
-        status: createBedDto.status || 'Disponível',
+        status,
       },
     })
 
@@ -84,7 +147,7 @@ export class BedsService {
       where.roomId = roomId
     }
     if (status) {
-      where.status = status
+      where.status = normalizeBedStatus(status) || status
     }
 
     const [data, total] = await Promise.all([
@@ -168,37 +231,56 @@ export class BedsService {
 
   async update(id: string, updateBedDto: UpdateBedDto) {
     // Validar que o bed existe
-    await this.findOne(id)
+    const currentBed = await this.findOne(id)
 
     // Se está mudando o roomId, validar que o novo room existe
-    if (updateBedDto.roomId) {
-      const room = await this.tenantContext.client.room.findFirst({
-        where: { id: updateBedDto.roomId, deletedAt: null },
-      })
+    let roomForCode:
+      | Awaited<ReturnType<BedsService['findRoomForBedCode']>>
+      | undefined
 
-      if (!room) {
-        throw new NotFoundException(`Quarto com ID ${updateBedDto.roomId} não encontrado`)
-      }
+    if (updateBedDto.roomId || updateBedDto.code || updateBedDto.bedSuffix) {
+      roomForCode = await this.findRoomForBedCode(updateBedDto.roomId || currentBed.roomId)
     }
 
-    // Se está mudando o code, validar se já não existe
-    if (updateBedDto.code) {
+    let resolvedCode: string | undefined
+    if (roomForCode) {
+      const fallbackCode = updateBedDto.roomId && !updateBedDto.code && !updateBedDto.bedSuffix
+        ? extractBedSuffix(currentBed.code)
+        : undefined
+
+      resolvedCode = this.resolveBedCode(roomForCode, {
+        code: updateBedDto.code || fallbackCode,
+        bedSuffix: updateBedDto.bedSuffix,
+      })
+
       const existingBed = await this.tenantContext.client.bed.findFirst({
         where: {
-          code: updateBedDto.code,
+          code: resolvedCode,
           id: { not: id },
           deletedAt: null,
         },
       })
 
       if (existingBed) {
-        throw new BadRequestException(`Já existe um leito com o código ${updateBedDto.code}`)
+        throw new BadRequestException(`Já existe um leito com o código ${resolvedCode}`)
       }
+    }
+
+    const data: Prisma.BedUpdateInput = {}
+    if (updateBedDto.roomId !== undefined) data.room = { connect: { id: updateBedDto.roomId } }
+    if (resolvedCode !== undefined) data.code = resolvedCode
+    if (updateBedDto.notes !== undefined) data.notes = updateBedDto.notes
+    if (updateBedDto.status !== undefined) {
+      const normalizedStatus = normalizeBedStatus(updateBedDto.status)
+      if (!normalizedStatus) {
+        throw new BadRequestException(`Status de leito inválido: ${updateBedDto.status}`)
+      }
+      data.status = normalizedStatus
     }
 
     const bed = await this.tenantContext.client.bed.update({
       where: { id },
-      data: updateBedDto,
+      data,
     })
 
     this.emitDashboardOverviewUpdate('bed.updated')

@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Card } from '@/components/ui/card'
 import { tenantKey } from '@/lib/query-keys'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { isAvailableBedStatus, isOccupiedBedStatus, normalizeBedStatus } from '@/utils/bedStatus'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,10 +35,6 @@ const BED_STATUS_COLORS: Record<string, string> = {
   'Ocupado': 'bg-danger/10 text-danger/90',
   'Manutenção': 'bg-warning/10 text-warning/90',
   'Reservado': 'bg-primary/10 text-primary/90',
-  DISPONIVEL: 'bg-success/10 text-success/90',
-  OCUPADO: 'bg-danger/10 text-danger/90',
-  MANUTENCAO: 'bg-warning/10 text-warning/90',
-  RESERVADO: 'bg-primary/10 text-primary/90',
 }
 
 const BED_STATUS_LABELS: Record<string, string> = {
@@ -45,10 +42,6 @@ const BED_STATUS_LABELS: Record<string, string> = {
   'Ocupado': 'Ocupado',
   'Manutenção': 'Manutenção',
   'Reservado': 'Reservado',
-  DISPONIVEL: 'Disponível',
-  OCUPADO: 'Ocupado',
-  MANUTENCAO: 'Manutenção',
-  RESERVADO: 'Reservado',
 }
 
 export function BedSearchCombobox({
@@ -86,13 +79,11 @@ export function BedSearchCombobox({
   // Filtrar leitos baseado na busca e filtros ativos
   const filteredBeds = beds.filter((bed) => {
     // SEMPRE excluir leitos ocupados (segurança)
-    const statusUpper = bed.status?.toUpperCase()
-    if (statusUpper === 'OCUPADO') return false
+    if (isOccupiedBedStatus(bed.status)) return false
 
     // Filtro de status (apenas disponíveis)
     if (showOnlyAvailable) {
-      const isAvailable = bed.status === 'DISPONIVEL'
-      if (!isAvailable) return false
+      if (!isAvailableBedStatus(bed.status)) return false
     }
 
     // Filtro de prédio
@@ -307,6 +298,7 @@ export function BedSearchCombobox({
                   {buildingBeds.map((bed) => {
                     const bedCode = formatBedFromObject(bed)
                     const isSelected = value === bed.id
+                    const normalizedStatus = normalizeBedStatus(bed.status) || bed.status
 
                     return (
                       <button
@@ -327,8 +319,8 @@ export function BedSearchCombobox({
                             </span>
                           </div>
                         </div>
-                        <Badge className={cn('text-xs ml-2 shrink-0', BED_STATUS_COLORS[bed.status])}>
-                          {BED_STATUS_LABELS[bed.status]}
+                        <Badge className={cn('text-xs ml-2 shrink-0', BED_STATUS_COLORS[normalizedStatus] || 'bg-muted text-foreground')}>
+                          {BED_STATUS_LABELS[normalizedStatus] || normalizedStatus}
                         </Badge>
                       </button>
                     )

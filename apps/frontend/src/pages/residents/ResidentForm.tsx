@@ -130,7 +130,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       cpf: '',
       dataNascimento: '',
       dataAdmissao: '',
-      leitoNumero: '',
+      bedId: '',
       contatosEmergencia: [],
       convenios: [],
     },
@@ -302,7 +302,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     if (resident.dischargeReason) setValue('motivoDesligamento', resident.dischargeReason)
 
     // Acomodação
-    if (resident.bedId) setValue('leitoNumero', resident.bedId)
+    if (resident.bedId) setValue('bedId', resident.bedId)
 
     residentDataRef.current = {
       roomId: resident.roomId,
@@ -465,7 +465,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         dischargeReason: data.motivoDesligamento || null,
 
         // Acomodação
-        bedId: data.leitoNumero && data.leitoNumero.trim() ? data.leitoNumero.trim() : undefined,
+        bedId: data.bedId && data.bedId.trim() ? data.bedId.trim() : undefined,
       }
 
       if (photoChangeType === 'new' && fotoUrl) {

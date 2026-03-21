@@ -33,11 +33,12 @@ import { useToast } from '@/components/ui/use-toast'
 import { useEffect, useState } from 'react'
 import { generateBedCode } from '@/utils/codeGenerator'
 import { Badge } from '@/components/ui/badge'
+import { formatBedIdentification } from '@/utils/formatters'
 
 const bedSchema = z.object({
   roomId: z.string().min(1, 'Quarto é obrigatório'),
-  status: z.enum(['DISPONIVEL', 'OCUPADO', 'MANUTENCAO', 'RESERVADO']).optional(),
-  observations: z.string().optional(),
+  status: z.enum(['Disponível', 'Ocupado', 'Manutenção', 'Reservado']).optional(),
+  notes: z.string().optional(),
 })
 
 type BedFormData = z.infer<typeof bedSchema>
@@ -65,10 +66,24 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
     resolver: zodResolver(bedSchema),
     defaultValues: {
       roomId: defaultRoomId || '',
-      status: 'DISPONIVEL',
-      observations: '',
+      status: 'Disponível',
+      notes: '',
     },
   })
+
+  const selectedRoom = rooms?.find((room) => room.id === form.watch('roomId'))
+  const fullBedIdentification =
+    selectedRoom?.floor?.building?.code &&
+    selectedRoom.floor.code &&
+    selectedRoom.code &&
+    generatedCode
+      ? formatBedIdentification(
+          selectedRoom.floor.building.code,
+          selectedRoom.floor.code,
+          selectedRoom.code,
+          generatedCode,
+        )
+      : undefined
 
 
   // Gera código automaticamente quando o roomId muda
@@ -103,14 +118,14 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
       form.reset({
         roomId: bed.roomId,
         status: bed.status,
-        observations: bed.observations || '',
+        notes: bed.notes || '',
       })
       setGeneratedCode(bed.code) // Mantém o código existente ao editar
     } else {
       form.reset({
         roomId: defaultRoomId || '',
-        status: 'DISPONIVEL',
-        observations: '',
+        status: 'Disponível',
+        notes: '',
       })
       setGeneratedCode('')
     }
@@ -121,18 +136,17 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
     try {
       const submitData = {
         roomId: data.roomId,
-        code: generatedCode, // Adiciona o código gerado
+        bedSuffix: generatedCode,
         status: data.status,
-        notes: data.observations, // Backend usa "notes", não "observations"
+        notes: data.notes,
       }
 
       if (bed) {
         await updateMutation.mutateAsync({
           id: bed.id,
           data: {
-            code: generatedCode,
             status: data.status,
-            notes: data.observations, // Backend usa "notes"
+            notes: data.notes,
           } as UpdateBedDto,
         })
         toast({
@@ -215,11 +229,11 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
             {!bed && (
               <div className="p-3 bg-muted/50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Código do Leito:</span>
-                  {generatedCode ? (
-                    <Badge variant="outline" className="font-mono text-base">
-                      {generatedCode}
-                    </Badge>
+                  <span className="text-sm font-medium text-muted-foreground">Sufixo do Leito:</span>
+                {generatedCode ? (
+                  <Badge variant="outline" className="font-mono text-base">
+                    {generatedCode}
+                  </Badge>
                   ) : (
                     <span className="text-xs text-muted-foreground italic">
                       Aguardando seleção do quarto
@@ -228,19 +242,23 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
                 </div>
                 {form.watch('roomId') && rooms && (
                   <div className="text-xs text-muted-foreground pt-1 border-t">
-                    {(() => {
-                      const selectedRoom = rooms.find(r => r.id === form.watch('roomId'))
-                      if (!selectedRoom) return null
-                      const building = selectedRoom.floor?.building?.name || '?'
-                      const floor = selectedRoom.floor?.name || '?'
-                      const room = selectedRoom.name || '?'
-                      return (
+                    {selectedRoom && (
+                      <>
                         <div className="flex items-center gap-1">
                           <span className="font-medium">Localização:</span>
-                          <span>{building} → {floor} → {room}</span>
+                          <span>
+                            {selectedRoom.floor?.building?.name || '?'} → {selectedRoom.floor?.name || '?'} →{' '}
+                            {selectedRoom.name || '?'}
+                          </span>
                         </div>
-                      )
-                    })()}
+                        {fullBedIdentification && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="font-medium">Identificação final:</span>
+                            <span className="font-mono">{fullBedIdentification}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -265,10 +283,10 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="DISPONIVEL">Disponível</SelectItem>
-                      <SelectItem value="OCUPADO">Ocupado</SelectItem>
-                      <SelectItem value="MANUTENCAO">Manutenção</SelectItem>
-                      <SelectItem value="RESERVADO">Reservado</SelectItem>
+                      <SelectItem value="Disponível">Disponível</SelectItem>
+                      <SelectItem value="Ocupado">Ocupado</SelectItem>
+                      <SelectItem value="Manutenção">Manutenção</SelectItem>
+                      <SelectItem value="Reservado">Reservado</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -278,7 +296,7 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
 
             <FormField
               control={form.control}
-              name="observations"
+              name="notes"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Observações</FormLabel>

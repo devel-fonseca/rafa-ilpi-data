@@ -30,7 +30,11 @@ import { FloorForm } from './FloorForm'
 
 const buildingSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  code: z.string().min(1, 'Código é obrigatório'),
+  code: z
+    .string()
+    .min(2, 'Código deve ter pelo menos 2 caracteres')
+    .max(6, 'Código deve ter no máximo 6 caracteres')
+    .regex(/^[A-Z0-9]+$/, 'Use apenas letras e números'),
   description: z.string().optional(),
 })
 

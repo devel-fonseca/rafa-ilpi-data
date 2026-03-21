@@ -143,7 +143,7 @@ export function AdmissaoSection({ readOnly = false }: AdmissaoSectionProps) {
           </TooltipProvider>
         </div>
         <Controller
-          name="leitoNumero"
+          name="bedId"
           control={control}
           render={({ field }) => (
             <BedSearchCombobox

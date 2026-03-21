@@ -20,6 +20,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { getErrorMessage } from '@/utils/errorHandling'
 import { useBlockBed } from '@/hooks/useBedOperations'
 import type { Bed } from '@/api/beds.api'
+import { formatBedFromObject } from '@/utils/formatters'
+import { isOccupiedBedStatus, normalizeBedStatus } from '@/utils/bedStatus'
 
 /**
  * Schema de validação para bloqueio de leito
@@ -52,6 +54,8 @@ export function BlockBedModal({
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
   const blockBed = useBlockBed()
+  const bedCode = bed ? formatBedFromObject(bed) : ''
+  const bedStatus = normalizeBedStatus(bed?.status) || bed?.status
 
   const {
     register,
@@ -97,7 +101,7 @@ export function BlockBedModal({
 
       toast({
         title: 'Leito bloqueado',
-        description: `Leito ${bed.code} foi bloqueado para manutenção`,
+        description: `Leito ${bedCode} foi bloqueado para manutenção`,
       })
 
       onOpenChange(false)
@@ -124,11 +128,11 @@ export function BlockBedModal({
             Bloquear Leito para Manutenção
           </DialogTitle>
           <DialogDescription>
-            Bloquear o leito <strong>{bed.code}</strong> impedindo nova ocupação
+            Bloquear o leito <strong>{bedCode}</strong> impedindo nova ocupação
           </DialogDescription>
         </DialogHeader>
 
-        {bed.status === 'Ocupado' && (
+        {isOccupiedBedStatus(bedStatus) && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
@@ -148,7 +152,7 @@ export function BlockBedModal({
               placeholder="Ex: Leito bloqueado para manutenção preventiva do ar condicionado e pintura da parede..."
               rows={4}
               {...register('reason')}
-              disabled={loading || bed.status === 'Ocupado'}
+              disabled={loading || isOccupiedBedStatus(bedStatus)}
             />
             <div className="flex items-center justify-between text-sm">
               {errors.reason && (
@@ -168,7 +172,7 @@ export function BlockBedModal({
               id="expectedReleaseDate"
               type="date"
               {...register('expectedReleaseDate')}
-              disabled={loading || bed.status === 'Ocupado'}
+              disabled={loading || isOccupiedBedStatus(bedStatus)}
             />
             {errors.expectedReleaseDate && (
               <p className="text-sm text-destructive">{errors.expectedReleaseDate.message}</p>
@@ -186,7 +190,7 @@ export function BlockBedModal({
             </Button>
             <Button
               type="submit"
-              disabled={loading || bed.status === 'Ocupado'}
+              disabled={loading || isOccupiedBedStatus(bedStatus)}
               variant="destructive"
             >
               <AlertTriangle className="mr-2 h-4 w-4" />

@@ -52,7 +52,10 @@ export default function ResidentRegistrationReportPage() {
         id: resident.id,
         fullName: resident.fullName,
         socialName: resident.socialName,
-        bed: resident.bed?.code ? { code: resident.bed.code } : null,
+        bed: resident.bed ?? null,
+        room: resident.room ?? null,
+        floor: resident.floor ?? null,
+        building: resident.building ?? null,
       })),
     [residents],
   )

@@ -12,7 +12,8 @@ import { useBuildings } from '@/hooks/useBuildings'
 import { useFloors } from '@/hooks/useFloors'
 import { useRooms } from '@/hooks/useRooms'
 import { useBeds } from '@/hooks/useBeds'
-import { formatBedIdentification } from '@/utils/formatters'
+import { formatBedFromObject } from '@/utils/formatters'
+import { isAvailableBedStatus, normalizeBedStatus } from '@/utils/bedStatus'
 
 interface BedSelectorProps {
   value?: string // bedId
@@ -59,7 +60,7 @@ export function BedSelector({
       // Se showOnlyAvailable é true, mostra apenas leitos disponíveis
       // ou o leito atual do residente (para edição)
       if (showOnlyAvailable) {
-        return bed.status === 'DISPONIVEL' || bed.id === currentResidentBedId
+        return isAvailableBedStatus(bed.status) || bed.id === currentResidentBedId
       }
 
       return true
@@ -81,7 +82,7 @@ export function BedSelector({
 
       stats[building.id] = {
         total: buildingBeds.length,
-        available: buildingBeds.filter(b => b.status === 'DISPONIVEL').length
+        available: buildingBeds.filter(b => isAvailableBedStatus(b.status)).length
       }
     })
 
@@ -101,7 +102,7 @@ export function BedSelector({
 
       stats[floor.id] = {
         total: floorBeds.length,
-        available: floorBeds.filter(b => b.status === 'DISPONIVEL').length
+        available: floorBeds.filter(b => isAvailableBedStatus(b.status)).length
       }
     })
 
@@ -118,7 +119,7 @@ export function BedSelector({
 
       stats[room.id] = {
         total: roomBeds.length,
-        available: roomBeds.filter(b => b.status === 'DISPONIVEL').length
+        available: roomBeds.filter(b => isAvailableBedStatus(b.status)).length
       }
     })
 
@@ -184,13 +185,11 @@ export function BedSelector({
     const building = buildings.find(b => b.id === floor.buildingId)
     if (!building) return null
 
-    const bedIdentification = formatBedIdentification(building.code, floor.code, room.code, bed.code)
-
     return {
       building: `${building.name} (${building.code})`,
       floor: `${floor.name} (${floor.code})`,
       room: `${room.name} (${room.code})`,
-      bed: bedIdentification,
+      bed: formatBedFromObject(bed),
       hasPrivateBathroom: room.hasPrivateBathroom,
       isAccessible: room.accessible,
     }
@@ -334,13 +333,13 @@ export function BedSelector({
                 availableBeds.map(bed => (
                   <SelectItem key={bed.id} value={bed.id}>
                     <div className="flex items-center justify-between w-full">
-                      <span>Leito {bed.code}</span>
-                      {bed.status === 'DISPONIVEL' ? (
+                      <span>Leito {formatBedFromObject(bed)}</span>
+                      {isAvailableBedStatus(bed.status) ? (
                         <span className="ml-2 text-xs text-success">Disponível</span>
                       ) : bed.id === currentResidentBedId ? (
                         <span className="ml-2 text-xs text-primary">Leito atual</span>
                       ) : (
-                        <span className="ml-2 text-xs text-danger">{bed.status}</span>
+                        <span className="ml-2 text-xs text-danger">{normalizeBedStatus(bed.status) || bed.status}</span>
                       )}
                     </div>
                   </SelectItem>

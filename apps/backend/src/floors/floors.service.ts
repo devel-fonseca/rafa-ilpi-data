@@ -4,6 +4,8 @@ import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateFloorDto, UpdateFloorDto } from './dto'
 import { Prisma } from '@prisma/client'
 import { EventsGateway } from '../events/events.gateway'
+import { generateFloorCode } from '../utils/codeGenerator'
+import { normalizeInfrastructureCode } from '../beds/bed.utils'
 
 @Injectable()
 export class FloorsService {
@@ -35,10 +37,14 @@ export class FloorsService {
       )
     }
 
+    const code = createFloorDto.code
+      ? normalizeInfrastructureCode(createFloorDto.code)
+      : generateFloorCode(createFloorDto.name, createFloorDto.floorNumber)
+
     const floor = await this.tenantContext.client.floor.create({
       data: {
         name: createFloorDto.name,
-        code: createFloorDto.code,
+        code,
         orderIndex: createFloorDto.floorNumber,
         buildingId: createFloorDto.buildingId,
         description: createFloorDto.description,
@@ -162,6 +168,9 @@ export class FloorsService {
     if (updateFloorDto.floorNumber !== undefined) {
       dataToUpdate.orderIndex = updateFloorDto.floorNumber
       delete (dataToUpdate as Record<string, unknown>).floorNumber
+    }
+    if (updateFloorDto.code !== undefined) {
+      dataToUpdate.code = normalizeInfrastructureCode(updateFloorDto.code)
     }
 
     const floor = await this.tenantContext.client.floor.update({

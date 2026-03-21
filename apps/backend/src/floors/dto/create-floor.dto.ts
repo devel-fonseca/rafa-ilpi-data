@@ -4,8 +4,9 @@ export class CreateFloorDto {
   @IsString()
   name: string
 
+  @IsOptional()
   @IsString()
-  code: string
+  code?: string
 
   @IsInt()
   floorNumber: number

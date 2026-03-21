@@ -18,8 +18,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Building2, DoorOpen, Bed as BedIcon, Check, Search, Filter } from 'lucide-react'
-import { BedsHierarchy } from '@/api/beds.api'
+import { Bed as BedType, BedsHierarchy } from '@/api/beds.api'
 import { formatBedFromObject } from '@/utils/formatters'
+import { isAvailableBedStatus } from '@/utils/bedStatus'
 
 interface BedEntity {
   id: string
@@ -104,7 +105,7 @@ export function SelectBedModal({
             }
 
             // Coletar apenas leitos disponíveis (exceto o atual)
-            if (bed.status === 'Disponível' && bed.id !== currentBedId) {
+            if (isAvailableBedStatus(bed.status) && bed.id !== currentBedId) {
               let distance = 3 // Outro prédio (padrão)
 
               if (currentBedInfo.buildingId === building.id) {
@@ -145,7 +146,7 @@ export function SelectBedModal({
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter((b) =>
-        b.bed.code.toLowerCase().includes(query) ||
+        formatBedFromObject(b.bed as BedType).toLowerCase().includes(query) ||
         b.room.name.toLowerCase().includes(query) ||
         b.floor.name.toLowerCase().includes(query) ||
         b.building.name.toLowerCase().includes(query)
@@ -155,7 +156,7 @@ export function SelectBedModal({
     // Ordenar: mais próximos primeiro, depois por código
     return filtered.sort((a, b) => {
       if (a.distance !== b.distance) return a.distance - b.distance
-      return a.bed.code.localeCompare(b.bed.code)
+      return formatBedFromObject(a.bed as BedType).localeCompare(formatBedFromObject(b.bed as BedType))
     })
   }, [availableBeds, filterScope, searchQuery])
 

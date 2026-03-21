@@ -6,14 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Search, User, Eye, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { cn } from '@/lib/utils'
+import { formatBedFromResident, type ResidentWithBed } from '@/utils/formatters'
 
-interface Resident {
+interface Resident extends ResidentWithBed {
   id: string
   fullName: string
   socialName?: string | null
-  bed?: {
-    code: string
-  } | null
 }
 
 interface Props {
@@ -49,7 +47,8 @@ export function ResidentQuickSearch({ onSelectResident }: Props) {
         const searchLower = searchTerm.toLowerCase()
         const fullNameMatch = resident.fullName.toLowerCase().includes(searchLower)
         const socialNameMatch = resident.socialName?.toLowerCase().includes(searchLower)
-        const bedMatch = resident.bed?.code.toLowerCase().includes(searchLower)
+        const formattedBed = formatBedFromResident(resident).toLowerCase()
+        const bedMatch = formattedBed !== '-' && formattedBed.includes(searchLower)
 
         return fullNameMatch || socialNameMatch || bedMatch
       })
@@ -193,9 +192,9 @@ export function ResidentQuickSearch({ onSelectResident }: Props) {
                         </p>
                       )}
                     </div>
-                    {resident.bed && (
+                    {formatBedFromResident(resident) !== '-' && (
                       <span className="text-xs text-muted-foreground flex-shrink-0">
-                        Leito: {resident.bed.code}
+                        Leito: {formatBedFromResident(resident)}
                       </span>
                     )}
                   </button>

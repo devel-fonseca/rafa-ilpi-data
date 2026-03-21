@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatBedFromObject } from '@/utils/formatters'
+import { isAvailableBedStatus, isOccupiedBedStatus, normalizeBedStatus } from '@/utils/bedStatus'
 
 interface BedCardProps {
   bed: Bed
@@ -29,10 +30,6 @@ const BED_STATUS_LABELS: Record<string, string> = {
   'Ocupado': 'Ocupado',
   'Manutenção': 'Manutenção',
   'Reservado': 'Reservado',
-  DISPONIVEL: 'Disponível',
-  OCUPADO: 'Ocupado',
-  MANUTENCAO: 'Manutenção',
-  RESERVADO: 'Reservado',
 }
 
 const BED_STATUS_COLORS: Record<string, string> = {
@@ -40,14 +37,11 @@ const BED_STATUS_COLORS: Record<string, string> = {
   'Ocupado': 'bg-danger/10 text-danger/90',
   'Manutenção': 'bg-warning/10 text-warning/90',
   'Reservado': 'bg-primary/10 text-primary/90',
-  DISPONIVEL: 'bg-success/10 text-success/90',
-  OCUPADO: 'bg-danger/10 text-danger/90',
-  MANUTENCAO: 'bg-warning/10 text-warning/90',
-  RESERVADO: 'bg-primary/10 text-primary/90',
 }
 
 export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, canManage = true }: BedCardProps) {
-  const isOccupied = bed.status === 'OCUPADO' && bed.resident
+  const status = normalizeBedStatus(bed.status) || bed.status
+  const isOccupied = isOccupiedBedStatus(status) && bed.resident
 
   return (
     <Card
@@ -67,7 +61,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-            {bed.status === 'DISPONIVEL' && (
+            {isAvailableBedStatus(status) && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()
@@ -78,7 +72,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, 
                 Atribuir Residente
               </DropdownMenuItem>
             )}
-            {bed.status === 'OCUPADO' && bed.residentId && (
+            {isOccupiedBedStatus(status) && bed.residentId && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()
@@ -121,8 +115,8 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, 
 
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Status:</span>
-            <Badge className={BED_STATUS_COLORS[bed.status]}>
-              {BED_STATUS_LABELS[bed.status]}
+            <Badge className={BED_STATUS_COLORS[status] || 'bg-muted text-foreground'}>
+              {BED_STATUS_LABELS[status] || status}
             </Badge>
           </div>
 
@@ -163,9 +157,9 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, 
             </div>
           )}
 
-          {bed.observations && (
+          {bed.notes && (
             <div className="border-t pt-2">
-              <p className="text-xs text-muted-foreground">{bed.observations}</p>
+              <p className="text-xs text-muted-foreground">{bed.notes}</p>
             </div>
           )}
         </div>

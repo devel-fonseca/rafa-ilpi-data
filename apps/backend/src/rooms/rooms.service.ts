@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateRoomDto, UpdateRoomDto } from './dto'
 import { EventsGateway } from '../events/events.gateway'
+import { generateRoomCode } from '../utils/codeGenerator'
+import { normalizeInfrastructureCode } from '../beds/bed.utils'
 
 @Injectable()
 export class RoomsService {
@@ -33,10 +35,23 @@ export class RoomsService {
       throw new NotFoundException(`Andar com ID ${createRoomDto.floorId} não encontrado`)
     }
 
+    const existingRoomCodes = await this.tenantContext.client.room.findMany({
+      where: { floorId: createRoomDto.floorId, deletedAt: null },
+      select: { code: true },
+    })
+
+    const code = createRoomDto.code
+      ? normalizeInfrastructureCode(createRoomDto.code)
+      : generateRoomCode(
+          createRoomDto.name || createRoomDto.roomNumber,
+          existingRoomCodes.map((room) => room.code),
+          Number.isNaN(Number(createRoomDto.roomNumber)) ? undefined : Number(createRoomDto.roomNumber),
+        )
+
     const room = await this.tenantContext.client.room.create({
       data: {
         name: createRoomDto.name,
-        code: createRoomDto.code,
+        code,
         roomNumber: createRoomDto.roomNumber,
         capacity: createRoomDto.capacity,
         roomType: createRoomDto.roomType,
@@ -172,6 +187,8 @@ export class RoomsService {
     if (updateRoomDto.genderRestriction !== undefined) dataToUpdate.genderRestriction = updateRoomDto.genderRestriction
     if (updateRoomDto.hasBathroom !== undefined) dataToUpdate.hasBathroom = updateRoomDto.hasBathroom
     if (updateRoomDto.notes !== undefined) dataToUpdate.notes = updateRoomDto.notes
+    if (updateRoomDto.floorId !== undefined) dataToUpdate.floor = { connect: { id: updateRoomDto.floorId } }
+    if (updateRoomDto.code !== undefined) dataToUpdate.code = normalizeInfrastructureCode(updateRoomDto.code)
 
     const room = await this.tenantContext.client.room.update({
       where: { id },

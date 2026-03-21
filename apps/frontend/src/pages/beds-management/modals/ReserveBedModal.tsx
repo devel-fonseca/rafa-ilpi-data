@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { getErrorMessage } from '@/utils/errorHandling'
 import { useReserveBed } from '@/hooks/useBedOperations'
 import type { Bed } from '@/api/beds.api'
+import { formatBedFromObject } from '@/utils/formatters'
 
 /**
  * Schema de validação para reserva de leito
@@ -60,6 +61,7 @@ export function ReserveBedModal({
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
   const reserveBed = useReserveBed()
+  const bedCode = bed ? formatBedFromObject(bed) : ''
 
   const {
     register,
@@ -105,7 +107,7 @@ export function ReserveBedModal({
 
       toast({
         title: 'Leito reservado',
-        description: `Leito ${bed.code} foi reservado com sucesso`,
+        description: `Leito ${bedCode} foi reservado com sucesso`,
       })
 
       onOpenChange(false)
@@ -132,7 +134,7 @@ export function ReserveBedModal({
             Reservar Leito
           </DialogTitle>
           <DialogDescription>
-            Reservar o leito <strong>{bed.code}</strong> para futuro residente
+            Reservar o leito <strong>{bedCode}</strong> para futuro residente
           </DialogDescription>
         </DialogHeader>
 

@@ -35,6 +35,7 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { extractDateOnly } from '@/utils/dateHelpers'
+import { formatBedFromResident } from '@/utils/formatters'
 import { useDailyTasksByResident } from '@/hooks/useResidentSchedule'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { useBloodType } from '@/hooks/useResidentHealth'
@@ -309,10 +310,10 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                   {age} anos • {resident?.gender === 'MASCULINO' ? 'Masculino' : resident?.gender === 'FEMININO' ? 'Feminino' : 'Outro'}
                 </p>
 
-                {resident?.bed && (
+                {resident?.bed && formatBedFromResident(resident) !== '-' && (
                   <div className="flex items-center gap-1 mt-1 text-sm text-foreground">
                     <BedIcon className="w-4 h-4" />
-                    <span>Leito: {resident.bed.code}</span>
+                    <span>Leito: {formatBedFromResident(resident)}</span>
                   </div>
                 )}
               </div>

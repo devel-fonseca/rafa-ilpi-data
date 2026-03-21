@@ -21,14 +21,19 @@ import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { Bed as BedType, BedStatusHistoryEntry } from '@/api/beds.api'
+import { formatBedFromObject } from '@/utils/formatters'
+import {
+  isAvailableBedStatus,
+  normalizeBedStatus,
+  type BedStatus,
+} from '@/utils/bedStatus'
 
 type ActionType = 'reserve' | 'block' | 'release'
 
 interface BedWithHierarchy {
   id: string
   code: string
-  bedNumber: string
-  status: string
+  status: BedStatus
   roomId: string
   residentId?: string
   resident?: {
@@ -37,7 +42,7 @@ interface BedWithHierarchy {
     fotoUrl?: string
   }
   occupiedSince?: string
-  observations?: string
+  notes?: string
   createdAt: string
   updatedAt: string
   room: {
@@ -53,6 +58,15 @@ interface BedWithHierarchy {
     id: string
     name: string
   }
+}
+
+function getBedStatusPillClass(status?: string | null): string {
+  const normalized = normalizeBedStatus(status) || status
+
+  if (normalized === 'Disponível') return 'bg-success/10 text-success'
+  if (normalized === 'Ocupado') return 'bg-danger/10 text-danger'
+  if (normalized === 'Manutenção') return 'bg-warning/10 text-warning'
+  return 'bg-primary/10 text-primary'
 }
 
 export default function BedsManagementHub() {
@@ -97,10 +111,14 @@ export default function BedsManagementHub() {
   // Calculate statistics
   const stats = {
     total: beds?.length || 0,
-    occupied: beds?.filter((b: BedType) => b.status === 'Ocupado').length || 0,
-    available: beds?.filter((b: BedType) => b.status === 'Disponível').length || 0,
-    maintenance: beds?.filter((b: BedType) => b.status === 'Manutenção').length || 0,
-    reserved: beds?.filter((b: BedType) => b.status === 'Reservado').length || 0,
+    occupied:
+      beds?.filter((b: BedType) => normalizeBedStatus(b.status) === 'Ocupado').length || 0,
+    available:
+      beds?.filter((b: BedType) => isAvailableBedStatus(b.status)).length || 0,
+    maintenance:
+      beds?.filter((b: BedType) => normalizeBedStatus(b.status) === 'Manutenção').length || 0,
+    reserved:
+      beds?.filter((b: BedType) => normalizeBedStatus(b.status) === 'Reservado').length || 0,
   }
 
   const occupancyRate = stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0
@@ -380,7 +398,7 @@ export default function BedsManagementHub() {
                   {/* Código do Leito */}
                   <div className="flex-shrink-0">
                     <span className="text-xs font-mono font-semibold bg-muted px-2 py-1 rounded">
-                      {entry.bed.code}
+                      {formatBedFromObject(entry.bed as unknown as BedType)}
                     </span>
                   </div>
 
@@ -391,30 +409,18 @@ export default function BedsManagementHub() {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        entry.previousStatus === 'Disponível'
-                          ? 'bg-success/10 text-success'
-                          : entry.previousStatus === 'Ocupado'
-                            ? 'bg-danger/10 text-danger'
-                            : entry.previousStatus === 'Manutenção'
-                              ? 'bg-warning/10 text-warning'
-                              : 'bg-primary/10 text-primary'
+                        getBedStatusPillClass(entry.previousStatus)
                       }`}
                     >
-                      {entry.previousStatus}
+                      {normalizeBedStatus(entry.previousStatus) || entry.previousStatus}
                     </span>
                     <span className="text-xs">→</span>
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        entry.newStatus === 'Disponível'
-                          ? 'bg-success/10 text-success'
-                          : entry.newStatus === 'Ocupado'
-                            ? 'bg-danger/10 text-danger'
-                            : entry.newStatus === 'Manutenção'
-                              ? 'bg-warning/10 text-warning'
-                              : 'bg-primary/10 text-primary'
+                        getBedStatusPillClass(entry.newStatus)
                       }`}
                     >
-                      {entry.newStatus}
+                      {normalizeBedStatus(entry.newStatus) || entry.newStatus}
                     </span>
                   </div>
 

@@ -213,20 +213,6 @@ export function generateBedCode(
 }
 
 /**
- * Gera código completo do leito
- * Formato: PREDIO-ANDAR-QUARTO-LEITO
- * Exemplo: BA-TR-01-A
- */
-export function generateFullBedCode(
-  buildingCode: string,
-  floorCode: string,
-  roomCode: string,
-  bedCode: string
-): string {
-  return `${buildingCode}-${floorCode}-${roomCode}-${bedCode}`
-}
-
-/**
  * Valida se um código já existe
  */
 export function isCodeUnique(code: string, existingCodes: string[]): boolean {

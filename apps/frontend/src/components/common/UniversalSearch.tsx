@@ -15,6 +15,7 @@ import { tenantKey } from '@/lib/query-keys'
 import { usePublishedPops } from '@/hooks/usePops'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
 import { POPQuickViewModal } from '@/components/pops/POPQuickViewModal'
+import { formatBedFromResident, type ResidentWithBed } from '@/utils/formatters'
 
 // ══════════════════════════════════════════════════════════════════════════
 // GUIA DE EXTENSIBILIDADE
@@ -59,13 +60,10 @@ const SEARCH_TYPE_OPTIONS: SearchTypeOption[] = [
 
 const LOCAL_STORAGE_KEY = 'universal-search:preferred-type'
 
-interface Resident {
+interface Resident extends ResidentWithBed {
   id: string
   fullName: string
   socialName?: string | null
-  bed?: {
-    code: string
-  } | null
 }
 
 interface Pop {
@@ -159,7 +157,8 @@ export function UniversalSearch({
     return residents.filter((resident) => {
       const fullNameMatch = resident.fullName.toLowerCase().includes(searchLower)
       const socialNameMatch = resident.socialName?.toLowerCase().includes(searchLower)
-      const bedMatch = resident.bed?.code.toLowerCase().includes(searchLower)
+      const formattedBed = formatBedFromResident(resident).toLowerCase()
+      const bedMatch = formattedBed !== '-' && formattedBed.includes(searchLower)
 
       return fullNameMatch || socialNameMatch || bedMatch
     })
@@ -381,9 +380,9 @@ export function UniversalSearch({
                             </p>
                           )}
                         </div>
-                        {resident.bed && (
+                        {formatBedFromResident(resident) !== '-' && (
                           <span className="text-xs text-muted-foreground flex-shrink-0">
-                            Leito: {resident.bed.code}
+                            Leito: {formatBedFromResident(resident)}
                           </span>
                         )}
                       </button>

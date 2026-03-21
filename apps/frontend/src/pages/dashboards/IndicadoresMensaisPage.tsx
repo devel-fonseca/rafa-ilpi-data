@@ -66,6 +66,7 @@ import {
   RDC_INDICATOR_LABELS,
 } from '@/types/incidents';
 import { useResidents } from '@/hooks/useResidents';
+import { formatBedFromResident } from '@/utils/formatters';
 
 type IndicatorMetadata = {
   pendingCount?: number;
@@ -266,13 +267,13 @@ export function IndicadoresMensaisPage() {
       .filter((resident) => {
         if (!manualCaseResidentSearch.trim()) return true;
         const query = manualCaseResidentSearch.trim().toLowerCase();
-        const bedCode = resident.bed?.code || '';
+        const bedCode = formatBedFromResident(resident);
         return (
           resident.fullName.toLowerCase().includes(query) ||
           String(resident.cpf || '')
             .replace(/\D/g, '')
             .includes(query.replace(/\D/g, '')) ||
-          bedCode.toLowerCase().includes(query)
+          (bedCode !== '-' && bedCode.toLowerCase().includes(query))
         );
       });
   }, [manualCaseResidentSearch, residents]);
@@ -1158,7 +1159,7 @@ export function IndicadoresMensaisPage() {
                   {availableResidents.map((resident) => (
                     <SelectItem key={resident.id} value={resident.id}>
                       {resident.fullName}
-                      {resident.bed?.code ? ` • ${resident.bed.code}` : ''}
+                      {formatBedFromResident(resident) !== '-' ? ` • ${formatBedFromResident(resident)}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

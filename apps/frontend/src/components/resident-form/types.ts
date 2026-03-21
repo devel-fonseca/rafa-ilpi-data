@@ -140,7 +140,7 @@ export const residentSchema = z.object({
   consentimentoImagem: z.any().optional(),
 
   // Acomodação
-  leitoNumero: z.string().optional(),
+  bedId: z.string().optional(),
 })
 
 // Schema com validação condicional para changeReason (obrigatório no modo edição)

@@ -4,8 +4,9 @@ export class CreateRoomDto {
   @IsString()
   name: string
 
+  @IsOptional()
   @IsString()
-  code: string
+  code?: string
 
   @IsString()
   roomNumber: string

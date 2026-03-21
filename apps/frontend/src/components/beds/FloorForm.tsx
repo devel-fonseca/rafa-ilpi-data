@@ -63,7 +63,7 @@ export function FloorForm({
   const createMutation = useCreateFloor()
   const updateMutation = useUpdateFloor()
   const { data: buildings, isLoading: isLoadingBuildings } = useBuildings()
-  const [generatedCode, setGeneratedCode] = useState<string>('')
+  const [previewCode, setPreviewCode] = useState<string>('')
 
   const form = useForm<FloorFormData>({
     resolver: zodResolver(floorSchema),
@@ -77,13 +77,13 @@ export function FloorForm({
 
   // Gera código automaticamente quando o nome ou número mudam
   useEffect(() => {
-    const name = form.watch('name')
-    const floorNumber = form.watch('floorNumber')
+      const name = form.watch('name')
+      const floorNumber = form.watch('floorNumber')
 
     if ((name || floorNumber !== undefined) && !floor) {
       // Só gera novo código se estiver criando (não editando)
       const newCode = generateFloorCode(name, floorNumber)
-      setGeneratedCode(newCode)
+      setPreviewCode(newCode)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch('name'), form.watch('floorNumber'), floor])
@@ -97,7 +97,7 @@ export function FloorForm({
         floorNumber: floor.floorNumber,
         description: floor.description || '',
       })
-      setGeneratedCode(floor.code) // Mantém o código existente ao editar
+      setPreviewCode(floor.code)
     } else {
       form.reset({
         buildingId: defaultBuildingId || '',
@@ -105,23 +105,17 @@ export function FloorForm({
         floorNumber: 0,
         description: '',
       })
-      setGeneratedCode('')
+      setPreviewCode('')
     }
   }, [floor, defaultBuildingId, form])
 
   const onSubmit = async (data: FloorFormData) => {
     try {
-      const submitData = {
-        ...data,
-        code: generatedCode, // Adiciona o código gerado
-      }
-
       if (floor) {
         await updateMutation.mutateAsync({
           id: floor.id,
           data: {
             name: data.name,
-            code: generatedCode,
             floorNumber: data.floorNumber,
             description: data.description,
           } as UpdateFloorDto,
@@ -131,7 +125,7 @@ export function FloorForm({
           description: 'O andar foi atualizado com sucesso.',
         })
       } else {
-        await createMutation.mutateAsync(submitData as CreateFloorDto)
+        await createMutation.mutateAsync(data as CreateFloorDto)
         toast({
           title: 'Andar criado',
           description: 'O andar foi criado com sucesso.',
@@ -232,10 +226,10 @@ export function FloorForm({
             />
 
             {/* Código gerado automaticamente */}
-            {generatedCode && (
+            {previewCode && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Código:</span>
-                <Badge variant="outline">{generatedCode}</Badge>
+                <span className="text-sm text-muted-foreground">Código previsto:</span>
+                <Badge variant="outline">{previewCode}</Badge>
               </div>
             )}
 

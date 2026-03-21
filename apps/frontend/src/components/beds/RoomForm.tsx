@@ -45,7 +45,7 @@ const roomSchema = z.object({
   capacity: z.number().min(1, 'Capacidade deve ser no mínimo 1'),
   hasPrivateBathroom: z.boolean().optional(),
   accessible: z.boolean().optional(),
-  observations: z.string().optional(),
+  notes: z.string().optional(),
 })
 
 type RoomFormData = z.infer<typeof roomSchema>
@@ -70,7 +70,7 @@ export function RoomForm({
   const updateMutation = useUpdateRoom()
   const { data: floors, isLoading: isLoadingFloors } = useFloors()
   const { data: allRooms } = useRooms()
-  const [generatedCode, setGeneratedCode] = useState<string>('')
+  const [previewCode, setPreviewCode] = useState<string>('')
 
   const form = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
@@ -82,7 +82,7 @@ export function RoomForm({
       capacity: 1,
       hasPrivateBathroom: false,
       accessible: false,
-      observations: '',
+      notes: '',
     },
   })
 
@@ -101,7 +101,7 @@ export function RoomForm({
 
       const roomNumberInt = roomNumber ? parseInt(roomNumber) : undefined
       const newCode = generateRoomCode(name || roomNumber, existingCodes, roomNumberInt)
-      setGeneratedCode(newCode)
+      setPreviewCode(newCode)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch('name'), form.watch('roomNumber'), form.watch('floorId'), allRooms, room])
@@ -117,9 +117,9 @@ export function RoomForm({
         capacity: room.capacity,
         hasPrivateBathroom: room.hasPrivateBathroom || false,
         accessible: room.accessible || false,
-        observations: room.observations || '',
+        notes: room.notes || room.observations || '',
       })
-      setGeneratedCode(room.code) // Mantém o código existente ao editar
+      setPreviewCode(room.code)
     } else {
       form.reset({
         floorId: defaultFloorId || '',
@@ -129,31 +129,25 @@ export function RoomForm({
         capacity: 1,
         hasPrivateBathroom: false,
         accessible: false,
-        observations: '',
+        notes: '',
       })
-      setGeneratedCode('')
+      setPreviewCode('')
     }
   }, [room, defaultFloorId, form])
 
   const onSubmit = async (data: RoomFormData) => {
     try {
-      const submitData = {
-        ...data,
-        code: generatedCode, // Adiciona o código gerado
-      }
-
       if (room) {
         await updateMutation.mutateAsync({
           id: room.id,
           data: {
             name: data.name,
-            code: generatedCode,
             roomNumber: data.roomNumber,
             roomType: data.roomType,
             capacity: data.capacity,
             hasPrivateBathroom: data.hasPrivateBathroom,
             accessible: data.accessible,
-            observations: data.observations,
+            notes: data.notes,
           } as UpdateRoomDto,
         })
         toast({
@@ -161,7 +155,7 @@ export function RoomForm({
           description: 'O quarto foi atualizado com sucesso.',
         })
       } else {
-        await createMutation.mutateAsync(submitData as CreateRoomDto)
+        await createMutation.mutateAsync(data as CreateRoomDto)
         toast({
           title: 'Quarto criado',
           description: 'O quarto foi criado com sucesso.',
@@ -259,10 +253,10 @@ export function RoomForm({
             </div>
 
             {/* Código gerado automaticamente */}
-            {generatedCode && (
+            {previewCode && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Código:</span>
-                <Badge variant="outline">{generatedCode}</Badge>
+                <span className="text-sm text-muted-foreground">Código previsto:</span>
+                <Badge variant="outline">{previewCode}</Badge>
               </div>
             )}
 
@@ -359,10 +353,10 @@ export function RoomForm({
 
             <FormField
               control={form.control}
-              name="observations"
+              name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Observações</FormLabel>
+                  <FormLabel>Notas internas</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Informações adicionais sobre o quarto"

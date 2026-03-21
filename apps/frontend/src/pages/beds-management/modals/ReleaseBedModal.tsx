@@ -19,6 +19,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { getErrorMessage } from '@/utils/errorHandling'
 import { useReleaseBed } from '@/hooks/useBedOperations'
 import type { Bed } from '@/api/beds.api'
+import { formatBedFromObject } from '@/utils/formatters'
+import { normalizeBedStatus } from '@/utils/bedStatus'
 
 /**
  * Schema de validação para liberação de leito
@@ -54,6 +56,8 @@ export function ReleaseBedModal({
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
   const releaseBed = useReleaseBed()
+  const bedCode = bed ? formatBedFromObject(bed) : ''
+  const bedStatus = normalizeBedStatus(bed?.status) || bed?.status
 
   const {
     register,
@@ -96,7 +100,7 @@ export function ReleaseBedModal({
 
       toast({
         title: 'Leito liberado',
-        description: `Leito ${bed.code} está agora disponível para ocupação`,
+        description: `Leito ${bedCode} está agora disponível para ocupação`,
       })
 
       onOpenChange(false)
@@ -114,7 +118,7 @@ export function ReleaseBedModal({
 
   if (!bed) return null
 
-  const canRelease = bed.status === 'Manutenção' || bed.status === 'Reservado'
+  const canRelease = bedStatus === 'Manutenção' || bedStatus === 'Reservado'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,20 +129,20 @@ export function ReleaseBedModal({
             Liberar Leito
           </DialogTitle>
           <DialogDescription>
-            Liberar o leito <strong>{bed.code}</strong> tornando-o disponível para ocupação
+            Liberar o leito <strong>{bedCode}</strong> tornando-o disponível para ocupação
           </DialogDescription>
         </DialogHeader>
 
         {!canRelease && (
           <Alert variant="destructive">
             <AlertDescription>
-              Este leito está <strong>{bed.status}</strong>. Apenas leitos em{' '}
+              Este leito está <strong>{bedStatus}</strong>. Apenas leitos em{' '}
               <strong>Manutenção</strong> ou <strong>Reservado</strong> podem ser liberados.
             </AlertDescription>
           </Alert>
         )}
 
-        {canRelease && bed.status === 'Reservado' && bed.notes && (
+        {canRelease && bedStatus === 'Reservado' && bed.notes && (
           <Alert>
             <AlertDescription>
               <strong>Reserva atual:</strong> {bed.notes}
@@ -146,7 +150,7 @@ export function ReleaseBedModal({
           </Alert>
         )}
 
-        {canRelease && bed.status === 'Manutenção' && bed.notes && (
+        {canRelease && bedStatus === 'Manutenção' && bed.notes && (
           <Alert>
             <AlertDescription>
               <strong>Motivo do bloqueio:</strong> {bed.notes}

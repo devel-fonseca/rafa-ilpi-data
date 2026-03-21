@@ -4,6 +4,7 @@ import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateBuildingDto, UpdateBuildingDto, CreateBuildingStructureDto } from './dto'
 import { generateBuildingCode, generateFloorCode, generateRoomCode, generateBedCode } from '../utils/codeGenerator'
 import { EventsGateway } from '../events/events.gateway'
+import { normalizeInfrastructureCode } from '../beds/bed.utils'
 
 @Injectable({ scope: Scope.REQUEST })
 export class BuildingsService {
@@ -31,7 +32,7 @@ export class BuildingsService {
 
   async create(createBuildingDto: CreateBuildingDto) {
     // Se não foi fornecido código, gera automaticamente
-    let code = createBuildingDto.code
+    let code = createBuildingDto.code ? normalizeInfrastructureCode(createBuildingDto.code) : undefined
 
     if (!code) {
       // Busca códigos existentes para evitar duplicados
@@ -151,9 +152,14 @@ export class BuildingsService {
     // Validar que o building existe
     await this.findOne(id)
 
+    const data = { ...updateBuildingDto }
+    if (updateBuildingDto.code !== undefined) {
+      data.code = normalizeInfrastructureCode(updateBuildingDto.code)
+    }
+
     const building = await this.tenantContext.client.building.update({
       where: { id },
-      data: updateBuildingDto,
+      data,
     })
 
     this.emitDashboardOverviewUpdate('building.updated')
@@ -235,7 +241,7 @@ export class BuildingsService {
       }
 
       // Usar buildingCode fornecido ou gerar automaticamente
-      let buildingCode = data.buildingCode
+      let buildingCode = data.buildingCode ? normalizeInfrastructureCode(data.buildingCode) : undefined
 
       if (!buildingCode) {
         // Buscar códigos de prédios existentes

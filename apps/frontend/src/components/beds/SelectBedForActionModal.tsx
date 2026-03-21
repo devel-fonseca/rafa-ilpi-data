@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Building2, DoorOpen, Bed as BedIcon, Check, Search } from 'lucide-react'
 import { formatBedFromObject } from '@/utils/formatters'
+import { normalizeBedStatus, type BedStatus } from '@/utils/bedStatus'
 
 const BED_STATUS_COLORS: Record<string, string> = {
   'Disponível': 'bg-success/10 text-success/95 border-success',
@@ -23,8 +24,7 @@ const BED_STATUS_COLORS: Record<string, string> = {
 interface BedWithHierarchy {
   id: string
   code: string
-  bedNumber: string
-  status: string
+  status: BedStatus
   roomId: string
   residentId?: string
   resident?: {
@@ -33,7 +33,7 @@ interface BedWithHierarchy {
     fotoUrl?: string
   }
   occupiedSince?: string
-  observations?: string
+  notes?: string
   createdAt: string
   updatedAt: string
   room: {
@@ -55,7 +55,7 @@ interface SelectBedForActionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   beds: BedWithHierarchy[]
-  allowedStatuses?: string[] // Filtro de status permitidos
+  allowedStatuses?: BedStatus[] // Filtro de status permitidos
   title: string
   description: string
   onSelectBed: (bed: BedWithHierarchy) => void
@@ -91,7 +91,7 @@ export function SelectBedForActionModal({
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(
         (bed) =>
-          bed.code.toLowerCase().includes(query) ||
+          formatBedFromObject(bed).toLowerCase().includes(query) ||
           bed.room.name.toLowerCase().includes(query) ||
           bed.floor.name.toLowerCase().includes(query) ||
           bed.building.name.toLowerCase().includes(query)
@@ -194,12 +194,13 @@ export function SelectBedForActionModal({
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {bedsInGroup.map((bed) => {
                       const isSelected = selectedBed?.id === bed.id
+                      const status = normalizeBedStatus(bed.status) || bed.status
 
                       return (
                         <Card
                           key={bed.id}
                           className={`border-2 transition-all cursor-pointer ${
-                            BED_STATUS_COLORS[bed.status] || 'bg-muted'
+                            BED_STATUS_COLORS[status] || 'bg-muted'
                           } ${
                             isSelected
                               ? 'ring-4 ring-blue-600 shadow-lg scale-105'
@@ -233,9 +234,9 @@ export function SelectBedForActionModal({
                                 )}
                                 <Badge
                                   variant="outline"
-                                  className={`text-[9px] mt-1 px-1 py-0 ${BED_STATUS_COLORS[bed.status] || ''}`}
+                                  className={`text-[9px] mt-1 px-1 py-0 ${BED_STATUS_COLORS[status] || ''}`}
                                 >
-                                  {bed.status}
+                                  {status}
                                 </Badge>
                               </div>
                             </div>

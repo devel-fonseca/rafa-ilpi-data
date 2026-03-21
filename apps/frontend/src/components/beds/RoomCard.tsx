@@ -123,8 +123,8 @@ export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: 
             )}
           </div>
 
-          {room.observations && (
-            <p className="text-sm text-muted-foreground">{room.observations}</p>
+          {(room.notes || room.observations) && (
+            <p className="text-sm text-muted-foreground">{room.notes || room.observations}</p>
           )}
 
           {room.floor && (

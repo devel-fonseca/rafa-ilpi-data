@@ -4,14 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Search, User, X } from 'lucide-react'
+import { formatBedFromResident, type ResidentWithBed } from '@/utils/formatters'
 
-interface ResidentOption {
+interface ResidentOption extends ResidentWithBed {
   id: string
   fullName: string
   socialName?: string | null
-  bed?: {
-    code: string
-  } | null
 }
 
 interface ResidentSearchSelectProps {
@@ -52,7 +50,8 @@ export function ResidentSearchSelect({
     return residents.filter((resident) => {
       const fullNameMatch = resident.fullName.toLowerCase().includes(normalizedSearch)
       const socialNameMatch = resident.socialName?.toLowerCase().includes(normalizedSearch)
-      const bedMatch = resident.bed?.code.toLowerCase().includes(normalizedSearch)
+      const formattedBed = formatBedFromResident(resident).toLowerCase()
+      const bedMatch = formattedBed !== '-' && formattedBed.includes(normalizedSearch)
 
       return fullNameMatch || socialNameMatch || bedMatch
     })
@@ -148,9 +147,9 @@ export function ResidentSearchSelect({
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{resident.fullName}</p>
-                    {resident.bed && (
+                    {formatBedFromResident(resident) !== '-' && (
                       <p className="text-xs text-muted-foreground">
-                        Leito: {resident.bed.code}
+                        Leito: {formatBedFromResident(resident)}
                       </p>
                     )}
                   </div>
