@@ -1,5 +1,22 @@
 # Plano de Execução do Code Review
 
+## Status
+
+Concluído em 2026-03-22.
+
+Fechamento:
+- ondas 1 a 5 executadas até o fim
+- plano complementar de performance do frontend também concluído
+- riscos principais do code review original foram tratados sem deixar frentes abertas dentro deste plano
+
+Principais resultados:
+- `refreshToken` fora do `localStorage` e fluxo de refresh em cookie `httpOnly`
+- frontend com build tipado e smoke tests automatizados
+- hardening HTTP e health/readiness alinhados com dependências críticas
+- gargalos evidentes de query em infraestrutura e mensagens removidos
+- artefatos legados/debug limpos do repositório
+- bundle do frontend com chunking revisado e orçamento integrado ao build
+
 ## Objetivo
 Transformar os findings do code review em uma sequência de entregas pequenas, rastreáveis e seguras para produção.
 
@@ -269,3 +286,7 @@ Transformar os findings do code review em uma sequência de entregas pequenas, r
 - Health e observabilidade mais confiáveis.
 - Menos queries por listagem de infraestrutura e envio de mensagens.
 - Repositório sem artefatos legados e bundle mais enxuto.
+
+## Encerramento
+
+Todas as métricas acima foram atendidas no estado atual da `main`.

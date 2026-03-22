@@ -1,5 +1,28 @@
 # Frontend Performance Follow-up Plan
 
+## Status
+
+Concluído em 2026-03-22.
+
+Resumo do resultado:
+- warnings de imports mistos eliminados
+- `upload.ts` e `faceDetection.ts` isolados/lazy-loaded corretamente
+- fluxos de PDF movidos para carga sob demanda
+- runtime do ECharts modularizado
+- `vendor` residual reequilibrado por domínio
+- orçamento de bundle integrado ao `npm run build`
+
+Baseline final validada no build:
+- `entry`: ~1.99 MB
+- `vendor`: ~0.61 MB
+- `vendor-charts`: ~0.57 MB
+- `vendor-pdf`: ~2.16 MB
+- `vendor-tf`: ~1.82 MB
+
+Decisão:
+- esta frente fica encerrada
+- se novos módulos pesados entrarem no frontend, a reabertura deve partir do orçamento já implantado
+
 ## Baseline atual
 
 Build atual do frontend:
@@ -29,6 +52,8 @@ Reduzir o custo inicial de carregamento e melhorar a eficiência do bundle sem r
 
 ### PR 1: isolar `upload.ts`
 
+Status: concluído
+
 Problema:
 - `upload.ts` aparece como import estático e dinâmico ao mesmo tempo.
 - Isso impede o Vite de mover o módulo para outro chunk.
@@ -57,6 +82,8 @@ Meta:
 
 ### PR 2: isolar `faceDetection.ts`
 
+Status: concluído
+
 Problema:
 - `faceDetection.ts` também mistura import estático e dinâmico.
 - Isso prende o stack do TensorFlow de forma menos eficiente.
@@ -76,6 +103,8 @@ Meta:
 ## Onda 2: atacar bibliotecas pesadas por domínio
 
 ### PR 3: reduzir custo do bloco PDF/export
+
+Status: concluído
 
 Problema:
 - `vendor-pdf` ainda é um dos maiores chunks.
@@ -98,6 +127,8 @@ Meta:
 
 ### PR 4: revisar custo do bloco charts
 
+Status: concluído
+
 Problema:
 - `vendor-charts` ficou grande após a migração para ECharts.
 
@@ -113,6 +144,8 @@ Meta:
 
 ### PR 5: inventário do `vendor` residual
 
+Status: concluído
+
 Problema:
 - o chunk `vendor` genérico ainda está muito grande.
 
@@ -127,6 +160,8 @@ Meta:
 ## Onda 4: medição e guarda de regressão
 
 ### PR 6: orçamento simples de bundle
+
+Status: concluído
 
 Estratégia:
 - registrar baseline de build no repositório.
@@ -156,3 +191,11 @@ Meta:
 - foto/perfil com detecção facial
 - gráficos
 - relatórios/exportações
+
+## Fechamento
+
+Critérios atendidos:
+1. build principal sem warnings de imports mistos
+2. `vendor` e `vendor-charts` reduzidos materialmente
+3. regressão de bundle agora bloqueia o `npm run build`
+4. a frente ficou com rollback simples e medição objetiva
