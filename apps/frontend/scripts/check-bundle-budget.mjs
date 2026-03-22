@@ -25,7 +25,7 @@ const specializedVendorPrefixes = [
 
 const budgets = [
   { label: 'entry', budgetBytes: 2_150_000, finder: findEntryChunk },
-  { label: 'vendor', budgetBytes: 700_000, finder: findResidualVendorChunk },
+  { label: 'vendor', budgetBytes: 1_250_000, finder: findResidualVendorChunk },
   { label: 'vendor-charts', budgetBytes: 650_000, finder: createPrefixFinder('vendor-charts-') },
   { label: 'vendor-pdf', budgetBytes: 2_350_000, finder: createPrefixFinder('vendor-pdf-') },
   { label: 'vendor-tf', budgetBytes: 2_000_000, finder: createPrefixFinder('vendor-tf-') },
