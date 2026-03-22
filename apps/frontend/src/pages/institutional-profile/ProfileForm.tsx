@@ -16,6 +16,7 @@ import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { buscarCEP } from '@/services/viacep'
 import { formatLegalNature } from '@/utils/formatters'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
+import { devLogger } from '@/utils/devLogger'
 
 const profileSchema = z.object({
   // Dados do Profile
@@ -82,12 +83,12 @@ export function ProfileForm() {
 
   // Log sempre que legalNature mudar
   useEffect(() => {
-    console.log('🔄 [ProfileForm] legalNature do watch mudou para:', legalNature)
+    devLogger.log('🔄 [ProfileForm] legalNature do watch mudou para:', legalNature)
   }, [legalNature])
 
   // Carregar dados do perfil quando disponível
   useEffect(() => {
-    console.log('🔍 [ProfileForm] useEffect - fullProfile mudou:', {
+    devLogger.log('🔍 [ProfileForm] useEffect - fullProfile mudou:', {
       fullProfile,
       legalNature: fullProfile?.profile?.legalNature,
       timestamp: new Date().toISOString()
@@ -96,7 +97,7 @@ export function ProfileForm() {
     if (fullProfile) {
       const { tenant, profile } = fullProfile
 
-      console.log('✅ [ProfileForm] Chamando reset com legalNature:', profile?.legalNature)
+      devLogger.log('✅ [ProfileForm] Chamando reset com legalNature:', profile?.legalNature)
 
       reset({
         // Dados do profile
@@ -124,7 +125,7 @@ export function ProfileForm() {
         addressState: tenant.addressState || '',
       })
 
-      console.log('📋 [ProfileForm] Formulário resetado. Valor atual de legalNature no watch:', watch('legalNature'))
+      devLogger.log('📋 [ProfileForm] Formulário resetado. Valor atual de legalNature no watch:', watch('legalNature'))
 
       setLogoPreview(profile?.logoUrl || null)
     }
@@ -135,10 +136,10 @@ export function ProfileForm() {
   const handleBuscarCep = useCallback(async (cep: string) => {
     const cepLimpo = cep.replace(/\D/g, '')
     if (cepLimpo.length === 8) {
-      console.log('🔍 [ProfileForm] Buscando CEP no ViaCEP:', cepLimpo)
+      devLogger.log('🔍 [ProfileForm] Buscando CEP no ViaCEP:', cepLimpo)
       const endereco = await buscarCEP(cepLimpo)
       if (endereco) {
-        console.log('✅ [ProfileForm] CEP encontrado, preenchendo campos')
+        devLogger.log('✅ [ProfileForm] CEP encontrado, preenchendo campos')
         setValue('addressStreet', endereco.logradouro, { shouldDirty: true })
         setValue('addressDistrict', endereco.bairro, { shouldDirty: true })
         setValue('addressCity', endereco.cidade, { shouldDirty: true })
@@ -423,7 +424,7 @@ export function ProfileForm() {
               <Select
                 value={legalNature || ''}
                 onValueChange={(value) => {
-                  console.log('🎯 [ProfileForm] Select onValueChange chamado com:', value)
+                  devLogger.log('🎯 [ProfileForm] Select onValueChange chamado com:', value)
                   // Ignorar valores vazios ou inválidos (previne bug do Shadcn Select)
                   if (value && value !== '') {
                     setValue('legalNature', value as LegalNature, { shouldDirty: true })
@@ -434,7 +435,7 @@ export function ProfileForm() {
                   id="legalNature"
                   aria-describedby={errors.legalNature ? 'legalNature-error' : undefined}
                   aria-invalid={!!errors.legalNature}
-                  onClick={() => console.log('👆 [ProfileForm] Select trigger clicado. Valor atual:', legalNature)}
+                  onClick={() => devLogger.log('👆 [ProfileForm] Select trigger clicado. Valor atual:', legalNature)}
                   className={errors.legalNature ? 'border-danger focus-visible:ring-danger' : undefined}
                 >
                   <SelectValue placeholder="Selecione" />

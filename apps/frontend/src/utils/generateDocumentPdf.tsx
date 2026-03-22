@@ -1,6 +1,7 @@
 import { pdf } from '@react-pdf/renderer'
 import { ClinicalDocumentPDF } from '@/components/pdf/ClinicalDocumentPDF'
 import { convertTiptapHtmlToReactPdf } from './htmlToReactPdf'
+import { devLogger } from '@/utils/devLogger'
 
 interface GeneratePdfOptions {
   title: string
@@ -64,7 +65,7 @@ function calculateAge(birthDate: Date): number {
  * @returns Promise com o Blob do PDF gerado
  */
 export async function generateDocumentPdf(options: GeneratePdfOptions): Promise<Blob> {
-  console.log('🔧 [generateDocumentPdf] Iniciando geração com @react-pdf/renderer...', {
+  devLogger.log('🔧 [generateDocumentPdf] Iniciando geração com @react-pdf/renderer...', {
     hasTitle: !!options.title,
     hasContent: !!options.content,
     contentLength: options.content?.length || 0,
@@ -78,11 +79,11 @@ export async function generateDocumentPdf(options: GeneratePdfOptions): Promise<
     const age = calculateAge(new Date(options.resident.birthDate))
 
     // Converter HTML do Tiptap para componentes React-PDF
-    console.log('🔄 [generateDocumentPdf] Convertendo HTML do Tiptap...')
+    devLogger.log('🔄 [generateDocumentPdf] Convertendo HTML do Tiptap...')
     const contentComponents = convertTiptapHtmlToReactPdf(options.content)
 
     // Criar componente PDF
-    console.log('📄 [generateDocumentPdf] Criando documento PDF...')
+    devLogger.log('📄 [generateDocumentPdf] Criando documento PDF...')
     const pdfDocument = (
       <ClinicalDocumentPDF
         title={options.title}
@@ -102,10 +103,10 @@ export async function generateDocumentPdf(options: GeneratePdfOptions): Promise<
     )
 
     // Gerar PDF
-    console.log('⚙️ [generateDocumentPdf] Renderizando PDF...')
+    devLogger.log('⚙️ [generateDocumentPdf] Renderizando PDF...')
     const pdfBlob = await pdf(pdfDocument).toBlob()
 
-    console.log('✅ [generateDocumentPdf] PDF gerado com sucesso!', {
+    devLogger.log('✅ [generateDocumentPdf] PDF gerado com sucesso!', {
       blobSize: pdfBlob.size,
       blobType: pdfBlob.type,
     })

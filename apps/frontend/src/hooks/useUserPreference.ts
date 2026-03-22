@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { updateMyPreferences } from '@/services/api'
 import { UserPreferences } from '@/types/preferences'
+import { devLogger } from '@/utils/devLogger'
 
 /**
  * Hook para gerenciar uma preferência específica do usuário
@@ -41,7 +42,7 @@ export function useUserPreference<K extends keyof UserPreferences>(
   // Função para atualizar preferência no backend
   const updateValue = useCallback(async (newValue: NonNullable<UserPreferences[K]>) => {
     if (!user) {
-      console.warn('Não é possível atualizar preferências: usuário não autenticado')
+      devLogger.warn('Não é possível atualizar preferências: usuário não autenticado')
       return
     }
 

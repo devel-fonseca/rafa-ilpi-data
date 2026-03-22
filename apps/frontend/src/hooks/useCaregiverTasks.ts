@@ -5,6 +5,7 @@ import type { DailyTask } from './useResidentSchedule'
 import { tenantKey } from '@/lib/query-keys'
 import { useDailyEvents } from './useDailyEvents'
 import { isMedicationScheduledForDate } from '@/utils/medicationSchedule'
+import { devLogger } from '@/utils/devLogger'
 
 // ──────────────────────────────────────────────────────────────────────────
 // INTERFACES
@@ -104,7 +105,7 @@ export function useCaregiverTasks(date?: string) {
   return useQuery<CaregiverTasksSummary>({
     queryKey: tenantKey('caregiver-tasks', today, scheduledEvents.length),
     queryFn: async () => {
-      console.log('🔄 [useCaregiverTasks] Fetching tasks for:', today)
+      devLogger.log('🔄 [useCaregiverTasks] Fetching tasks for:', today)
       // ────────────────────────────────────────────────────────────────
       // 1. Buscar tarefas obrigatórias recorrentes
       // ────────────────────────────────────────────────────────────────

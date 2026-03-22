@@ -1,5 +1,6 @@
 import { Text, View, Link } from '@react-pdf/renderer'
 import { styles } from '@/components/pdf/ClinicalDocumentPDF'
+import { devLogger } from '@/utils/devLogger'
 
 /**
  * Converte HTML do Tiptap para componentes React-PDF
@@ -219,20 +220,20 @@ function renderNodes(nodes: ParsedNode[], parentType?: string): React.ReactNode 
  * @returns ReactNode com componentes React-PDF
  */
 export function convertTiptapHtmlToReactPdf(html: string): React.ReactNode {
-  console.log('🔄 [htmlToReactPdf] Convertendo HTML para React-PDF...', {
+  devLogger.log('🔄 [htmlToReactPdf] Convertendo HTML para React-PDF...', {
     htmlLength: html.length,
     htmlPreview: html.substring(0, 100),
   })
 
   try {
     const nodes = parseHTML(html)
-    console.log('✅ [htmlToReactPdf] HTML parseado com sucesso', {
+    devLogger.log('✅ [htmlToReactPdf] HTML parseado com sucesso', {
       nodesCount: nodes.length,
       nodes: nodes.map((n) => n.type),
     })
 
     const reactPdfContent = renderNodes(nodes)
-    console.log('✅ [htmlToReactPdf] Componentes React-PDF gerados')
+    devLogger.log('✅ [htmlToReactPdf] Componentes React-PDF gerados')
 
     return reactPdfContent
   } catch (error) {

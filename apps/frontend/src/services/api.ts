@@ -2,6 +2,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.store'
 import { getReauthToken } from '@/lib/reauth-token'
 import type { UserProfile } from '@/types/user'
+import { devLogger } from '@/utils/devLogger'
 
 // Em desenvolvimento: usa localhost:3000
 // Em produção (Docker): usa URL relativa /api (resolvida pelo nginx proxy)
@@ -54,7 +55,7 @@ api.interceptors.request.use(
       const hasTenantIdInParams = config.params && 'tenantId' in config.params
 
       if (hasTenantIdInData || hasTenantIdInParams) {
-        console.error('🚨 VIOLAÇÃO ARQUITETURA MULTI-TENANT:', {
+        devLogger.error('🚨 VIOLAÇÃO ARQUITETURA MULTI-TENANT:', {
           message: 'tenantId detectado em request!',
           url: config.url,
           method: config.method,
@@ -188,11 +189,11 @@ async function tryLogoutOnExpiration() {
       }
     )
 
-    console.log('✅ [LOGOUT-EXPIRED] Logout de sessão expirada registrado com sucesso')
+    devLogger.log('✅ [LOGOUT-EXPIRED] Logout de sessão expirada registrado com sucesso')
   } catch (error: unknown) {
     // Best effort - falha silenciosa, mas loga para debug
     const errorMessage = (error as { message?: string }).message || 'Erro desconhecido'
-    console.warn('[LOGOUT-EXPIRED] Falha ao registrar logout:', errorMessage)
+    devLogger.warn('[LOGOUT-EXPIRED] Falha ao registrar logout:', errorMessage)
   }
 }
 

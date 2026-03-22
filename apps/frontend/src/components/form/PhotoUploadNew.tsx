@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import { CloudUpload, X, Loader2, Scan } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { PhotoViewer } from './PhotoViewer'
+import { devLogger } from '@/utils/devLogger'
 
 interface PhotoUploadNewProps {
   onPhotoSelect: (file: File | null) => void
@@ -97,7 +98,7 @@ export function PhotoUploadNew({
         // Enviar para o componente pai
         onPhotoSelect(webpFile)
 
-        console.log(
+        devLogger.log(
           `✅ Foto processada - Rosto detectado: ${result.hasFace ? 'Sim' : 'Não'}${
             result.confidence ? ` (${(result.confidence * 100).toFixed(0)}%)` : ''
           }`,

@@ -4,6 +4,7 @@ import { tenantKey } from '@/lib/query-keys'
 import type { DailyTask } from './useResidentSchedule'
 import type { InstitutionalEvent } from '@/types/agenda'
 import { useAuthStore } from '@/stores/auth.store'
+import { devLogger } from '@/utils/devLogger'
 
 /**
  * Hook universal para buscar TODOS os eventos do dia
@@ -25,7 +26,7 @@ export function useDailyEvents(date: string) {
     queryKey: tenantKey('daily-events', date, userPosition || 'unknown'),
     enabled: !!user, // Aguardar usuário estar carregado
     queryFn: async () => {
-      console.log('🔄 [useDailyEvents] Fetching events for:', date, 'Position:', userPosition)
+      devLogger.log('🔄 [useDailyEvents] Fetching events for:', date, 'Position:', userPosition)
 
       // ────────────────────────────────────────────────────────────────
       // 1. Buscar eventos de residentes
@@ -37,7 +38,7 @@ export function useDailyEvents(date: string) {
       const residentEvents = residentEventsResponse.data.filter(
         (task) => task.type === 'EVENT'
       )
-      console.log('📅 [useDailyEvents] Resident events:', residentEvents.length)
+      devLogger.log('📅 [useDailyEvents] Resident events:', residentEvents.length)
 
       // ────────────────────────────────────────────────────────────────
       // 2. Buscar eventos institucionais
@@ -46,7 +47,7 @@ export function useDailyEvents(date: string) {
         '/institutional-events',
         { params: { startDate: date, endDate: date } }, // API espera startDate/endDate
       )
-      console.log('🏢 [useDailyEvents] Institutional events (raw):', institutionalEventsResponse.data.length)
+      devLogger.log('🏢 [useDailyEvents] Institutional events (raw):', institutionalEventsResponse.data.length)
 
       // ────────────────────────────────────────────────────────────────
       // 3. Filtrar eventos institucionais por visibilidade
@@ -67,7 +68,7 @@ export function useDailyEvents(date: string) {
 
         return false
       })
-      console.log('🏢 [useDailyEvents] Institutional events (filtered by visibility):', filteredInstitutionalEvents.length)
+      devLogger.log('🏢 [useDailyEvents] Institutional events (filtered by visibility):', filteredInstitutionalEvents.length)
 
       // ────────────────────────────────────────────────────────────────
       // 4. Transformar eventos institucionais para formato DailyTask
@@ -100,7 +101,7 @@ export function useDailyEvents(date: string) {
         return timeA.localeCompare(timeB)
       })
 
-      console.log('✅ [useDailyEvents] Total consolidated events:', allEvents.length, {
+      devLogger.log('✅ [useDailyEvents] Total consolidated events:', allEvents.length, {
         residents: residentEvents.length,
         institutional: institutionalEventsAsTasks.length,
       })

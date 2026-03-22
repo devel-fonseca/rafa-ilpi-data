@@ -8,6 +8,7 @@
  * - Adiciona margem de 30% para contexto
  * - Fallback para crop centralizado se não detectar rosto
  */
+import { devLogger } from '@/utils/devLogger'
 
 type BlazeFaceModule = typeof import('@tensorflow-models/blazeface')
 type TensorflowModule = typeof import('@tensorflow/tfjs')
@@ -39,7 +40,7 @@ function resolveFaceProbability(
 export async function loadFaceDetectionModel(): Promise<import('@tensorflow-models/blazeface').BlazeFaceModel | null> {
   // Se já teve erro antes, não tenta novamente
   if (loadError) {
-    console.warn('⚠️ Detecção facial desabilitada devido a erro anterior')
+    devLogger.warn('⚠️ Detecção facial desabilitada devido a erro anterior')
     return null
   }
 
@@ -55,7 +56,7 @@ export async function loadFaceDetectionModel(): Promise<import('@tensorflow-mode
 
   try {
     isLoading = true
-    console.log('🔄 Carregando modelo BlazeFace...')
+    devLogger.log('🔄 Carregando modelo BlazeFace...')
 
     if (!blazefaceModule || !tfModule) {
       const [blazefaceImported, tfImported] = await Promise.all([
@@ -68,7 +69,7 @@ export async function loadFaceDetectionModel(): Promise<import('@tensorflow-mode
 
     // Configurar backend do TensorFlow.js
     await tfModule.ready()
-    console.log('🔄 TensorFlow.js backend:', tfModule.getBackend())
+    devLogger.log('🔄 TensorFlow.js backend:', tfModule.getBackend())
 
     // Carregar modelo com timeout de 10 segundos
     const loadPromise = blazefaceModule.load()
@@ -78,11 +79,11 @@ export async function loadFaceDetectionModel(): Promise<import('@tensorflow-mode
 
     model = await Promise.race([loadPromise, timeoutPromise])
 
-    console.log('✅ Modelo BlazeFace carregado com sucesso')
+    devLogger.log('✅ Modelo BlazeFace carregado com sucesso')
     return model
   } catch (error) {
     loadError = true
-    console.warn(
+    devLogger.warn(
       '⚠️ Não foi possível carregar o modelo de detecção facial. A aplicação continuará funcionando com crop centralizado.',
       error
     )
@@ -117,7 +118,7 @@ export async function detectFaceAndCrop(
 
     // Se modelo não carregou, usar fallback
     if (!faceModel) {
-      console.log('⚠️ Modelo não disponível - usando crop centralizado')
+      devLogger.log('⚠️ Modelo não disponível - usando crop centralizado')
       return getFallbackCrop(imageElement)
     }
 
@@ -125,7 +126,7 @@ export async function detectFaceAndCrop(
     const predictions = await faceModel.estimateFaces(imageElement, false)
 
     if (predictions.length === 0) {
-      console.log('⚠️ Nenhum rosto detectado - usando crop centralizado')
+      devLogger.log('⚠️ Nenhum rosto detectado - usando crop centralizado')
       return getFallbackCrop(imageElement)
     }
 
@@ -177,7 +178,7 @@ export async function detectFaceAndCrop(
       cropY = imageElement.height - cropSize
     }
 
-    console.log('✅ Rosto detectado com sucesso')
+    devLogger.log('✅ Rosto detectado com sucesso')
 
     return {
       hasFace: true,
@@ -190,7 +191,7 @@ export async function detectFaceAndCrop(
       confidence: resolveFaceProbability(face.probability),
     }
   } catch (error) {
-    console.error('❌ Erro na detecção facial:', error)
+    devLogger.error('❌ Erro na detecção facial:', error)
     // Fallback para crop centralizado em caso de erro
     return getFallbackCrop(imageElement)
   }
@@ -318,6 +319,6 @@ export function cleanupFaceDetection() {
   if (model && tfModule) {
     model = null
     tfModule.disposeVariables()
-    console.log('🧹 Recursos de detecção facial liberados')
+    devLogger.log('🧹 Recursos de detecção facial liberados')
   }
 }

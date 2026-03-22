@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api } from '../services/api'
+import { devLogger } from '@/utils/devLogger'
 
 interface FeaturesState {
   // State
@@ -52,7 +53,7 @@ export const useFeaturesStore = create<FeaturesState>()(
 
         // Cache de 5 minutos - evita chamadas repetidas
         if (lastFetch && now - lastFetch < 5 * 60 * 1000) {
-          console.log('📦 Features Store - Usando cache (válido por 5 min)')
+          devLogger.log('📦 Features Store - Usando cache (válido por 5 min)')
           return
         }
 
@@ -70,7 +71,7 @@ export const useFeaturesStore = create<FeaturesState>()(
             maxResidents
           } = response.data
 
-          console.log('✅ Features Store - Features carregadas:', {
+          devLogger.log('✅ Features Store - Features carregadas:', {
             plan,
             planType,
             featuresCount: Object.keys(features).length,
@@ -91,7 +92,7 @@ export const useFeaturesStore = create<FeaturesState>()(
             lastFetch: now,
           })
         } catch (error: unknown) {
-          console.error('❌ Features Store - Erro ao buscar features:', error)
+          devLogger.error('❌ Features Store - Erro ao buscar features:', error)
           const errorResponse = (error as { response?: { data?: { message?: string } } }).response
           set({
             error: errorResponse?.data?.message || 'Erro ao buscar features do plano',
@@ -120,7 +121,7 @@ export const useFeaturesStore = create<FeaturesState>()(
 
       // Limpar features (usado no logout)
       clearFeatures: () => {
-        console.log('🧹 Features Store - Limpando features')
+        devLogger.log('🧹 Features Store - Limpando features')
         set({
           plan: null,
           planType: null,

@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react'
 import { useWebSocketContext } from '@/contexts/WebSocketContext'
+import { devLogger } from '@/utils/devLogger'
 
 /**
  * Hook genérico para consumir eventos WebSocket
@@ -51,14 +52,14 @@ export function useWebSocket<T = unknown>(
     if (!socket || !event || !handler) return
 
     // Log de debug (remover em produção)
-    console.log(`[WS Hook] Registering listener for: ${event}`)
+    devLogger.log(`[WS Hook] Registering listener for: ${event}`)
 
     // Registrar handler
     socket.on(event, handler)
 
     // Cleanup: desregistrar ao desmontar
     return () => {
-      console.log(`[WS Hook] Unregistering listener for: ${event}`)
+      devLogger.log(`[WS Hook] Unregistering listener for: ${event}`)
       socket.off(event, handler)
     }
   }, [socket, event, handler])
@@ -67,7 +68,7 @@ export function useWebSocket<T = unknown>(
   const emit = useCallback(
     <D = unknown>(eventName: string, data?: D) => {
       if (!socket) {
-        console.warn('[WS Hook] Cannot emit: socket not connected')
+        devLogger.warn('[WS Hook] Cannot emit: socket not connected')
         return
       }
       socket.emit(eventName, data)

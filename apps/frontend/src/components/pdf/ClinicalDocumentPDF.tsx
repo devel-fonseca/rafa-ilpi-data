@@ -2,6 +2,7 @@ import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/render
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { normalizeUTCDate } from '@/utils/dateHelpers'
+import { devLogger } from '@/utils/devLogger'
 
 // Estilos do documento PDF
 const styles = StyleSheet.create({
@@ -215,7 +216,7 @@ export function ClinicalDocumentPDF({
 }: ClinicalDocumentPDFProps) {
   // Debug: Log da URL do logo
   if (institutionalData?.logoUrl) {
-    console.log('🖼️ [ClinicalDocumentPDF] Logo URL:', institutionalData.logoUrl)
+    devLogger.log('🖼️ [ClinicalDocumentPDF] Logo URL:', institutionalData.logoUrl)
   }
 
   // Gerar ID único se não fornecido (para rastreabilidade)

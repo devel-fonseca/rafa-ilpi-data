@@ -18,6 +18,7 @@ import type { AdministerMedicationDto, Medication } from '@/api/prescriptions.ap
 import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
 import { lockMedication, unlockMedication } from '@/api/medications.api'
 import { formatMedicationPresentation } from '@/utils/formatters'
+import { devLogger } from '@/utils/devLogger'
 
 // Tipo estendido para medication com campo opcional preselectedScheduledTime
 type MedicationWithPreselectedTime = Medication & {
@@ -98,7 +99,7 @@ export function AdministerMedicationModal({
         scheduledTime: medication.preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
       })
       lockCreatedRef.current = true
-      console.log('[Lock] Medicamento bloqueado:', medication.name)
+      devLogger.log('[Lock] Medicamento bloqueado:', medication.name)
     } catch (error: unknown) {
       console.error('[Lock] Erro ao bloquear medicamento:', error)
       // Se já está bloqueado, apenas logar (toast já foi exibido em TodayActions)
@@ -118,7 +119,7 @@ export function AdministerMedicationModal({
         scheduledTime: medication.preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
       })
       lockCreatedRef.current = false
-      console.log('[Lock] Medicamento desbloqueado:', medication.name)
+      devLogger.log('[Lock] Medicamento desbloqueado:', medication.name)
     } catch (error: unknown) {
       console.error('[Lock] Erro ao desbloquear medicamento:', error)
     }

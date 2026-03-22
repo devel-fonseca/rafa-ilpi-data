@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { devLogger } from '@/utils/devLogger'
 
 /**
  * Captura o endereço IP público do cliente
@@ -9,7 +10,7 @@ export async function getClientIP(): Promise<string> {
     const response = await axios.get<{ ip: string }>('https://api.ipify.org?format=json')
     return response.data.ip
   } catch (error) {
-    console.warn('Erro ao capturar IP do cliente:', error)
+    devLogger.warn('Erro ao capturar IP do cliente:', error)
     return 'unknown'
   }
 }

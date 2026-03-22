@@ -6,6 +6,7 @@ import type { MedicationTask } from './useCaregiverTasks'
 import { tenantKey } from '@/lib/query-keys'
 import { useDailyEvents } from './useDailyEvents'
 import { isMedicationScheduledForDate } from '@/utils/medicationSchedule'
+import { devLogger } from '@/utils/devLogger'
 
 // ──────────────────────────────────────────────────────────────────────────
 // INTERFACES
@@ -89,7 +90,7 @@ export function useTechnicalManagerTasks(date?: string) {
   return useQuery<TechnicalManagerTasksSummary>({
     queryKey: tenantKey('technical-manager-tasks', today, scheduledEvents.length),
     queryFn: async () => {
-      console.log('🔄 [useTechnicalManagerTasks] Fetching pending tasks for:', today)
+      devLogger.log('🔄 [useTechnicalManagerTasks] Fetching pending tasks for:', today)
 
       // ────────────────────────────────────────────────────────────────
       // 1. Buscar tarefas obrigatórias recorrentes

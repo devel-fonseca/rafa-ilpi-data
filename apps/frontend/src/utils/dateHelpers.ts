@@ -22,6 +22,7 @@
 import { format as formatDateFns, parseISO, parse, isValid } from 'date-fns'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
+import { devLogger } from '@/utils/devLogger'
 
 // =========================================================
 // CONSTANTES
@@ -419,21 +420,21 @@ export function buildUTCFromLocalComponents(
  * // ========================================
  */
 export function debugDate(utcDateString: string): void {
-  console.log('========================================')
-  console.log(`DEBUG DATE: ${utcDateString}`)
-  console.log('========================================')
+  devLogger.log('========================================')
+  devLogger.log(`DEBUG DATE: ${utcDateString}`)
+  devLogger.log('========================================')
 
   try {
     const localDate = normalizeUTCDate(utcDateString)
-    console.log('UTC Original:', utcDateString)
-    console.log('Local (America/Sao_Paulo):', formatDateFns(localDate, "yyyy-MM-dd'T'HH:mm:ss"))
-    console.log('Apenas Data (yyyy-MM-dd):', extractDateOnly(utcDateString))
-    console.log('Formatado (dd/MM/yyyy HH:mm):', formatDateTimeSafe(utcDateString))
+    devLogger.log('UTC Original:', utcDateString)
+    devLogger.log('Local (America/Sao_Paulo):', formatDateFns(localDate, "yyyy-MM-dd'T'HH:mm:ss"))
+    devLogger.log('Apenas Data (yyyy-MM-dd):', extractDateOnly(utcDateString))
+    devLogger.log('Formatado (dd/MM/yyyy HH:mm):', formatDateTimeSafe(utcDateString))
   } catch (error) {
-    console.error('ERRO:', error instanceof Error ? error.message : String(error))
+    devLogger.error('ERRO:', error instanceof Error ? error.message : String(error))
   }
 
-  console.log('========================================')
+  devLogger.log('========================================')
 }
 
 // =========================================================
@@ -446,7 +447,7 @@ export function debugDate(utcDateString: string): void {
  */
 export function getCurrentDateLocal(formatString: string = 'yyyy-MM-dd'): string {
   if (formatString !== 'yyyy-MM-dd') {
-    console.warn('[dateHelpers] getCurrentDateLocal com formato customizado está deprecated. Use formatDateSafe() ou getCurrentDate()')
+    devLogger.warn('[dateHelpers] getCurrentDateLocal com formato customizado está deprecated. Use formatDateSafe() ou getCurrentDate()')
   }
   return getCurrentDate()
 }
@@ -457,7 +458,7 @@ export function getCurrentDateLocal(formatString: string = 'yyyy-MM-dd'): string
  */
 export function getCurrentTimeLocal(formatString: string = 'HH:mm'): string {
   if (formatString !== 'HH:mm') {
-    console.warn('[dateHelpers] getCurrentTimeLocal com formato customizado está deprecated. Use formatTimeSafe() ou getCurrentTime()')
+    devLogger.warn('[dateHelpers] getCurrentTimeLocal com formato customizado está deprecated. Use formatTimeSafe() ou getCurrentTime()')
   }
   return getCurrentTime()
 }

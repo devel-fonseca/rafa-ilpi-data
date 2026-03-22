@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useWebSocketContext } from '@/contexts/WebSocketContext'
 import { tenantKey } from '@/lib/query-keys'
+import { devLogger } from '@/utils/devLogger'
 
 const DASHBOARD_OVERVIEW_KEY = tenantKey('admin-dashboard-overview')
 const INVALIDATION_COOLDOWN_MS = 1500
@@ -44,7 +45,7 @@ export function useAdminDashboardRealtime(options?: { enabled?: boolean }) {
       const now = Date.now()
       if (now - lastInvalidationRef.current < INVALIDATION_COOLDOWN_MS) {
         if (shouldDebugSource(source)) {
-          console.debug('[AdminDashboardRealtime] skipped by cooldown', {
+          devLogger.debug('[AdminDashboardRealtime] skipped by cooldown', {
             eventName,
             source,
             payload,
@@ -55,7 +56,7 @@ export function useAdminDashboardRealtime(options?: { enabled?: boolean }) {
 
       lastInvalidationRef.current = now
       if (shouldDebugSource(source)) {
-        console.debug('[AdminDashboardRealtime] invalidating overview', {
+        devLogger.debug('[AdminDashboardRealtime] invalidating overview', {
           eventName,
           source,
           payload,

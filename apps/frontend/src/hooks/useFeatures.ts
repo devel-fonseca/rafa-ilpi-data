@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useFeaturesStore } from '@/stores/features.store'
 import { useAuthStore } from '@/stores/auth.store'
+import { devLogger } from '@/utils/devLogger'
 
 /**
  * Hook para gerenciar features do plano do tenant
@@ -45,7 +46,7 @@ export function useFeatures() {
   // Buscar features ao montar (se autenticado e ainda não carregou)
   useEffect(() => {
     if (isAuthenticated && !plan && !isLoading) {
-      console.log('🔄 useFeatures - Buscando features do plano...')
+      devLogger.log('🔄 useFeatures - Buscando features do plano...')
       fetchFeatures()
     }
   }, [isAuthenticated, plan, isLoading, fetchFeatures])

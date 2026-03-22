@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useWebSocketContext } from '@/contexts/WebSocketContext'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
+import { devLogger } from '@/utils/devLogger'
 
 /**
  * Hook para gerenciar locks de medicamentos em tempo real
@@ -69,7 +70,7 @@ export function useMedicationLock() {
         })
       }
 
-      console.log('[MedicationLock] Medication locked:', data)
+      devLogger.log('[MedicationLock] Medication locked:', data)
     },
     [getLockKey, user?.id]
   )
@@ -93,7 +94,7 @@ export function useMedicationLock() {
         return newLocks
       })
 
-      console.log('[MedicationLock] Medication unlocked:', data)
+      devLogger.log('[MedicationLock] Medication unlocked:', data)
     },
     [getLockKey]
   )

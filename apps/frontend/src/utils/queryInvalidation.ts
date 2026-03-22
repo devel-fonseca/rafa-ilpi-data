@@ -30,6 +30,7 @@
 
 import { QueryClient } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@/constants/queryKeys'
+import { devLogger } from '@/utils/devLogger'
 
 // ──────────────────────────────────────────────────────────────────────────
 // HELPERS GLOBAIS
@@ -49,7 +50,7 @@ import { QUERY_KEYS } from '@/constants/queryKeys'
  * }
  */
 export function invalidateGlobalQueries(queryClient: QueryClient) {
-  console.log('🔄 Invalidando queries globais (audit + notifications)')
+  devLogger.log('🔄 Invalidando queries globais (audit + notifications)')
 
   // Invalidar audit queries (que agora usam tenantKey)
   queryClient.invalidateQueries({
@@ -96,7 +97,7 @@ export function invalidateAfterScheduleMutation(
   queryClient: QueryClient,
   residentId: string
 ) {
-  console.log(`🔄 Invalidando queries de schedule para residente ${residentId}`)
+  devLogger.log(`🔄 Invalidando queries de schedule para residente ${residentId}`)
 
   // Invalidar usando predicate para pegar variações com tenantKey
   queryClient.invalidateQueries({
@@ -165,7 +166,7 @@ export function invalidateAfterDailyRecordMutation(
   residentId: string,
   recordDate?: string
 ) {
-  console.log(`🔄 Invalidando queries de daily records para residente ${residentId}`)
+  devLogger.log(`🔄 Invalidando queries de daily records para residente ${residentId}`)
 
   // Invalidar usando predicate para pegar variações com tenantKey
   queryClient.invalidateQueries({
@@ -200,7 +201,7 @@ export function invalidateAfterDailyRecordMutation(
   })
 
   // Dashboard do cuidador (tarefas agregadas)
-  console.log('🔄 Invalidando queries caregiver-tasks')
+  devLogger.log('🔄 Invalidando queries caregiver-tasks')
   queryClient.invalidateQueries({
     predicate: (query) => {
       const queryKey = query.queryKey as unknown[]
@@ -208,7 +209,7 @@ export function invalidateAfterDailyRecordMutation(
         typeof k === 'string' && k === 'caregiver-tasks'
       )
       if (shouldInvalidate) {
-        console.log('✅ Invalidando query:', query.queryKey)
+        devLogger.log('✅ Invalidando query:', query.queryKey)
       }
       return shouldInvalidate
     },
@@ -241,7 +242,7 @@ export function invalidateAfterResidentMutation(
   queryClient: QueryClient,
   residentId?: string
 ) {
-  console.log('🔄 Invalidando queries de residents')
+  devLogger.log('🔄 Invalidando queries de residents')
 
   // Listas gerais
   queryClient.invalidateQueries({
@@ -277,7 +278,7 @@ export function invalidateAfterClinicalMutation(
   residentId: string,
   clinicalDataType: 'profile' | 'vitalSign' | 'note'
 ) {
-  console.log(`🔄 Invalidando queries clínicas (${clinicalDataType}) para ${residentId}`)
+  devLogger.log(`🔄 Invalidando queries clínicas (${clinicalDataType}) para ${residentId}`)
 
   switch (clinicalDataType) {
     case 'profile':
@@ -329,7 +330,7 @@ export function invalidateAfterPrescriptionMutation(
   residentId?: string,
   prescriptionId?: string
 ) {
-  console.log(`🔄 Invalidando queries de prescriptions${residentId ? ` para ${residentId}` : ''}`)
+  devLogger.log(`🔄 Invalidando queries de prescriptions${residentId ? ` para ${residentId}` : ''}`)
 
   // Invalidar todas as queries de prescriptions usando predicate
   queryClient.invalidateQueries({
@@ -424,7 +425,7 @@ export function invalidateAfterBedMutation(
   _bedIds?: string[],
   residentId?: string
 ) {
-  console.log('🔄 Invalidando queries de beds')
+  devLogger.log('🔄 Invalidando queries de beds')
 
   // Invalidar queries de beds usando predicate
   queryClient.invalidateQueries({
@@ -474,7 +475,7 @@ export function invalidateAfterBedTransfer(
   queryClient: QueryClient,
   bedIds: string[]
 ) {
-  console.log('⚠️ invalidateAfterBedTransfer is deprecated, use invalidateAfterBedMutation')
+  devLogger.log('⚠️ invalidateAfterBedTransfer is deprecated, use invalidateAfterBedMutation')
   invalidateAfterBedMutation(queryClient, bedIds)
 }
 
@@ -504,7 +505,7 @@ export function invalidateAfterMedicationMutation(
   prescriptionId: string,
   medicationId?: string
 ) {
-  console.log(`🔄 Invalidando queries de medications para prescrição ${prescriptionId}`)
+  devLogger.log(`🔄 Invalidando queries de medications para prescrição ${prescriptionId}`)
 
   // Invalidar medications usando predicate
   queryClient.invalidateQueries({
@@ -571,7 +572,7 @@ export function invalidateAfterMedicationMutation(
 export function invalidateAfterAgendaMutation(
   queryClient: QueryClient
 ) {
-  console.log('🔄 Invalidando queries de agenda')
+  devLogger.log('🔄 Invalidando queries de agenda')
 
   // Invalidar agenda usando predicate
   queryClient.invalidateQueries({

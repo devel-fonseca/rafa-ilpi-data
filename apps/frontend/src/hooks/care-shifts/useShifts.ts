@@ -40,6 +40,7 @@ import type {
   ShiftHistory,
 } from '@/types/care-shifts/care-shifts';
 import { tenantKey } from '@/lib/query-keys';
+import { devLogger } from '@/utils/devLogger';
 
 // ────────────────────────────────────────────────────────────────────────────
 // QUERY HOOKS
@@ -335,25 +336,22 @@ export function useGenerateShifts() {
     mutationFn: () => generateShifts(),
     onSuccess: (result) => {
       // Log completo do resultado para diagnóstico
-      console.group('📊 Resultado da Geração de Plantões');
-      console.log('Gerados:', result.generated);
-      console.log('Pulados:', result.skipped);
-      console.log('Erros:', result.errors?.length || 0);
+      devLogger.log('📊 Resultado da Geração de Plantões');
+      devLogger.log('Gerados:', result.generated);
+      devLogger.log('Pulados:', result.skipped);
+      devLogger.log('Erros:', result.errors?.length || 0);
 
       // Detalhes de cada dia processado
       if (result.details && result.details.length > 0) {
-        console.group('📋 Detalhes por dia:');
+        devLogger.log('📋 Detalhes por dia:');
         result.details.forEach((detail: { date: string; action: string; reason?: string; teamId?: string }) => {
           if (detail.action === 'skipped' && detail.reason) {
-            console.warn(`⏭️  ${detail.date}: ${detail.reason}`);
+            devLogger.warn(`⏭️  ${detail.date}: ${detail.reason}`);
           } else if (detail.action === 'generated') {
-            console.log(`✅ ${detail.date}: Gerado${detail.teamId ? ` (Equipe: ${detail.teamId})` : ''}`);
+            devLogger.log(`✅ ${detail.date}: Gerado${detail.teamId ? ` (Equipe: ${detail.teamId})` : ''}`);
           }
         });
-        console.groupEnd();
       }
-
-      console.groupEnd();
 
       // Invalidar queries para recarregar plantões
       queryClient.invalidateQueries({
@@ -381,7 +379,7 @@ export function useGenerateShifts() {
         toast.warning(message, {
           duration: 7000,
         });
-        console.info('💡 Dica: Verifique no console acima os detalhes de cada dia processado');
+        devLogger.info('💡 Dica: Verifique no console acima os detalhes de cada dia processado');
       }
 
       // Mostrar erros, se houver
@@ -389,7 +387,7 @@ export function useGenerateShifts() {
         toast.error(`${result.errors.length} erros durante a geração. Verifique o console.`, {
           duration: 7000,
         });
-        console.error('❌ Erros na geração de plantões:', result.errors);
+        devLogger.error('❌ Erros na geração de plantões:', result.errors);
       }
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {

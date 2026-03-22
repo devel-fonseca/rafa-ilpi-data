@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import { differenceInYears } from 'date-fns'
 import { formatDateLongSafe, formatDateOnlySafe, getCurrentDateTime, normalizeUTCDate, extractDateOnly } from '@/utils/dateHelpers'
+import { devLogger } from '@/utils/devLogger'
 
 // ==================== TIPOS ====================
 
@@ -206,7 +207,7 @@ function drawHeader(doc: jsPDF, data: PDFData): number {
       const admissionFormatted = formatDateOnlySafe(data.resident.admissionDate)
       infoText += `Admissão: ${admissionFormatted}`
     } catch (error) {
-      console.warn('Erro ao formatar data de admissão:', error)
+      devLogger.warn('Erro ao formatar data de admissão:', error)
       infoText += `Admissão: ${data.resident.admissionDate}`
     }
   }
